@@ -29,7 +29,7 @@ class SqlaUserRepositoryAdapter(UserRepository):
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
-    async def read_by_id(
+    async def get_by_id(
         self,
         user_id: UserId,
         for_update: bool = False,
@@ -45,7 +45,7 @@ class SqlaUserRepositoryAdapter(UserRepository):
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
-    async def read_by_username(
+    async def get_by_username(
         self,
         username: Username,
         for_update: bool = False,
