@@ -17,6 +17,7 @@ RUN groupadd -g ${APP_GID} appgroup && \
 WORKDIR /app
 ENV VIRTUAL_ENV="/app/.venv" \
     PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/src" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 COPY --from=builder --chown=${APP_UID}:${APP_GID} /app/ ./
