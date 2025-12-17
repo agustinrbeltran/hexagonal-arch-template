@@ -3,7 +3,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from app.setup.config.logs import LoggingLevel, configure_logging
+from setup.config.logs import LoggingLevel, configure_logging
 
 
 @pytest.fixture

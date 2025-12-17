@@ -5,8 +5,8 @@ from functools import partial
 
 import pytest
 
-from app.infrastructure.adapters.password_hasher_bcrypt import BcryptPasswordHasher
-from app.infrastructure.adapters.types_ import HasherSemaphore, HasherThreadPoolExecutor
+from common.adapter.types_ import HasherThreadPoolExecutor, HasherSemaphore
+from features.user.adapter.password_hasher_bcrypt import BcryptPasswordHasher
 
 
 @pytest.fixture(scope="session")

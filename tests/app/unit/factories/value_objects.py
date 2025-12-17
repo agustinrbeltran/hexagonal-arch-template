@@ -2,11 +2,11 @@ import uuid
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.domain.value_objects.base import ValueObject
-from app.domain.value_objects.raw_password import RawPassword
-from app.domain.value_objects.user_id import UserId
-from app.domain.value_objects.user_password_hash import UserPasswordHash
-from app.domain.value_objects.username import Username
+from common.domain.core.value_objects.base import ValueObject
+from features.user.domain.core.vo.raw_password import RawPassword
+from features.user.domain.core.vo.user_id import UserId
+from features.user.domain.core.vo.user_password_hash import UserPasswordHash
+from features.user.domain.core.vo.username import Username
 
 
 @dataclass(frozen=True, slots=True, repr=False)

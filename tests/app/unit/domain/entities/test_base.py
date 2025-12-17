@@ -1,6 +1,6 @@
 import pytest
 
-from app.domain.entities.base import Entity
+from common.domain.core.entities.base import Entity
 from tests.app.unit.factories.named_entity import (
     create_named_entity,
     create_named_entity_id,

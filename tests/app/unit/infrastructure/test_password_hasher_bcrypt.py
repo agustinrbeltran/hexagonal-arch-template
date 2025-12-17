@@ -2,9 +2,7 @@ from functools import partial
 
 import pytest
 
-from app.infrastructure.adapters.password_hasher_bcrypt import (
-    BcryptPasswordHasher,
-)
+from features.user.adapter.password_hasher_bcrypt import BcryptPasswordHasher
 from tests.app.unit.factories.value_objects import create_raw_password
 
 

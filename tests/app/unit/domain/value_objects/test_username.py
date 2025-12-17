@@ -1,7 +1,7 @@
 import pytest
 
-from app.domain.exceptions.base import DomainTypeError
-from app.domain.value_objects.username import Username
+from common.domain.core.exceptions.base import DomainTypeError
+from features.user.domain.core.vo.username import Username
 
 
 @pytest.mark.parametrize(

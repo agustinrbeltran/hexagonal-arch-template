@@ -1,13 +1,8 @@
 import pytest
 
-from app.application.common.services.authorization.permissions import (
-    CanManageRole,
-    CanManageSelf,
-    CanManageSubordinate,
-    RoleManagementContext,
-    UserManagementContext,
-)
-from app.domain.enums.user_role import UserRole
+from features.user.domain.core.enums.user_role import UserRole
+from features.user.domain.core.service.permissions import UserManagementContext, \
+  CanManageSelf, CanManageSubordinate, RoleManagementContext, CanManageRole
 from tests.app.unit.factories.user_entity import create_user
 from tests.app.unit.factories.value_objects import create_user_id
 

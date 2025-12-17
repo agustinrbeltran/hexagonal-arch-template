@@ -1,9 +1,7 @@
 import pytest
 
-from app.application.common.exceptions.authorization import AuthorizationError
-from app.application.common.services.authorization.authorize import (
-    authorize,
-)
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.user.domain.core.utils.authorize import authorize
 from tests.app.unit.application.authz_service.permission_stubs import (
     AlwaysAllow,
     AlwaysDeny,

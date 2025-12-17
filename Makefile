@@ -1,25 +1,25 @@
 # Code quality
 .PHONY: code.format code.lint code.test code.cov code.cov.html code.check
 code.format:
-	ruff format
+	uv run ruff format
 
 code.lint: code.format
-	ruff check --exit-non-zero-on-fix
-	slotscheck src
-	mypy
+	uv run ruff check --exit-non-zero-on-fix
+	uv run slotscheck src
+	uv run mypy
 
 code.test:
-	pytest -v
+	uv run pytest -v
 
 code.cov:
-	coverage run -m pytest
-	coverage combine
-	coverage report
+	uv run coverage run -m pytest
+	uv run coverage combine
+	uv run coverage report
 
 code.cov.html:
-	coverage run -m pytest
-	coverage combine
-	coverage html
+	uv run coverage run -m pytest
+	uv run coverage combine
+	uv run coverage html
 
 code.check: code.lint code.test
 

@@ -1,0 +1,2 @@
+class EntrypointError(Exception):
+    pass

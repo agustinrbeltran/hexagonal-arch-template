@@ -1,7 +1,4 @@
-from app.application.common.services.authorization.base import (
-    Permission,
-    PermissionContext,
-)
+from common.domain.core.entities.permission import PermissionContext, Permission
 
 
 class DummyContext(PermissionContext):

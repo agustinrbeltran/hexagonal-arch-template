@@ -3,8 +3,8 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from app.domain.ports.password_hasher import PasswordHasher
-from app.domain.ports.user_id_generator import UserIdGenerator
+from features.user.domain.port.outbound.password_hasher import PasswordHasher
+from features.user.domain.port.outbound.user_id_generator import UserIdGenerator
 from tests.app.unit.domain.services.mock_types import (
     PasswordHasherMock,
     UserIdGeneratorMock,
