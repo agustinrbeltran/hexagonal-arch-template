@@ -16,9 +16,7 @@ or introducing infrastructure concerns.
 
 ### Usage:
 Call the `map_tables` function in the application factory to initialize
-mappings at startup. Additionally, it is necessary to call this function
-in `env.py` for Alembic migrations to ensure all models are available
-during database migrations.
+mappings at startup.
 """
 
 from features.user.adapter.mapper.auth_session import (

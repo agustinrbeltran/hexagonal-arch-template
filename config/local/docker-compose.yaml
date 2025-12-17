@@ -1,37 +1,7 @@
 services:
-  web_app_db_pg:
-    image: postgres:16-alpine
-    shm_size: 128mb
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT}:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-    ports:
-      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
-    depends_on:
-      web_app_db_pg:
-        condition: service_healthy
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
+  # Your FastAPI Application
+  # Note: Supabase services are managed separately via `supabase start`
+  # The app connects to Supabase's database running on localhost:54322
   web_app:
     build:
       context: ../..
@@ -41,22 +11,18 @@ services:
       APP_ENV: ${APP_ENV}
       UVICORN_HOST: ${UVICORN_HOST}
       UVICORN_PORT: ${UVICORN_PORT}
-      POSTGRES_HOST: web_app_db_pg
+      # Connect to Supabase's database (runs on localhost:54322 by default)
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-54322}
     ports:
       - "127.0.0.1:${UVICORN_PORT}:${UVICORN_PORT}"
-    depends_on:
-      web_app_db_pg:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: >
       sh -c "
-      echo 'Running alembic migrations...' &&
-      alembic upgrade head &&
       echo 'Starting Uvicorn...' &&
       uvicorn src.run:make_app --factory --host ${UVICORN_HOST} --port ${UVICORN_PORT} --loop uvloop
       "
-
-volumes:
-  pgdata:
-    name: "web_app_pgdata_${APP_ENV}"
-  pgadmin_data:
-    name: "web_app_pgadmin_${APP_ENV}"
