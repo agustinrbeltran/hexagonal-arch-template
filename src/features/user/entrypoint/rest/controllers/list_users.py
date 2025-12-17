@@ -8,20 +8,20 @@ from fastapi_error_map import ErrorAwareRouter, rule
 from pydantic import BaseModel, ConfigDict, Field
 
 from common.adapter.exceptions.gateway import DataMapperError, ReaderError
-from common.domain.port.inbound.queries.sorting import SortingOrder
-from features.account.entrypoint.exceptions.authorization import AuthorizationError
 from common.domain.core.exceptions.query import PaginationError, SortingError
-from features.user.adapter.exceptions.exceptions import AuthenticationError
-from features.user.domain.port.inbound.list_users_use_case import \
-  ListUsersUseCase, ListUsersQuery
-from features.user.domain.port.outbound.queries.user_queries import \
-  ListUsersQM
-
-from features.account.entrypoint.rest.openapi_marker import cookie_scheme
+from common.domain.port.inbound.queries.sorting import SortingOrder
 from common.entrypoint.rest.errors.callbacks import log_error, log_info
 from common.entrypoint.rest.errors.translators import (
     ServiceUnavailableTranslator,
 )
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.account.entrypoint.rest.openapi_marker import cookie_scheme
+from features.user.adapter.exceptions.exceptions import AuthenticationError
+from features.user.domain.port.inbound.list_users_use_case import (
+    ListUsersQuery,
+    ListUsersUseCase,
+)
+from features.user.domain.port.outbound.queries.user_queries import ListUsersQM
 
 
 class ListUsersRequestPydantic(BaseModel):

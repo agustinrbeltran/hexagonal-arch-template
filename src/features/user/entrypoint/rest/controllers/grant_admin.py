@@ -8,19 +8,21 @@ from fastapi import APIRouter, Path, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
 from common.adapter.exceptions.gateway import DataMapperError
-from features.user.adapter.exceptions.exceptions import AuthenticationError
-from features.account.entrypoint.exceptions.authorization import AuthorizationError
-from features.user.domain.core.exceptions.user import (
-    RoleChangeNotPermittedError,
-    UserNotFoundByIdError,
-)
-from features.account.entrypoint.rest.openapi_marker import cookie_scheme
 from common.entrypoint.rest.errors.callbacks import log_error, log_info
 from common.entrypoint.rest.errors.translators import (
     ServiceUnavailableTranslator,
 )
-from features.user.domain.port.inbound.grant_admin_use_case import \
-  GrantAdminCommand, GrantAdminUseCase
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.account.entrypoint.rest.openapi_marker import cookie_scheme
+from features.user.adapter.exceptions.exceptions import AuthenticationError
+from features.user.domain.core.exceptions.user import (
+    RoleChangeNotPermittedError,
+    UserNotFoundByIdError,
+)
+from features.user.domain.port.inbound.grant_admin_use_case import (
+    GrantAdminCommand,
+    GrantAdminUseCase,
+)
 
 
 def create_grant_admin_router() -> APIRouter:

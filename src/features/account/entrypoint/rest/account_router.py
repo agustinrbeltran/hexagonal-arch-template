@@ -1,13 +1,11 @@
 from fastapi import APIRouter
 
-from features.account.entrypoint.rest.controllers.change_password import \
-    create_change_password_router
-from features.account.entrypoint.rest.controllers.log_in import \
-    create_log_in_router
-from features.account.entrypoint.rest.controllers.log_out import \
-    create_log_out_router
-from features.account.entrypoint.rest.controllers.sign_up import \
-    create_sign_up_router
+from features.account.entrypoint.rest.controllers.change_password import (
+    create_change_password_router,
+)
+from features.account.entrypoint.rest.controllers.log_in import create_log_in_router
+from features.account.entrypoint.rest.controllers.log_out import create_log_out_router
+from features.account.entrypoint.rest.controllers.sign_up import create_sign_up_router
 
 
 def create_account_router() -> APIRouter:

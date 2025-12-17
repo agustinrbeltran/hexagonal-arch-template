@@ -1,16 +1,21 @@
 import logging
 from dataclasses import dataclass
 
-from features.account.domain.core.services.auth_session_service import \
-    AuthSessionService
-from features.user.adapter.exceptions.exceptions import \
-    AlreadyAuthenticatedError, AuthenticationError
-from features.user.domain.core.constants import AUTH_ALREADY_AUTHENTICATED, \
-    AUTH_PASSWORD_INVALID, AUTH_ACCOUNT_INACTIVE
+from features.account.domain.core.services.auth_session_service import (
+    AuthSessionService,
+)
+from features.user.adapter.exceptions.exceptions import (
+    AlreadyAuthenticatedError,
+    AuthenticationError,
+)
+from features.user.domain.core.constants import (
+    AUTH_ACCOUNT_INACTIVE,
+    AUTH_ALREADY_AUTHENTICATED,
+    AUTH_PASSWORD_INVALID,
+)
 from features.user.domain.core.entities.user import User
 from features.user.domain.core.exceptions.user import UserNotFoundByUsernameError
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
+from features.user.domain.core.service.current_user_service import CurrentUserService
 from features.user.domain.core.service.user_service import UserService
 from features.user.domain.core.vo.raw_password import RawPassword
 from features.user.domain.core.vo.username import Username

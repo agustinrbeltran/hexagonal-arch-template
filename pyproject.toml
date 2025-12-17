@@ -162,7 +162,7 @@ force-wrap-aliases = true
 split-on-trailing-comma = true
 
 [tool.ruff.lint.per-file-ignores]
-"src/app/infrastructure/persistence_sqla/alembic/**" = ["ALL", ]
+"src/common/adapter/persistence_sqla/alembic/**" = ["ALL", ]
 "tests/**" = [
     "ARG002", # unused-method-argument
     "PLC2801", # unnecessary-dunder-call
@@ -173,14 +173,14 @@ split-on-trailing-comma = true
     "S107", # hardcoded-password-default
 ]
 #
-"src/app/infrastructure/adapters/password_hasher_bcrypt.py" = ["E501", ]  # line-too-long
-"src/app/infrastructure/auth/handlers/constants.py" = ["S105", ]          # hardcoded-password-string
-"src/app/presentation/http/auth/constants.py" = ["S105", ]                # hardcoded-password-string
-"src/app/presentation/http/errors/translators.py" = ["ARG002", ]          # unused-method-argument
-"scripts/dishka/plot_dependencies_data.py" = ["T201", ]                   # print
+"src/features/user/adapter/password_hasher_bcrypt.py" = ["E501", ]                 # line-too-long
+"src/features/account/entrypoint/rest/constants.py" = ["S105", ]                   # hardcoded-password-string
+"src/features/user/domain/core/constants.py" = ["S105", ]                          # hardcoded-password-string
+"src/common/entrypoint/rest/errors/translators.py" = ["ARG002", ]                  # unused-method-argument
+"scripts/dishka/plot_dependencies_data.py" = ["T201", ]                            # print
 
 [tool.slotscheck]
 strict-imports = true
 exclude-modules = '''
-^app\.infrastructure\.persistence_sqla\.alembic
+^common\.adapter\.persistence_sqla\.alembic
 '''

@@ -6,10 +6,6 @@ from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
 from common.adapter.exceptions.gateway import DataMapperError
-from features.account.domain.port.inbound.log_out_use_case import LogOutUseCase
-from features.account.entrypoint.exceptions.authorization import AuthorizationError
-
-from features.account.entrypoint.rest.openapi_marker import cookie_scheme
 from common.entrypoint.rest.errors.callbacks import (
     log_error,
     log_info,
@@ -17,6 +13,9 @@ from common.entrypoint.rest.errors.callbacks import (
 from common.entrypoint.rest.errors.translators import (
     ServiceUnavailableTranslator,
 )
+from features.account.domain.port.inbound.log_out_use_case import LogOutUseCase
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.account.entrypoint.rest.openapi_marker import cookie_scheme
 from features.user.adapter.exceptions.exceptions import AuthenticationError
 
 

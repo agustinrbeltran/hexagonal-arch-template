@@ -5,7 +5,7 @@ from functools import partial
 
 import pytest
 
-from common.adapter.types_ import HasherThreadPoolExecutor, HasherSemaphore
+from common.adapter.types_ import HasherSemaphore, HasherThreadPoolExecutor
 from features.user.adapter.password_hasher_bcrypt import BcryptPasswordHasher
 
 

@@ -5,18 +5,20 @@ from uuid import UUID
 from common.domain.port.outbound.transaction_manager import (
     TransactionManager,
 )
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
-from features.user.domain.core.service.permissions import CanManageRole, \
-    RoleManagementContext, CanManageSubordinate, UserManagementContext
-from features.user.domain.core.service.user_service import UserService
-from features.user.domain.core.utils.authorize import authorize
-
 from features.user.domain.core.entities.user import User
 from features.user.domain.core.enums.user_role import UserRole
 from features.user.domain.core.exceptions.user import (
     UserNotFoundByIdError,
 )
+from features.user.domain.core.service.current_user_service import CurrentUserService
+from features.user.domain.core.service.permissions import (
+    CanManageRole,
+    CanManageSubordinate,
+    RoleManagementContext,
+    UserManagementContext,
+)
+from features.user.domain.core.service.user_service import UserService
+from features.user.domain.core.utils.authorize import authorize
 from features.user.domain.core.vo.raw_password import RawPassword
 from features.user.domain.core.vo.user_id import UserId
 from features.user.domain.port.outbound.user_repository import UserRepository

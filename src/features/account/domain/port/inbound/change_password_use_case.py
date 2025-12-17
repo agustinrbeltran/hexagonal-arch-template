@@ -4,15 +4,17 @@ from dataclasses import dataclass
 from common.domain.port.outbound.transaction_manager import (
     TransactionManager,
 )
-from features.user.adapter.exceptions.exceptions import \
-    AuthenticationChangeError, ReAuthenticationError
-from features.user.domain.core.constants import AUTH_PASSWORD_INVALID, \
-    AUTH_PASSWORD_NEW_SAME_AS_CURRENT
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
+from features.user.adapter.exceptions.exceptions import (
+    AuthenticationChangeError,
+    ReAuthenticationError,
+)
+from features.user.domain.core.constants import (
+    AUTH_PASSWORD_INVALID,
+    AUTH_PASSWORD_NEW_SAME_AS_CURRENT,
+)
+from features.user.domain.core.service.current_user_service import CurrentUserService
 from features.user.domain.core.service.user_service import UserService
 from features.user.domain.core.vo.raw_password import RawPassword
-
 
 log = logging.getLogger(__name__)
 

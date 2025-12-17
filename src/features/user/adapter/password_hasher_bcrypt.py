@@ -8,11 +8,11 @@ from contextlib import asynccontextmanager
 
 import bcrypt
 
-from common.adapter.types_ import HasherThreadPoolExecutor, HasherSemaphore
-from features.user.domain.port.outbound.password_hasher import PasswordHasher
+from common.adapter.types_ import HasherSemaphore, HasherThreadPoolExecutor
+from features.user.adapter.exceptions.password_hasher import PasswordHasherBusyError
 from features.user.domain.core.vo.raw_password import RawPassword
 from features.user.domain.core.vo.user_password_hash import UserPasswordHash
-from features.user.adapter.exceptions.password_hasher import PasswordHasherBusyError
+from features.user.domain.port.outbound.password_hasher import PasswordHasher
 
 log = logging.getLogger(__name__)
 

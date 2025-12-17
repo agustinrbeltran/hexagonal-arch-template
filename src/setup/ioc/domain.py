@@ -1,13 +1,11 @@
 from dishka import Provider, Scope, provide, provide_all
 
-from common.adapter.types_ import HasherThreadPoolExecutor, HasherSemaphore
+from common.adapter.types_ import HasherSemaphore, HasherThreadPoolExecutor
 from features.user.adapter.password_hasher_bcrypt import BcryptPasswordHasher
-from features.user.adapter.utils.user_id_generator_uuid import \
-    UuidUserIdGenerator
+from features.user.adapter.utils.user_id_generator_uuid import UuidUserIdGenerator
 from features.user.domain.core.service.user_service import UserService
 from features.user.domain.port.outbound.password_hasher import PasswordHasher
 from features.user.domain.port.outbound.user_id_generator import UserIdGenerator
-
 from setup.config.security import SecuritySettings
 
 

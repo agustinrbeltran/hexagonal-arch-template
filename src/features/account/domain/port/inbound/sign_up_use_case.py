@@ -5,14 +5,14 @@ from uuid import UUID
 
 from common.domain.port.outbound.flusher import Flusher
 from common.domain.port.outbound.transaction_manager import TransactionManager
-from features.user.adapter.exceptions.exceptions import \
-    AlreadyAuthenticatedError, AuthenticationError
+from features.user.adapter.exceptions.exceptions import (
+    AlreadyAuthenticatedError,
+    AuthenticationError,
+)
 from features.user.domain.core.constants import AUTH_ALREADY_AUTHENTICATED
 from features.user.domain.core.exceptions.user import UsernameAlreadyExistsError
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
+from features.user.domain.core.service.current_user_service import CurrentUserService
 from features.user.domain.core.service.user_service import UserService
-
 from features.user.domain.core.vo.raw_password import RawPassword
 from features.user.domain.core.vo.username import Username
 from features.user.domain.port.outbound.user_repository import UserRepository

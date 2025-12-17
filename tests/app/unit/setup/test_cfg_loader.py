@@ -4,8 +4,16 @@ from pathlib import Path
 
 import pytest
 
-from setup.config.loader import validate_env, ValidEnvs, ENV_VAR_NAME, \
-    get_current_env, read_config, DirContents, merge_dicts, load_full_config
+from setup.config.loader import (
+    ENV_VAR_NAME,
+    DirContents,
+    ValidEnvs,
+    get_current_env,
+    load_full_config,
+    merge_dicts,
+    read_config,
+    validate_env,
+)
 
 
 @pytest.mark.parametrize("env", list(ValidEnvs))

@@ -7,20 +7,21 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from common.adapter.exceptions.gateway import DataMapperError
 from common.domain.core.exceptions.base import DomainTypeError
-from features.account.domain.port.inbound.log_in_use_case import LogInUseCase, \
-  LogInCommand
-from features.account.entrypoint.exceptions.authorization import AuthorizationError
-
 from common.entrypoint.rest.errors.callbacks import log_error, log_info
 from common.entrypoint.rest.errors.translators import (
     ServiceUnavailableTranslator,
 )
-from features.user.adapter.exceptions.exceptions import \
-  AlreadyAuthenticatedError, AuthenticationError
-from features.user.adapter.exceptions.password_hasher import \
-  PasswordHasherBusyError
-from features.user.domain.core.exceptions.user import \
-  UserNotFoundByUsernameError
+from features.account.domain.port.inbound.log_in_use_case import (
+    LogInCommand,
+    LogInUseCase,
+)
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.user.adapter.exceptions.exceptions import (
+    AlreadyAuthenticatedError,
+    AuthenticationError,
+)
+from features.user.adapter.exceptions.password_hasher import PasswordHasherBusyError
+from features.user.domain.core.exceptions.user import UserNotFoundByUsernameError
 
 
 def create_log_in_router() -> APIRouter:

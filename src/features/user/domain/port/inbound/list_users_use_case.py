@@ -1,20 +1,16 @@
 import logging
 from dataclasses import dataclass
 
-from common.domain.port.inbound.queries.offset_pagination import \
-    OffsetPaginationParams
-from common.domain.port.inbound.queries.sorting import SortingOrder, \
-    SortingParams
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
-from features.user.domain.core.service.permissions import CanManageRole, \
-    RoleManagementContext
-from features.user.domain.core.utils.authorize import authorize
-
-from features.user.domain.port.outbound.queries.user_queries import \
-    ListUsersQM
-
+from common.domain.port.inbound.queries.offset_pagination import OffsetPaginationParams
+from common.domain.port.inbound.queries.sorting import SortingOrder, SortingParams
 from features.user.domain.core.enums.user_role import UserRole
+from features.user.domain.core.service.current_user_service import CurrentUserService
+from features.user.domain.core.service.permissions import (
+    CanManageRole,
+    RoleManagementContext,
+)
+from features.user.domain.core.utils.authorize import authorize
+from features.user.domain.port.outbound.queries.user_queries import ListUsersQM
 from features.user.domain.port.outbound.user_repository import UserRepository
 
 log = logging.getLogger(__name__)

@@ -1,4 +1,4 @@
-from common.domain.core.entities.permission import PermissionContext, Permission
+from common.domain.core.entities.permission import Permission, PermissionContext
 
 
 class DummyContext(PermissionContext):

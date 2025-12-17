@@ -1,14 +1,12 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from common.domain.port.inbound.queries.offset_pagination import \
-    OffsetPaginationParams
+from common.domain.port.inbound.queries.offset_pagination import OffsetPaginationParams
 from common.domain.port.inbound.queries.sorting import SortingParams
 from features.user.domain.core.entities.user import User
 from features.user.domain.core.vo.user_id import UserId
 from features.user.domain.core.vo.username import Username
-from features.user.domain.port.outbound.queries.user_queries import \
-    ListUsersQM
+from features.user.domain.port.outbound.queries.user_queries import ListUsersQM
 
 
 class UserRepository(Protocol):

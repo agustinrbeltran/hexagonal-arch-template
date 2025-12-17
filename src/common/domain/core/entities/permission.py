@@ -11,6 +11,7 @@ class Permission[PC: PermissionContext](ABC):
     @abstractmethod
     def is_satisfied_by(self, context: PC) -> bool: ...
 
+
 class AnyOf[PC: PermissionContext](Permission[PC]):
     def __init__(self, *permissions: Permission[PC]) -> None:
         self._permissions = permissions

@@ -12,7 +12,9 @@ from features.user.entrypoint.rest.controllers.deactivate_user import (
 from features.user.entrypoint.rest.controllers.grant_admin import (
     create_grant_admin_router,
 )
-from features.user.entrypoint.rest.controllers.list_users import create_list_users_router
+from features.user.entrypoint.rest.controllers.list_users import (
+    create_list_users_router,
+)
 from features.user.entrypoint.rest.controllers.revoke_admin import (
     create_revoke_admin_router,
 )

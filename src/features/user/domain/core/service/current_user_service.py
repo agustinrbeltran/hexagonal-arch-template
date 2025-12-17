@@ -1,15 +1,13 @@
 import logging
 
-from features.user.domain.port.outbound.access_revoker import AccessRevoker
-from features.user.domain.port.outbound.identity_provider import \
-    IdentityProvider
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
 from features.user.domain.core.constants import (
     AUTHZ_NO_CURRENT_USER,
     AUTHZ_NOT_AUTHORIZED,
 )
 from features.user.domain.core.entities.user import User
-from features.account.entrypoint.exceptions.authorization import \
-    AuthorizationError
+from features.user.domain.port.outbound.access_revoker import AccessRevoker
+from features.user.domain.port.outbound.identity_provider import IdentityProvider
 from features.user.domain.port.outbound.user_repository import UserRepository
 
 log = logging.getLogger(__name__)

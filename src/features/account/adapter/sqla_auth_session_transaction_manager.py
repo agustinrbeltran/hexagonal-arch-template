@@ -2,12 +2,12 @@ import logging
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from common.adapter.constants import DB_COMMIT_DONE, DB_COMMIT_FAILED, \
-    DB_QUERY_FAILED
+from common.adapter.constants import DB_COMMIT_DONE, DB_COMMIT_FAILED, DB_QUERY_FAILED
 from common.adapter.exceptions.gateway import DataMapperError
 from features.account.adapter.types_ import AuthAsyncSession
-from features.account.domain.port.outbound.auth_session_transaction_manager import \
-    AuthSessionTransactionManager
+from features.account.domain.port.outbound.auth_session_transaction_manager import (
+    AuthSessionTransactionManager,
+)
 
 log = logging.getLogger(__name__)
 

@@ -3,12 +3,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from common.adapter.constants import DB_QUERY_FAILED
 from common.adapter.exceptions.gateway import DataMapperError
-from features.account.domain.core.entities.auth_session import AuthSession
-from features.account.domain.port.outbound.auth_session_gateway import \
-    AuthSessionGateway
-from features.user.domain.core.vo.user_id import UserId
 from features.account.adapter.types_ import AuthAsyncSession
-
+from features.account.domain.core.entities.auth_session import AuthSession
+from features.account.domain.port.outbound.auth_session_gateway import (
+    AuthSessionGateway,
+)
+from features.user.domain.core.vo.user_id import UserId
 
 
 class SqlaAuthSessionGatewayAdapter(AuthSessionGateway):

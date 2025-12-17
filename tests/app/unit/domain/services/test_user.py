@@ -2,11 +2,12 @@ import pytest
 
 from features.user.domain.core.entities.user import User
 from features.user.domain.core.enums.user_role import UserRole
-from features.user.domain.core.exceptions.user import \
-    RoleAssignmentNotPermittedError, ActivationChangeNotPermittedError, \
-    RoleChangeNotPermittedError
+from features.user.domain.core.exceptions.user import (
+    ActivationChangeNotPermittedError,
+    RoleAssignmentNotPermittedError,
+    RoleChangeNotPermittedError,
+)
 from features.user.domain.core.service.user_service import UserService
-
 from tests.app.unit.domain.services.mock_types import (
     PasswordHasherMock,
     UserIdGeneratorMock,

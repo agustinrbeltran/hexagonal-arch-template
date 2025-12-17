@@ -1,8 +1,7 @@
 from fastapi import APIRouter
 
 from common.entrypoint.rest.controllers.router import create_general_router
-from features.account.entrypoint.rest.account_router import \
-    create_account_router
+from features.account.entrypoint.rest.account_router import create_account_router
 from features.user.entrypoint.rest.user_router import create_users_router
 
 

@@ -3,8 +3,9 @@ import logging
 from starlette.requests import Request
 
 from features.account.domain.core.entities.auth_session import AuthSession
-from features.account.domain.port.outbound.auth_session_transport import \
-    AuthSessionTransport
+from features.account.domain.port.outbound.auth_session_transport import (
+    AuthSessionTransport,
+)
 from features.account.entrypoint.rest.access_token_processor_jwt import (
     JwtAccessTokenProcessor,
 )

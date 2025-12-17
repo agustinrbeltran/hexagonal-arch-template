@@ -1,20 +1,20 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from common.adapter.constants import DB_QUERY_FAILED
 from common.adapter.exceptions.gateway import DataMapperError, ReaderError
 from common.adapter.types_ import MainAsyncSession
 from common.domain.core.exceptions.query import SortingError
-from common.domain.port.inbound.queries.offset_pagination import \
-    OffsetPaginationParams
-from common.domain.port.inbound.queries.sorting import SortingParams, \
-    SortingOrder
+from common.domain.port.inbound.queries.offset_pagination import OffsetPaginationParams
+from common.domain.port.inbound.queries.sorting import SortingOrder, SortingParams
 from features.user.adapter.mapper.user import users_table
 from features.user.domain.core.entities.user import User
 from features.user.domain.core.vo.user_id import UserId
 from features.user.domain.core.vo.username import Username
-from features.user.domain.port.outbound.queries.user_queries import ListUsersQM, \
-    UserQueryModel
+from features.user.domain.port.outbound.queries.user_queries import (
+    ListUsersQM,
+    UserQueryModel,
+)
 from features.user.domain.port.outbound.user_repository import UserRepository
 
 
@@ -113,4 +113,3 @@ class SqlaUserRepositoryAdapter(UserRepository):
         ]
         total = rows[0].total
         return ListUsersQM(users=users, total=total)
-

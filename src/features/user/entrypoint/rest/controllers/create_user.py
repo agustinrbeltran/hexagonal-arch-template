@@ -8,21 +8,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from common.adapter.exceptions.gateway import DataMapperError
 from common.domain.core.exceptions.base import DomainTypeError
-from features.account.entrypoint.rest.openapi_marker import cookie_scheme
-from features.user.adapter.exceptions.exceptions import AuthenticationError
-from features.user.adapter.exceptions.password_hasher import \
-  PasswordHasherBusyError
-from features.user.domain.core.exceptions.user import \
-  RoleAssignmentNotPermittedError, UsernameAlreadyExistsError
-
-from features.account.entrypoint.exceptions.authorization import AuthorizationError
-from features.user.domain.core.enums.user_role import UserRole
 from common.entrypoint.rest.errors.callbacks import log_error, log_info
 from common.entrypoint.rest.errors.translators import (
     ServiceUnavailableTranslator,
 )
-from features.user.domain.port.inbound.create_user_use_case import \
-  CreateUserUseCase, CreateUserResponse, CreateUserCommand
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
+from features.account.entrypoint.rest.openapi_marker import cookie_scheme
+from features.user.adapter.exceptions.exceptions import AuthenticationError
+from features.user.adapter.exceptions.password_hasher import PasswordHasherBusyError
+from features.user.domain.core.enums.user_role import UserRole
+from features.user.domain.core.exceptions.user import (
+    RoleAssignmentNotPermittedError,
+    UsernameAlreadyExistsError,
+)
+from features.user.domain.port.inbound.create_user_use_case import (
+    CreateUserCommand,
+    CreateUserResponse,
+    CreateUserUseCase,
+)
 
 
 class CreateUserRequestPydantic(BaseModel):

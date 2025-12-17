@@ -5,19 +5,19 @@ code.format:
 
 code.lint: code.format
 	uv run ruff check --exit-non-zero-on-fix
-	uv run slotscheck src
+	PYTHONPATH=src uv run slotscheck src
 	uv run mypy
 
 code.test:
-	uv run pytest -v
+	PYTHONPATH=src uv run pytest -v
 
 code.cov:
-	uv run coverage run -m pytest
+	PYTHONPATH=src uv run coverage run -m pytest
 	uv run coverage combine
 	uv run coverage report
 
 code.cov.html:
-	uv run coverage run -m pytest
+	PYTHONPATH=src uv run coverage run -m pytest
 	uv run coverage combine
 	uv run coverage html
 

@@ -5,11 +5,11 @@ from dishka import AsyncContainer, Provider, make_async_container
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from features.user.adapter.mapper.all import map_tables
+from common.entrypoint.rest.controllers.root_router import create_root_router
 from features.account.entrypoint.rest.asgi_middleware import (
     ASGIAuthMiddleware,
 )
-from common.entrypoint.rest.controllers.root_router import create_root_router
+from features.user.adapter.mapper.all import map_tables
 from setup.config.settings import AppSettings
 from setup.ioc.provider_registry import get_providers
 

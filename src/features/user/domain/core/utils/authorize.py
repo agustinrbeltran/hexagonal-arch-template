@@ -1,7 +1,6 @@
-from common.domain.core.entities.permission import PermissionContext, Permission
+from common.domain.core.entities.permission import Permission, PermissionContext
+from features.account.entrypoint.exceptions.authorization import AuthorizationError
 from features.user.domain.core.constants import AUTHZ_NOT_AUTHORIZED
-from features.account.entrypoint.exceptions.authorization import \
-    AuthorizationError
 
 
 def authorize[PC: PermissionContext](

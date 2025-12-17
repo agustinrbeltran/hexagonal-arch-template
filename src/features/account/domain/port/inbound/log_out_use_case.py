@@ -1,9 +1,9 @@
 import logging
 
-from features.account.domain.core.services.auth_session_service import \
-    AuthSessionService
-from features.user.domain.core.service.current_user_service import \
-    CurrentUserService
+from features.account.domain.core.services.auth_session_service import (
+    AuthSessionService,
+)
+from features.user.domain.core.service.current_user_service import CurrentUserService
 
 log = logging.getLogger(__name__)
 

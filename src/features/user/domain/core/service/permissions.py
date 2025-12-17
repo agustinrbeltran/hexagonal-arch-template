@@ -1,11 +1,11 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from common.domain.core.entities.permission import PermissionContext, Permission
+from common.domain.core.entities.permission import Permission, PermissionContext
+from features.user.domain.core.entities.user import User
 from features.user.domain.core.enums.role_hierarchy import (
     SUBORDINATE_ROLES,
 )
-from features.user.domain.core.entities.user import User
 from features.user.domain.core.enums.user_role import UserRole
 
 

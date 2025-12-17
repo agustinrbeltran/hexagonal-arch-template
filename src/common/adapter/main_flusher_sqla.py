@@ -4,13 +4,16 @@ from typing import Any, cast
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from common.adapter.constants import DB_FLUSH_DONE, DB_CONSTRAINT_VIOLATION, \
-    DB_QUERY_FAILED, DB_FLUSH_FAILED
+from common.adapter.constants import (
+    DB_CONSTRAINT_VIOLATION,
+    DB_FLUSH_DONE,
+    DB_FLUSH_FAILED,
+    DB_QUERY_FAILED,
+)
 from common.adapter.exceptions.gateway import DataMapperError
 from common.adapter.types_ import MainAsyncSession
 from common.domain.port.outbound.flusher import Flusher
 from features.user.domain.core.exceptions.user import UsernameAlreadyExistsError
-
 
 log = logging.getLogger(__name__)
 

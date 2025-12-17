@@ -1,8 +1,8 @@
-from features.account.domain.core.services.auth_session_service import \
-    AuthSessionService
+from features.account.domain.core.services.auth_session_service import (
+    AuthSessionService,
+)
 from features.user.domain.core.vo.user_id import UserId
-from features.user.domain.port.outbound.identity_provider import \
-    IdentityProvider
+from features.user.domain.port.outbound.identity_provider import IdentityProvider
 
 
 class AuthSessionIdentityProvider(IdentityProvider):
