@@ -1,8 +1,9 @@
 # PostgreSQL
+# Note: Supabase runs on port 54322 by default
 [postgres]
-DB = "web_app_db_pg"
+DB = "postgres"
 HOST = "localhost"
-PORT = 5432
+PORT = 54322
 DRIVER = "psycopg"
 
 # Uvicorn
