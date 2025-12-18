@@ -49,8 +49,8 @@ class ApplicationProvider(Provider):
     access_revoker = provide(AuthSessionAccessRevoker, provides=AccessRevoker)
     identity_provider = provide(AuthSessionIdentityProvider, provides=IdentityProvider)
 
-    # Commands
-    commands = provide_all(
+    # Use Cases
+    use_cases = provide_all(
         ActivateUserUseCase,
         SetUserPasswordUseCase,
         CreateUserUseCase,

@@ -8,7 +8,7 @@ from features.account.entrypoint.rest.cookie_params import CookieParams
 from setup.config.security import SecuritySettings
 
 
-class PresentationProvider(Provider):
+class EntrypointProvider(Provider):
     scope = Scope.REQUEST
 
     request = from_context(provides=Request)
