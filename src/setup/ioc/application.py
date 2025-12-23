@@ -15,7 +15,18 @@ from features.user.adapter.identity_provider import (
 from features.user.adapter.sqla_user_repository_adapter_ import (
     SqlaUserRepositoryAdapter,
 )
+from features.user.domain.core.service.activate_user_service import ActivateUserService
+from features.user.domain.core.service.create_user_service import CreateUserService
 from features.user.domain.core.service.current_user_service import CurrentUserService
+from features.user.domain.core.service.deactivate_user_service import (
+    DeactivateUserService,
+)
+from features.user.domain.core.service.grant_admin_service import GrantAdminService
+from features.user.domain.core.service.list_users_service import ListUsersService
+from features.user.domain.core.service.revoke_admin_service import RevokeAdminService
+from features.user.domain.core.service.set_user_password_service import (
+    SetUserPasswordService,
+)
 from features.user.domain.port.inbound.activate_user_use_case import ActivateUserUseCase
 from features.user.domain.port.inbound.create_user_use_case import CreateUserUseCase
 from features.user.domain.port.inbound.deactivate_user_use_case import (
@@ -50,16 +61,16 @@ class ApplicationProvider(Provider):
     identity_provider = provide(AuthSessionIdentityProvider, provides=IdentityProvider)
 
     # Use Cases
-    use_cases = provide_all(
-        ActivateUserUseCase,
-        SetUserPasswordUseCase,
-        CreateUserUseCase,
-        DeactivateUserUseCase,
-        GrantAdminUseCase,
-        RevokeAdminUseCase,
+    activate_user_use_case = provide(ActivateUserService, provides=ActivateUserUseCase)
+    set_user_password_use_case = provide(
+        SetUserPasswordService, provides=SetUserPasswordUseCase
     )
+    create_user_use_case = provide(CreateUserService, provides=CreateUserUseCase)
+    deactivate_user_use_case = provide(
+        DeactivateUserService, provides=DeactivateUserUseCase
+    )
+    grant_admin_use_case = provide(GrantAdminService, provides=GrantAdminUseCase)
+    revoke_admin_use_case = provide(RevokeAdminService, provides=RevokeAdminUseCase)
 
     # Queries
-    query_services = provide_all(
-        ListUsersUseCase,
-    )
+    list_users_use_case = provide(ListUsersService, provides=ListUsersUseCase)

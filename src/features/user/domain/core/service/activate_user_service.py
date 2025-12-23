@@ -1,0 +1,88 @@
+import logging
+
+from common.domain.port.outbound.transaction_manager import (
+    TransactionManager,
+)
+from features.user.domain.core.entities.user import User
+from features.user.domain.core.enums.user_role import UserRole
+from features.user.domain.core.exceptions.user import (
+    UserNotFoundByIdError,
+)
+from features.user.domain.core.service.current_user_service import CurrentUserService
+from features.user.domain.core.service.permissions import (
+    CanManageRole,
+    CanManageSubordinate,
+    RoleManagementContext,
+    UserManagementContext,
+)
+from features.user.domain.core.service.user_service import UserService
+from features.user.domain.core.utils.authorize import authorize
+from features.user.domain.core.vo.user_id import UserId
+from features.user.domain.port.inbound.activate_user_use_case import (
+    ActivateUserCommand,
+    ActivateUserUseCase,
+)
+from features.user.domain.port.outbound.user_repository import UserRepository
+
+log = logging.getLogger(__name__)
+
+
+class ActivateUserService(ActivateUserUseCase):
+    """
+    - Open to admins.
+    - Restores a previously soft-deleted user.
+    - Only super admins can activate other admins.
+    """
+
+    def __init__(
+        self,
+        current_user_service: CurrentUserService,
+        user_command_gateway: UserRepository,
+        user_service: UserService,
+        transaction_manager: TransactionManager,
+    ) -> None:
+        self._current_user_service = current_user_service
+        self._user_command_gateway = user_command_gateway
+        self._user_service = user_service
+        self._transaction_manager = transaction_manager
+
+    async def execute(self, command: ActivateUserCommand) -> None:
+        """
+        :raises AuthenticationError:
+        :raises DataMapperError:
+        :raises AuthorizationError:
+        :raises UserNotFoundByIdError:
+        :raises ActivationChangeNotPermittedError:
+        """
+        log.info("Activate user: started. Target user ID: '%s'.", command.user_id)
+
+        current_user = await self._current_user_service.get_current_user()
+
+        authorize(
+            CanManageRole(),
+            context=RoleManagementContext(
+                subject=current_user,
+                target_role=UserRole.USER,
+            ),
+        )
+
+        user_id = UserId(command.user_id)
+        user: User | None = await self._user_command_gateway.get_by_id(
+            user_id,
+            for_update=True,
+        )
+        if user is None:
+            raise UserNotFoundByIdError(user_id)
+
+        authorize(
+            CanManageSubordinate(),
+            context=UserManagementContext(
+                subject=current_user,
+                target=user,
+            ),
+        )
+
+        if self._user_service.toggle_user_activation(user, is_active=True):
+            await self._transaction_manager.commit()
+
+        log.info("Activate user: done. Target user ID: '%s'.", user.id_.value)
