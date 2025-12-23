@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from typing import cast
 
-from dishka import Provider, Scope, provide, provide_all
+from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -24,6 +24,12 @@ from features.account.adapter.sqla_auth_session_transaction_manager import (
     SqlaAuthSessionTransactionManager,
 )
 from features.account.adapter.types_ import AuthAsyncSession
+from features.account.domain.core.service.change_password_service import (
+    ChangePasswordService,
+)
+from features.account.domain.core.service.log_in_service import LogInService
+from features.account.domain.core.service.log_out_service import LogOutService
+from features.account.domain.core.service.sign_up_service import SignUpService
 from features.account.domain.core.services.auth_session_service import (
     AuthSessionService,
 )
@@ -171,12 +177,12 @@ class AuthSessionProvider(Provider):
 class AuthHandlersProvider(Provider):
     scope = Scope.REQUEST
 
-    handlers = provide_all(
-        SignUpUseCase,
-        LogInUseCase,
-        ChangePasswordUseCase,
-        LogOutUseCase,
+    sign_up_use_case = provide(SignUpService, provides=SignUpUseCase)
+    log_in_use_case = provide(LogInService, provides=LogInUseCase)
+    change_password_use_case = provide(
+        ChangePasswordService, provides=ChangePasswordUseCase
     )
+    log_out_use_case = provide(LogOutService, provides=LogOutUseCase)
 
 
 def infrastructure_providers() -> tuple[Provider, ...]:
