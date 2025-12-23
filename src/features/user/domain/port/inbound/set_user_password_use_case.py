@@ -50,7 +50,7 @@ class SetUserPasswordUseCase:
         self._user_service = user_service
         self._transaction_manager = transaction_manager
 
-    async def execute(self, request_data: SetUserPasswordCommand) -> None:
+    async def execute(self, command: SetUserPasswordCommand) -> None:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -61,7 +61,7 @@ class SetUserPasswordUseCase:
         """
         log.info(
             "Set user password: started. Target user ID: '%s'.",
-            request_data.user_id,
+            command.user_id,
         )
 
         current_user = await self._current_user_service.get_current_user()
@@ -74,8 +74,8 @@ class SetUserPasswordUseCase:
             ),
         )
 
-        user_id = UserId(request_data.user_id)
-        password = RawPassword(request_data.password)
+        user_id = UserId(command.user_id)
+        password = RawPassword(command.password)
         user: User | None = await self._user_repository.get_by_id(
             user_id,
             for_update=True,

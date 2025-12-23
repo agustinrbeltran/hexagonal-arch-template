@@ -49,7 +49,7 @@ class ActivateUserUseCase:
         self._user_service = user_service
         self._transaction_manager = transaction_manager
 
-    async def execute(self, request_data: ActivateUserCommand) -> None:
+    async def execute(self, command: ActivateUserCommand) -> None:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -57,7 +57,7 @@ class ActivateUserUseCase:
         :raises UserNotFoundByIdError:
         :raises ActivationChangeNotPermittedError:
         """
-        log.info("Activate user: started. Target user ID: '%s'.", request_data.user_id)
+        log.info("Activate user: started. Target user ID: '%s'.", command.user_id)
 
         current_user = await self._current_user_service.get_current_user()
 
@@ -69,7 +69,7 @@ class ActivateUserUseCase:
             ),
         )
 
-        user_id = UserId(request_data.user_id)
+        user_id = UserId(command.user_id)
         user: User | None = await self._user_command_gateway.get_by_id(
             user_id,
             for_update=True,

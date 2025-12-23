@@ -56,7 +56,7 @@ class LogInUseCase:
         self._user_service = user_service
         self._auth_session_service = auth_session_service
 
-    async def execute(self, request_data: LogInCommand) -> None:
+    async def execute(self, command: LogInCommand) -> None:
         """
         :raises AlreadyAuthenticatedError:
         :raises AuthorizationError:
@@ -66,7 +66,7 @@ class LogInUseCase:
         :raises PasswordHasherBusyError:
         :raises AuthenticationError:
         """
-        log.info("Log in: started. Username: '%s'.", request_data.username)
+        log.info("Log in: started. Username: '%s'.", command.username)
 
         try:
             await self._current_user_service.get_current_user()
@@ -74,8 +74,8 @@ class LogInUseCase:
         except AuthenticationError:
             pass
 
-        username = Username(request_data.username)
-        password = RawPassword(request_data.password)
+        username = Username(command.username)
+        password = RawPassword(command.password)
 
         user: User | None = await self._user_repository.get_by_username(username)
         if user is None:

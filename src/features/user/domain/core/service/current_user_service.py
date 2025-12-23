@@ -17,11 +17,11 @@ class CurrentUserService:
     def __init__(
         self,
         identity_provider: IdentityProvider,
-        user_command_gateway: UserRepository,
+        user_repository: UserRepository,
         access_revoker: AccessRevoker,
     ) -> None:
         self._identity_provider = identity_provider
-        self._user_command_gateway = user_command_gateway
+        self._user_repository = user_repository
         self._access_revoker = access_revoker
 
     async def get_current_user(self, for_update: bool = False) -> User:
@@ -31,7 +31,7 @@ class CurrentUserService:
         :raises AuthorizationError:
         """
         current_user_id = await self._identity_provider.get_current_user_id()
-        user: User | None = await self._user_command_gateway.get_by_id(
+        user: User | None = await self._user_repository.get_by_id(
             current_user_id,
             for_update=for_update,
         )

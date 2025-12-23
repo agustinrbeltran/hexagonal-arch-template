@@ -38,16 +38,16 @@ class RevokeAdminUseCase:
     def __init__(
         self,
         current_user_service: CurrentUserService,
-        user_command_gateway: UserRepository,
+        user_repository: UserRepository,
         user_service: UserService,
         transaction_manager: TransactionManager,
     ) -> None:
         self._current_user_service = current_user_service
-        self._user_command_gateway = user_command_gateway
+        self._user_repository = user_repository
         self._user_service = user_service
         self._transaction_manager = transaction_manager
 
-    async def execute(self, request_data: RevokeAdminCommand) -> None:
+    async def execute(self, command: RevokeAdminCommand) -> None:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -55,7 +55,7 @@ class RevokeAdminUseCase:
         :raises UserNotFoundByIdError:
         :raises RoleChangeNotPermittedError:
         """
-        log.info("Revoke admin: started. Target user ID: '%s'.", request_data.user_id)
+        log.info("Revoke admin: started. Target user ID: '%s'.", command.user_id)
 
         current_user = await self._current_user_service.get_current_user()
 
@@ -67,8 +67,8 @@ class RevokeAdminUseCase:
             ),
         )
 
-        user_id = UserId(request_data.user_id)
-        user: User | None = await self._user_command_gateway.get_by_id(
+        user_id = UserId(command.user_id)
+        user: User | None = await self._user_repository.get_by_id(
             user_id,
             for_update=True,
         )

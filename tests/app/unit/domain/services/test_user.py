@@ -43,7 +43,7 @@ async def test_creates_active_user_with_hashed_password(
     sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
     # Act
-    result = await sut.create_user(username, raw_password, role)
+    result = await sut.create(username, raw_password, role)
 
     # Assert
     assert isinstance(result, User)
@@ -63,7 +63,7 @@ async def test_creates_inactive_user_if_specified(
     raw_password = create_raw_password()
     sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
-    result = await sut.create_user(username, raw_password, is_active=False)
+    result = await sut.create(username, raw_password, is_active=False)
 
     assert not result.is_active
 
@@ -78,7 +78,7 @@ async def test_fails_to_create_user_with_unassignable_role(
     sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
     with pytest.raises(RoleAssignmentNotPermittedError):
-        await sut.create_user(
+        await sut.create(
             username=username,
             raw_password=raw_password,
             role=UserRole.SUPER_ADMIN,

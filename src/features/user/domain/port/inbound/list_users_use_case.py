@@ -38,7 +38,7 @@ class ListUsersUseCase:
         self._current_user_service = current_user_service
         self._user_repository = user_repository
 
-    async def execute(self, request_data: ListUsersQuery) -> ListUsersQM:
+    async def execute(self, query: ListUsersQuery) -> ListUsersQM:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -61,12 +61,12 @@ class ListUsersUseCase:
 
         log.debug("Retrieving list of users.")
         pagination = OffsetPaginationParams(
-            limit=request_data.limit,
-            offset=request_data.offset,
+            limit=query.limit,
+            offset=query.offset,
         )
         sorting = SortingParams(
-            field=request_data.sorting_field,
-            order=request_data.sorting_order,
+            field=query.sorting_field,
+            order=query.sorting_order,
         )
         response = await self._user_repository.get_all(
             pagination=pagination,

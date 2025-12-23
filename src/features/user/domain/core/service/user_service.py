@@ -20,7 +20,7 @@ class UserService:
         self._user_id_generator = user_id_generator
         self._password_hasher = password_hasher
 
-    async def create_user(
+    async def create(
         self,
         username: Username,
         raw_password: RawPassword,

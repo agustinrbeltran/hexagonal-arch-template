@@ -45,17 +45,17 @@ class CreateUserUseCase:
         self,
         current_user_service: CurrentUserService,
         user_service: UserService,
-        user_command_gateway: UserRepository,
+        user_repository: UserRepository,
         flusher: Flusher,
         transaction_manager: TransactionManager,
     ) -> None:
         self._current_user_service = current_user_service
         self._user_service = user_service
-        self._user_command_gateway = user_command_gateway
+        self._user_repository = user_repository
         self._flusher = flusher
         self._transaction_manager = transaction_manager
 
-    async def execute(self, request_data: CreateUserCommand) -> CreateUserResponse:
+    async def execute(self, command: CreateUserCommand) -> CreateUserResponse:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -65,7 +65,7 @@ class CreateUserUseCase:
         :raises RoleAssignmentNotPermittedError:
         :raises UsernameAlreadyExistsError:
         """
-        log.info("Create user: started. Target username: '%s'.", request_data.username)
+        log.info("Create user: started. Target username: '%s'.", command.username)
 
         current_user = await self._current_user_service.get_current_user()
 
@@ -73,17 +73,15 @@ class CreateUserUseCase:
             CanManageRole(),
             context=RoleManagementContext(
                 subject=current_user,
-                target_role=request_data.role,
+                target_role=command.role,
             ),
         )
 
-        username = Username(request_data.username)
-        password = RawPassword(request_data.password)
-        user = await self._user_service.create_user(
-            username, password, request_data.role
-        )
+        username = Username(command.username)
+        password = RawPassword(command.password)
+        user = await self._user_service.create(username, password, command.role)
 
-        self._user_command_gateway.save(user)
+        self._user_repository.save(user)
 
         try:
             await self._flusher.flush()

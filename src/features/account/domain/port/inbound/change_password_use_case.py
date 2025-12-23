@@ -42,7 +42,7 @@ class ChangePasswordUseCase:
         self._user_service = user_service
         self._transaction_manager = transaction_manager
 
-    async def execute(self, request_data: ChangePasswordCommand) -> None:
+    async def execute(self, command: ChangePasswordCommand) -> None:
         """
         :raises AuthenticationError:
         :raises DataMapperError:
@@ -58,8 +58,8 @@ class ChangePasswordUseCase:
             for_update=True
         )
 
-        current_password = RawPassword(request_data.current_password)
-        new_password = RawPassword(request_data.new_password)
+        current_password = RawPassword(command.current_password)
+        new_password = RawPassword(command.new_password)
         if current_password == new_password:
             raise AuthenticationChangeError(AUTH_PASSWORD_NEW_SAME_AS_CURRENT)
 
