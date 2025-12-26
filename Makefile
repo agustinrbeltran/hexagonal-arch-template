@@ -42,18 +42,23 @@ env:
 dotenv: guard-APP_ENV
 	@$(PYTHON) $(TOML_CONFIG_MANAGER) $(APP_ENV)
 
-# Docker compose
+# Docker compose (app)
 DOCKER_COMPOSE := docker compose
 DOCKER_COMPOSE_PRUNE := scripts/makefile/docker_prune.sh
 
-.PHONY: up.db up.db-echo up up.echo down down.total logs.db shell.db prune
-up.db: guard-APP_ENV
-	@echo "APP_ENV=$(APP_ENV)"
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) up -d web_app_db_pg
+# Supabase (local dev) DB
+SUPABASE := supabase
+DOCKER := docker
+SUPABASE_CONFIG := supabase/config.toml
+SUPABASE_PROJECT_ID := $(shell python3 -c "import re, pathlib; p=pathlib.Path('$(SUPABASE_CONFIG)'); txt=p.read_text() if p.exists() else ''; m=re.search(r'^project_id\\s*=\\s*\\\"([^\\\"]+)\\\"', txt, re.M); print(m.group(1) if m else pathlib.Path().resolve().name)")
+SUPABASE_DB_CONTAINER := supabase_db_$(SUPABASE_PROJECT_ID)
 
-up.db-echo: guard-APP_ENV
-	@echo "APP_ENV=$(APP_ENV)"
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) up web_app_db_pg
+.PHONY: up.db up.db-echo up up.echo down down.total logs.db shell.db prune
+up.db:
+	@$(SUPABASE) start
+
+up.db-echo:
+	@$(SUPABASE) --debug start
 
 up: guard-APP_ENV
 	@echo "APP_ENV=$(APP_ENV)"
@@ -63,8 +68,8 @@ up.echo: guard-APP_ENV
 	@echo "APP_ENV=$(APP_ENV)"
 	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) up --build
 
-down.db: guard-APP_ENV
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) down web_app_db_pg
+down.db:
+	@$(SUPABASE) stop
 
 down: guard-APP_ENV
 	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) down
@@ -72,11 +77,11 @@ down: guard-APP_ENV
 down.total: guard-APP_ENV
 	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) down -v
 
-logs.db: guard-APP_ENV
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) logs -f web_app_db_pg
+logs.db:
+	@$(DOCKER) logs -f $(SUPABASE_DB_CONTAINER)
 
-shell.db: guard-APP_ENV
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) exec web_app_db_pg sh
+shell.db:
+	@$(DOCKER) exec -it $(SUPABASE_DB_CONTAINER) sh
 
 prune:
 	$(DOCKER_COMPOSE_PRUNE)
