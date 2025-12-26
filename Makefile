@@ -100,4 +100,4 @@ tree: pycache-del
 
 # Dishka
 plot-data:
-	@$(PYTHON) $(DISHKA_PLOT_DATA)
+	@PYTHONPATH=src $(PYTHON) $(DISHKA_PLOT_DATA)
