@@ -43,7 +43,7 @@ dotenv: guard-APP_ENV
 	@$(PYTHON) $(TOML_CONFIG_MANAGER) $(APP_ENV)
 
 # Docker compose (app)
-DOCKER_COMPOSE := docker compose
+DOCKER_COMPOSE := docker-compose
 DOCKER_COMPOSE_PRUNE := scripts/makefile/docker_prune.sh
 
 # Supabase (local dev) DB
@@ -60,22 +60,46 @@ up.db:
 up.db-echo:
 	@$(SUPABASE) --debug start
 
-up: guard-APP_ENV
+up: guard-APP_ENV dotenv
 	@echo "APP_ENV=$(APP_ENV)"
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) up -d --build
+	@cd $(CONFIGS_DIG)/$(APP_ENV) && \
+		if [ -f .env.$(APP_ENV) ]; then \
+			set -a; \
+			. ./.env.$(APP_ENV); \
+			set +a; \
+		fi && \
+		DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE) up -d --build
 
-up.echo: guard-APP_ENV
+up.echo: guard-APP_ENV dotenv
 	@echo "APP_ENV=$(APP_ENV)"
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) up --build
+	@cd $(CONFIGS_DIG)/$(APP_ENV) && \
+		if [ -f .env.$(APP_ENV) ]; then \
+			set -a; \
+			. ./.env.$(APP_ENV); \
+			set +a; \
+		fi && \
+		DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE) up --build
 
 down.db:
 	@$(SUPABASE) stop
 
 down: guard-APP_ENV
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) down
+	@cd $(CONFIGS_DIG)/$(APP_ENV) && \
+		if [ -f .env.$(APP_ENV) ]; then \
+			set -a; \
+			. ./.env.$(APP_ENV); \
+			set +a; \
+		fi && \
+		$(DOCKER_COMPOSE) down
 
 down.total: guard-APP_ENV
-	@cd $(CONFIGS_DIG)/$(APP_ENV) && $(DOCKER_COMPOSE) --env-file .env.$(APP_ENV) down -v
+	@cd $(CONFIGS_DIG)/$(APP_ENV) && \
+		if [ -f .env.$(APP_ENV) ]; then \
+			set -a; \
+			. ./.env.$(APP_ENV); \
+			set +a; \
+		fi && \
+		$(DOCKER_COMPOSE) down -v
 
 logs.db:
 	@$(DOCKER) logs -f $(SUPABASE_DB_CONTAINER)
