@@ -9,7 +9,7 @@ sources = ["src"]
 packages = ["src/app"]
 
 [project]
-name = "fastapi-clean-example"
+name = "hexagonal-arch-template"
 version = "0.1"
 description = "Practical Clean Architecture backend example built with FastAPI"
 readme = "README.md"
