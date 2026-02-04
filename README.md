@@ -21,10 +21,10 @@ Credit to Ivan Borovets for the excellent foundation and architecture patterns. 
 1. [Overview](#overview)
 2. [Architecture Principles](#architecture-principles)
    1. [Introduction](#introduction)
-   2. [Layered Approach](#layered-approach)
+   2. [Hexagonal Architecture Approach](#hexagonal-architecture-approach)
    3. [Dependency Rule](#dependency-rule)
       1. [Note on Adapters](#note-on-adapters)
-   4. [Layered Approach Continued](#layered-approach-continued)
+   4. [Hexagonal Architecture Continued](#hexagonal-architecture-continued)
    5. [Dependency Inversion](#dependency-inversion)
    6. [Dependency Injection](#dependency-injection)
    7. [CQRS](#cqrs)
@@ -82,26 +82,38 @@ Concentric circles represent boundaries between different layers. The meaning of
 arrows in the diagram will be discussed [later](#dependency-rule). For now, we
 will focus on the purpose of the layers.
 
-## Layered Approach
+## Hexagonal Architecture Approach
 
-![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer**
+This project implements **Hexagonal Architecture** (also known as Ports and Adapters) with **feature-based organization**. Instead of organizing code into global layers (domain, application, infrastructure, presentation), each feature is a **bounded context** with its own hexagon containing domain logic, ports, adapters, and entrypoints.
+
+### Feature Organization
+
+Each feature (e.g., `features/account/`, `features/user/`) is a self-contained hexagon:
+
+- **Domain (Core)** — Business logic at the center of the hexagon
+- **Ports** — Abstractions (interfaces) defining the hexagon's boundaries
+  - **Inbound Ports** (driving) — Use case interfaces invoked by external actors
+  - **Outbound Ports** (driven) — Gateway interfaces for infrastructure dependencies
+- **Adapters** — Concrete implementations connecting to external systems
+- **Entrypoints** — Controllers that handle external requests (REST, CLI, etc.)
+
+![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Core** (`features/{feature}/domain/core/`)
 
 - **Domain model** is a set of concepts, rules and behaviors that define what
   business (context) is and how it operates. It is expressed in **ubiquitous
   language** — consistent terminology shared by developers and domain experts.
-  Domain layer implements domain model in code; this implementation is often
-  called domain model.
+  Each feature domain implements its bounded context model in code.
 - The strictest domain rules are **invariants** — conditions that must always
   hold true for the model. Enforcing invariants means maintaining data
   consistency in the model. This can be achieved through **encapsulation**,
   which hides internal state and couples data with behavior.
 - Building blocks of domain model are (not limited to these):
   - **value objects** — smart business types (no identity, immutable, equal by
-    value).
+    value). Examples: `UserId`, `Username`, `RawPassword`
   - **entities** — business objects (have identity and lifecycle, equal by
-    identity).
+    identity). Examples: `User`, `AuthSession`
   - **domain services** — containers for behavior that has no place in the
-    components above.
+    components above. Examples: `LogInService`, `CreateUserService`
 - Other domain model building blocks, unused in this project but important for
   deeper DDD:
   - **aggregates** — clusters of entities (1+) that must change together as a
@@ -114,60 +126,56 @@ will focus on the purpose of the layers.
   - **rich** — value objects and entities encapsulate data and rules; invariants
     are enforced internally, so the model itself prevents invalid states. For
     components: anemic means no behavior within, rich — the contrary.
-- Domain services originally represent operations that don't naturally belong to
+- Domain services represent operations that don't naturally belong to
   a specific entity or value object. But in projects with anemic entities, they
   can also contain logic that would otherwise be in those entities.
 - In early stages of development when the domain model is not yet clearly
-  defined, I'd recommend keeping entities flat and anemic, even though the
+  defined, keeping entities flat and anemic is practical, even though the
   latter weakens encapsulation. Once domain logic is well established, some
   entities can, as aggregate roots, become non-flat and rich. This best enforces
   invariants but can be tricky to design once and for all.
 - Prefer rich value objects early, freeing entities and services from an
   excessive burden of local rules.
-- Consider domain layer the most important, stable, and independent part of a
-  system.
+- Consider the domain core the most important, stable, and independent part of
+  each feature.
 
-![#red](https://placehold.co/15x15/red/red.svg) **Application Layer**
+![#purple](https://placehold.co/15x15/purple/purple.svg) **Ports** (`features/{feature}/domain/port/`)
 
-- Business defines **use case** as specification of observable behavior that
-  delivers value by achieving a goal.
-- Within use case, the behavior is enacted by **actor** — possibly a client of
-  the software system.
-- Actor performs use case in steps, some of which require interaction with the
-  system. These stepwise interactions with the system are handled at the
-  application layer by **interactors**. In other words, each interactor handles
-  a single business operation matching a step within use case.
-- Interactors are stateless and cannot call each other, unlike use cases. Each
-  is invoked independently - typically by external drivers such as HTTP
-  controllers, message consumers, or scheduled jobs.
-- Interactor orchestrates domain logic and external calls needed to perform the
-  operation. Its primary responsibilities may include permission verification
-  and transaction management. To access external systems, interactors rely on
-  **interfaces (ports)** that abstract infrastructure details.
-- Interactor uses **DTOs (Data Transfer Objects)** to exchange serializable data
-  with external layers. These are simple, behavior-free carriers - the
-  cross-layer transport for external contracts.
-- If logic is reused across interactors: extract an application service when it
-  falls under typical interactor responsibilities; otherwise, consider evolving
-  the domain model to include it. Such evolution is a normal part of model
-  enrichment.
-- Together, domain and application layers form the **core** of the system.
+**Inbound Ports (Driving)** — Use case interfaces that define what the hexagon can do:
+- These are **abstractions** (protocols/interfaces) that external actors use to interact with the domain
+- Each port represents a single use case or business operation
+- Examples: `LogInUseCase`, `CreateUserUseCase`, `GrantAdminUseCase`
+- Domain services implement these ports, providing the actual business logic
+- Controllers (entrypoints) depend on these abstractions, not on concrete implementations
+- This allows the domain to remain decoupled from delivery mechanisms (REST, CLI, gRPC, etc.)
 
-![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer**
+**Outbound Ports (Driven)** — Gateway interfaces that define what the hexagon needs:
+- These are **abstractions** for infrastructure dependencies (databases, external APIs, etc.)
+- Examples: `UserRepository`, `PasswordHasher`, `AuthSessionGateway`
+- Adapters implement these ports, providing concrete infrastructure integrations
+- Domain services depend on these abstractions, not on concrete implementations
+- This allows the domain to remain agnostic of storage mechanisms and external systems
 
-- This layer is responsible for adapting the core to external systems.
-- It consists of **adapters**: driving and driven. Driving adapters call into
-  the core, translating external requests into interactor calls. Driven adapters
-  (port implementations) are called by the core via ports, allowing the core to
-  interact with external systems (databases, APIs, file systems, etc.) while
-  keeping the business logic decoupled.
-- Related adapter logic can be grouped into **infrastructure service**.
+The **ports** define the hexagon's boundary. Everything inside the hexagon depends only on abstractions, never on concrete implementations outside the hexagon.
+
+![#green](https://placehold.co/15x15/green/green.svg) **Adapters** (`features/{feature}/adapter/`)
+
+- Adapters are concrete implementations of **outbound ports**
+- They translate between the domain's abstractions and real-world infrastructure
+- Examples:
+  - `SqlaUserRepositoryAdapter` implements `UserRepository` using SQLAlchemy
+  - `PasswordHasherBcrypt` implements `PasswordHasher` using bcrypt
+  - `IdentityProvider` implements authentication details
+- Adapters handle infrastructure concerns: database queries, API calls, file I/O, etc.
+- They depend on both domain ports (to implement) and external systems (databases, libraries)
+- Related adapter logic can be grouped into **infrastructure services**
 
 > [!IMPORTANT]
 >
-> - Clean Architecture doesn't prescribe any particular number of layers. The
->   key is to follow the Dependency Rule, which is explained in the next
->   section.
+> - Each feature is a **bounded context** with its own hexagon. Features can share
+>   common building blocks from `/common`, but each maintains its own domain model.
+> - The key principle remains the **Dependency Rule**: dependencies point inward
+>   toward the domain core. Ports provide the abstraction layer that enables this.
 
 ## Dependency Rule
 
@@ -186,69 +194,68 @@ ones.** In other words, dependencies must never point outwards.
 
 > [!IMPORTANT]
 >
-> - Domain and application layers may import external tools and libraries to the
+> - The **domain core** (inside the hexagon) may import external tools and libraries to the
 >   extent necessary for describing business logic - those that extend the
 >   programming language's capabilities (math/numeric utilities, time zone
 >   conversion, object modeling, etc.). This trades some core stability for
 >   clarity and expressiveness. What is not acceptable are dependencies that
 >   bind business logic to implementation details (including frameworks) or to
 >   out-of-process systems (databases, brokers, file systems, cloud SDKs, etc.).
-> - Components within the same layer **can depend on each other.** For example,
->   components in the Infrastructure layer can interact with one another without
->   crossing into other layers.
-> - Components in any outer layer can depend on components in any inner layer,
->   not necessarily the one closest to them. For example, components in the
->   Presentation layer can directly depend on the Domain layer, bypassing the
->   Application and Infrastructure layers.
-> - Avoid letting business logic leak into peripheral details, such as raising
->   business-specific exceptions in the Infrastructure layer without re-raising
->   them in the business logic or declaring domain rules outside the Domain
->   layer.
-> - In specific cases where database constraints enforce business rules, the
->   Infrastructure layer may raise domain-specific exceptions, such as
+> - Components within the same zone **can depend on each other.** For example,
+>   adapters in a feature can interact with one another, and domain services
+>   within a feature can call each other.
+> - **Entrypoints** (driving adapters) can depend on domain core through **inbound ports**.
+>   **Infrastructure adapters** (driven adapters) implement **outbound ports** defined by
+>   the domain. Both types of adapters can access domain entities and value objects as needed.
+> - Avoid letting business logic leak into adapters. Adapters should focus purely on
+>   technical concerns (database queries, API calls, serialization) without containing
+>   business rules. However, in specific cases where database constraints enforce business
+>   rules, adapters may raise domain-specific exceptions, such as
 >   `UsernameAlreadyExistsError` for a `UNIQUE CONSTRAINT` violation. Handling
->   these exceptions in the Application layer ensures that any business logic
->   implemented in adapters remains under control.
-> - Avoid introducing elements in inner layers that specifically exist to
->   support outer layers. For example, you might be tempted to place something
->   in the Application layer that exists solely to support a specific piece of
->   infrastructure. At first glance, based on imports, it might seem that the
->   Dependency Rule isn't violated. However, in reality, you've broken the core
->   idea of the rule by embedding infrastructure concerns (more concrete) into
->   the business logic (more abstract).
+>   these exceptions in domain services ensures that any business logic
+>   expressed in adapters remains under domain control.
+> - Avoid introducing elements in the domain core that specifically exist to
+>   support adapters. For example, don't add ports or domain logic solely
+>   to accommodate a specific infrastructure technology. At first glance, based on
+>   imports, it might seem that the Dependency Rule isn't violated. However,
+>   you've broken the core idea of the rule by embedding infrastructure concerns
+>   (more concrete) into the business logic (more abstract).
+> - Each feature's hexagon should be **self-contained**. Cross-feature dependencies
+>   should be minimized and go through well-defined integration points. Shared
+>   concerns live in `/common`.
 
-### Note on Adapters
+### Note on Adapters in Hexagonal Architecture
 
-The **Infrastructure layer** in Clean Architecture acts as the adapter layer —
-connecting the application to external systems. In this project, we treat both
-**Infrastructure** and **Presentation** as adapters, since both adapt the
-application to the outside world. Speaking of dependencies direction, the
-diagram by R. Martin in Figure 1 can, without significant loss, be replaced by a
-more concise and pragmatic one — where the adapter layer serves as a "bridge",
-depending both on the internal layers of the application and external
-components. This adjustment implies **reversing** the arrow from the blue layer
-to the green layer in R. Martin's diagram.
+Hexagonal Architecture distinguishes between two types of adapters:
 
-The proposed solution is a **trade-off**. It doesn't strictly follow R. Martin's
-original concept but avoids introducing excessive abstractions with
-implementations outside the application's boundaries. Pursuing purity on the
-outermost layer is more likely to result in overengineering than in practical
-gains.
+**Driving Adapters (Primary)** — Initiate interactions with the domain:
+- **Entrypoints** such as REST controllers, CLI handlers, message consumers
+- These adapters **drive** the application by invoking inbound ports (use cases)
+- They translate external requests into domain operations
+- Example: `features/account/entrypoint/rest/controllers/log_in.py`
 
-My approach retains nearly all advantages of Clean Architecture while
-simplifying real-world development. When needed, adapters can be removed along
-with the external components they're written for, which isn't a significant
-issue.
+**Driven Adapters (Secondary)** — Provide infrastructure services to the domain:
+- **Infrastructure adapters** such as database repositories, external API clients
+- These adapters are **driven by** the domain through outbound ports
+- They translate domain abstractions into concrete infrastructure operations
+- Example: `features/user/adapter/sqla_user_repository_adapter_.py`
 
-Let’s agree, for this project, to revise the principle:
+Both adapter types depend on the domain through **ports** (abstractions). This creates a dependency structure where:
+- Entrypoints depend on **inbound ports** (use case interfaces)
+- Infrastructure adapters implement **outbound ports** (gateway interfaces)
+- Domain core depends on nothing but port abstractions
 
-Original:
+This approach is a **pragmatic adaptation** that:
+- Avoids excessive abstractions with implementations outside the application's boundaries
+- Retains all key advantages of Clean Architecture (testability, replaceability, independence)
+- Allows adapters to be removed/replaced along with external systems they connect to
+- Simplifies real-world development without compromising architectural principles
 
-> "Dependencies must never point outwards."
+The key principle for this project:
 
-Revised:
+> "Dependencies must never point outwards **within the domain core**."
 
-> "Dependencies must never point outwards **within the core**."
+The domain core (entities, value objects, domain services, ports) has zero dependencies on adapters or external systems. Adapters depend on ports, not the other way around.
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; justify-items: center;">
   <img src="docs/onion_1.svg" alt="Revised Interpretation of CA-D" style="width: 400px; height: auto;" />
@@ -260,60 +267,78 @@ Revised:
   </em>
 </p>
 
-## Layered Approach Continued
+## Hexagonal Architecture Continued
 
-![#blue](https://placehold.co/15x15/blue/blue.svg) **Presentation Layer**
+![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`features/{feature}/entrypoint/`)
 
-> [!NOTE]
-> In the original diagram, the Presentation layer isn't explicitly distinguished
-> and is instead included within the Interface Adapters layer. I chose to
-> introduce it as a separate layer, marked in blue, as I see it as even more
-> external compared to typical adapters.
+Entrypoints are **driving adapters** that receive external requests and invoke the domain through inbound ports:
 
-- This layer handles external requests and includes **controllers** that
-  validate inputs and pass them to the interactors in the Application layer.
-  More abstract layers of the program assume that request data is already
-  validated, allowing them to focus solely on their core logic.
+- This includes **controllers** (REST, GraphQL, CLI, message consumers, scheduled jobs)
+  that translate external requests into domain use case invocations
+- Controllers validate inputs and invoke **inbound ports** (use case interfaces)
+- The domain core assumes that request data is already validated by controllers,
+  allowing it to focus solely on business logic
 - Controllers must be as thin as possible, containing no logic beyond basic
-  input validation and routing. Their role is to act as an intermediary between
-  the application and external systems (e.g., FastAPI).
+  input validation and routing. They act as an intermediary between
+  external actors and the domain's inbound ports
+
+**Example Flow:**
+1. HTTP request arrives at `POST /api/v1/account/login`
+2. Controller (`features/account/entrypoint/rest/controllers/log_in.py`) validates request structure
+3. Controller invokes `LogInUseCase` (inbound port) with validated data
+4. Domain service (`LogInService`) implements the use case, orchestrating business logic
+5. Domain service calls outbound ports (`UserRepository`, `AuthSessionGateway`) as needed
+6. Adapters implement outbound ports, executing database queries
+7. Controller receives result and formats HTTP response
 
 > [!IMPORTANT]
 >
 > - **_Basic_** validation, like checking whether the structure of the incoming
 >   request matches the structure of the defined request model (e.g., type
->   safety and required fields) should be performed by controllers at this
->   layer, while **_business rule_** validation (e.g., ensuring the email domain
+>   safety and required fields) should be performed by controllers at the
+>   entrypoint, while **_business rule_** validation (e.g., ensuring the email domain
 >   is allowed, verifying the uniqueness of username, or checking if a user
->   meets the required age) belongs to the Domain or Application layer.
+>   meets the required age) belongs to the Domain core.
 > - Business rule validation often involves relationships between fields, such
 >   as ensuring that a discount applies only within a specific date range or a
 >   promotion code is valid for orders above a certain total.
 > - **Carefully** consider using Pydantic for business rule validation. While
 >   convenient, Pydantic models are slower than regular dataclasses and reduce
->   application core stability by coupling business logic to an external
->   library.
+>   domain core stability by coupling business logic to an external library.
 > - If you choose Pydantic (or a similar tool bundled with web framework) for
->   business model definitions, ensure that a Pydantic model in business layers
->   is a separate model from the one in the Presentation layer, even if their
+>   domain model definitions, ensure that a Pydantic model in the domain core
+>   is a separate model from the one in the entrypoint, even if their
 >   structure appears identical. Mixing data presentation logic with business
 >   logic is a common mistake made early in development to save effort on
 >   creating separate models and field mapping, often due to not understanding
 >   that structural similarities are temporary.
+> - In hexagonal architecture, controllers depend on **inbound port abstractions**,
+>   not directly on domain services. This decoupling allows the same domain logic
+>   to be accessed through different entrypoints (REST, GraphQL, CLI) without
+>   changing the domain.
 
-![#gray](https://placehold.co/15x15/gray/gray.svg) **External Layer**
+![#gray](https://placehold.co/15x15/gray/gray.svg) **External Systems**
+
+External systems operate completely outside the hexagon's boundaries:
+
+- These include web frameworks (FastAPI), databases (PostgreSQL), message brokers,
+  third-party APIs, file systems, and other infrastructure components
+- External systems have no direct access to the domain core
+- They interact with the application only through adapters:
+  - **Driving side**: Web frameworks invoke controllers (entrypoints)
+  - **Driven side**: Adapters use infrastructure libraries to implement outbound ports
+- Because the domain depends only on port abstractions (not concrete implementations),
+  external systems can be replaced without affecting business logic
+- Examples of replaceability:
+  - Switch from PostgreSQL to MongoDB by implementing new adapter
+  - Add GraphQL alongside REST by creating new entrypoints
+  - Replace bcrypt with Argon2 by swapping `PasswordHasher` implementation
 
 > [!NOTE]
-> In the original diagram, external components are included in the blue layer
-> (Frameworks & Drivers). I've marked them in gray to clearly distinguish them
-> from layers within the application's boundaries.
-
-- This layer represents fully external components such as web frameworks (e.g.
-  FastAPI itself), databases, third-party APIs, and other services.
-- These components operate outside the application’s core logic and can be
-  easily replaced or modified without affecting the business rules, as they
-  interact with the application only through the Presentation and Infrastructure
-  layers.
+> The hexagon (domain core + ports) is the **stable center** of each feature.
+> Everything outside — entrypoints, adapters, and external systems — is **replaceable**
+> and depends on the hexagon through abstractions. This is the core value of
+> Hexagonal Architecture: protecting business logic from infrastructure volatility.
 
 <p align="center">
   <img src="docs/dep_graph_basic.svg" alt="Basic Dependency Graph" />
