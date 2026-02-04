@@ -41,6 +41,7 @@ help:
 	@echo "App (docker compose):"
 	@echo "  up             Start app containers in detached mode (requires APP_ENV)"
 	@echo "  up.echo        Start app containers in foreground (requires APP_ENV)"
+	@echo "                 App listens on UVICORN_PORT (local default: 9999)"
 	@echo "  down           Stop app containers (requires APP_ENV)"
 	@echo "  down.total     Stop app containers and remove volumes (requires APP_ENV)"
 	@echo "  prune          Clean docker compose artifacts"

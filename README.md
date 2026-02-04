@@ -1,12 +1,20 @@
 # Overview
 
-📘 This FastAPI-based project and its documentation represent a practical
-interpretation of Clean Architecture and Command Query Responsibility
-Segregation (CQRS) principles with elements of Domain-Driven Design (DDD).
-Although it's not meant to serve as a comprehensive reference or a strict
-application of these methodologies, the project demonstrates how their core
-ideas can be effectively put into practice in Python. If they're new to you,
-refer to the [Useful Resources](#useful-resources) section.
+📘 This FastAPI-based project demonstrates a practical implementation of **Hexagonal Architecture** (Ports and Adapters) with feature-based organization. It incorporates Command Query Responsibility Segregation (CQRS) principles and elements of Domain-Driven Design (DDD). While not meant to serve as a comprehensive reference or a strict application of these methodologies, the project shows how their core ideas can be effectively applied in Python. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
+
+This template evolved from a Clean Architecture implementation with layered organization into a true hexagonal architecture with explicit ports, adapters, and feature-based bounded contexts. See [About This Template](#about-this-template) for the relationship to the original work.
+
+## About This Template
+
+This project is a fork and evolution of [fastapi-clean-example](https://github.com/ivan-borovets/fastapi-clean-example) by **Ivan Borovets**. While the original project demonstrated Clean Architecture with layered organization, this template has been refactored to implement true Hexagonal Architecture (Ports and Adapters) with feature-based organization.
+
+**Key Changes from Original:**
+- Migrated from layered structure (domain/application/infrastructure/presentation) to feature-based hexagonal architecture (features with ports/adapters)
+- Explicit port abstractions (inbound/outbound) for each feature
+- Feature-based bounded contexts instead of global layers
+- Enhanced developer tooling (comprehensive Makefile, improved code quality automation)
+
+Credit to Ivan Borovets for the excellent foundation and architecture patterns. This template builds upon his work to demonstrate an alternative architectural approach.
 
 # Table of contents
 
@@ -23,12 +31,13 @@ refer to the [Useful Resources](#useful-resources) section.
 3. [Project](#project)
    1. [Dependency Graphs](#dependency-graphs)
    2. [Structure](#structure)
-   3. [Technology Stack](#technology-stack)
-   4. [API](#api)
+   3. [Makefile Commands Reference](#makefile-commands-reference)
+   4. [Technology Stack](#technology-stack)
+   5. [API](#api)
       1. [General](#general)
       2. [Account](#account-apiv1account)
       3. [Users](#users-apiv1users)
-   5. [Configuration](#configuration)
+   6. [Configuration](#configuration)
       1. [Files](#files)
       2. [Flow](#flow)
       3. [Local Environment](#local-environment)
@@ -504,54 +513,239 @@ retrieving them in main context was more natural.
 
 ## Structure
 
+This project implements **Hexagonal Architecture** (Ports and Adapters) with feature-based organization. Each feature is a bounded context containing its own hexagon with clearly separated domain logic, ports (abstractions), adapters (implementations), and entrypoints.
+
 ```
 .
-├── config/...                                   # configuration files and scripts, includes Docker
-├── Makefile                                     # shortcuts for setup and common tasks
-├── scripts/...                                  # helper scripts
-├── pyproject.toml                               # tooling and environment config (uv)
-├── ...
+├── config/...                                   # configuration files and Docker setup
+├── Makefile                                     # development task automation
+├── scripts/...                                  # utility scripts (dependency plotting, etc.)
+├── pyproject.toml                               # project metadata and tooling config
 └── src/
-    └── app/
-        ├── domain/                              # domain layer
-        │   ├── services/...                     # domain layer services
-        │   ├── entities/...                     # entities (have identity)
-        │   │   ├── base.py                      # base declarations
-        │   │   └── ...                          # concrete entities
-        │   ├── value_objects/...                # value objects (no identity)
-        │   │   ├── base.py                      # base declarations
-        │   │   └── ...                          # concrete value objects
-        │   └── ...                              # ports, enums, exceptions, etc.
+    ├── run.py                                   # application entry point
+    │
+    ├── common/                                  # shared cross-cutting concerns
+    │   ├── adapter/                             # shared infrastructure adapters
+    │   │   ├── persistence_sqla/                # SQLAlchemy session management
+    │   │   │   ├── registry.py                  # SQLAlchemy registry setup
+    │   │   │   └── ...
+    │   │   └── exceptions/...                   # adapter-level exceptions
+    │   │
+    │   ├── domain/                              # shared domain building blocks
+    │   │   ├── core/
+    │   │   │   ├── entities/                    # base entity classes
+    │   │   │   ├── value_objects/               # base value object classes
+    │   │   │   └── exceptions/                  # common domain exceptions
+    │   │   └── port/                            # shared port abstractions
+    │   │       ├── inbound/
+    │   │       │   └── queries/                 # common query interfaces
+    │   │       └── outbound/                    # common outbound ports
+    │   │
+    │   └── entrypoint/                          # shared presentation layer
+    │       ├── rest/
+    │       │   ├── controllers/                 # health check, root handlers
+    │       │   ├── errors/                      # error translators, handlers
+    │       │   └── ...                          # FastAPI router setup
+    │       └── exceptions/...                   # presentation exceptions
+    │
+    ├── features/                                # feature modules (bounded contexts)
+    │   │
+    │   ├── account/                             # account management feature
+    │   │   ├── adapter/                         # infrastructure implementations
+    │   │   │   ├── sqla_auth_session_gateway_session_adapter.py
+    │   │   │   ├── sqla_auth_session_transaction_manager.py
+    │   │   │   └── types_.py
+    │   │   │
+    │   │   ├── domain/                          # business logic
+    │   │   │   ├── core/                        # domain model
+    │   │   │   │   ├── entities/                # AuthSession entity
+    │   │   │   │   └── service/                 # domain services
+    │   │   │   │       ├── change_password_service.py
+    │   │   │   │       ├── log_in_service.py
+    │   │   │   │       ├── log_out_service.py
+    │   │   │   │       └── sign_up_service.py
+    │   │   │   └── port/                        # abstractions (hexagon boundary)
+    │   │   │       ├── inbound/                 # use case interfaces (driving)
+    │   │   │       │   ├── change_password_use_case.py
+    │   │   │       │   ├── log_in_use_case.py
+    │   │   │       │   ├── log_out_use_case.py
+    │   │   │       │   └── sign_up_use_case.py
+    │   │   │       └── outbound/                # gateway interfaces (driven)
+    │   │   │           ├── auth_session_gateway.py
+    │   │   │           └── auth_session_transaction_manager.py
+    │   │   │
+    │   │   └── entrypoint/                      # presentation layer
+    │   │       ├── rest/
+    │   │       │   ├── controllers/             # HTTP handlers
+    │   │       │   │   ├── change_password.py
+    │   │       │   │   ├── log_in.py
+    │   │       │   │   ├── log_out.py
+    │   │       │   │   └── sign_up.py
+    │   │       │   ├── account_router.py        # FastAPI router
+    │   │       │   ├── constants.py             # JWT/cookie settings
+    │   │       │   └── ...                      # JWT utils, cookie handlers
+    │   │       └── exceptions/...               # account-specific exceptions
+    │   │
+    │   └── user/                                # user management feature
+    │       ├── adapter/                         # infrastructure implementations
+    │       │   ├── sqla_user_repository_adapter_.py
+    │       │   ├── password_hasher_bcrypt.py
+    │       │   ├── identity_provider.py
+    │       │   ├── access_revoker.py
+    │       │   ├── mapper/                      # entity-to-model mappers
+    │       │   │   ├── user.py
+    │       │   │   ├── auth_session.py
+    │       │   │   └── all.py
+    │       │   ├── utils/                       # adapter utilities
+    │       │   │   ├── user_id_generator_uuid.py
+    │       │   │   ├── timer_utc.py
+    │       │   │   └── ...
+    │       │   └── exceptions/...               # adapter exceptions
+    │       │
+    │       ├── domain/                          # business logic
+    │       │   ├── core/                        # domain model
+    │       │   │   ├── entities/
+    │       │   │   │   └── user.py              # User aggregate root
+    │       │   │   ├── vo/                      # value objects
+    │       │   │   │   ├── user_id.py
+    │       │   │   │   ├── username.py
+    │       │   │   │   ├── user_password_hash.py
+    │       │   │   │   └── raw_password.py
+    │       │   │   ├── enums/                   # domain enumerations
+    │       │   │   │   ├── user_role.py
+    │       │   │   │   └── role_hierarchy.py
+    │       │   │   ├── service/                 # domain services
+    │       │   │   │   ├── user_service.py      # core user business logic
+    │       │   │   │   ├── current_user_service.py
+    │       │   │   │   ├── create_user_service.py
+    │       │   │   │   ├── activate_user_service.py
+    │       │   │   │   ├── deactivate_user_service.py
+    │       │   │   │   ├── grant_admin_service.py
+    │       │   │   │   ├── revoke_admin_service.py
+    │       │   │   │   ├── set_user_password_service.py
+    │       │   │   │   ├── list_users_service.py
+    │       │   │   │   └── permissions.py       # authorization logic
+    │       │   │   ├── utils/                   # domain utilities
+    │       │   │   │   └── authorize.py
+    │       │   │   ├── exceptions/              # domain exceptions
+    │       │   │   │   └── user.py
+    │       │   │   └── constants.py             # domain constants
+    │       │   │
+    │       │   └── port/                        # abstractions (hexagon boundary)
+    │       │       ├── inbound/                 # use case interfaces (driving ports)
+    │       │       │   ├── create_user_use_case.py
+    │       │       │   ├── activate_user_use_case.py
+    │       │       │   ├── deactivate_user_use_case.py
+    │       │       │   ├── grant_admin_use_case.py
+    │       │       │   ├── revoke_admin_use_case.py
+    │       │       │   ├── set_user_password_use_case.py
+    │       │       │   └── list_users_use_case.py
+    │       │       └── outbound/                # gateway interfaces (driven ports)
+    │       │           ├── user_repository.py
+    │       │           ├── password_hasher.py
+    │       │           ├── identity_provider.py
+    │       │           ├── user_id_generator.py
+    │       │           ├── access_revoker.py
+    │       │           └── queries/
+    │       │               └── user_queries.py
+    │       │
+    │       └── entrypoint/                      # presentation layer
+    │           └── rest/
+    │               ├── controllers/             # HTTP handlers
+    │               │   ├── create_user.py
+    │               │   ├── activate_user.py
+    │               │   ├── deactivate_user.py
+    │               │   ├── grant_admin.py
+    │               │   ├── revoke_admin.py
+    │               │   ├── set_user_password.py
+    │               │   └── list_users.py
+    │               └── user_router.py           # FastAPI router
+    │
+    └── setup/                                   # application configuration
+        ├── config/                              # settings management
+        │   ├── settings.py                      # environment-based configuration
+        │   ├── loader.py                        # config file loader
+        │   ├── database.py                      # database settings
+        │   ├── security.py                      # JWT/auth settings
+        │   └── logs.py                          # logging configuration
         │
-        ├── application/...                      # application layer
-        │   ├── commands/                        # write ops, business-critical reads
-        │   │   ├── create_user.py               # interactor
-        │   │   └── ...                          # other interactors
-        │   ├── queries/                         # optimized read operations
-        │   │   ├── list_users.py                # query service
-        │   │   └── ...                          # other query services
-        │   └── common/                          # common layer objects
-        │       ├── services/...                 # authorization, etc.
-        │       └── ...                          # ports, exceptions, etc.
-        │
-        ├── infrastructure/...                   # infrastructure layer
-        │   ├── adapters/...                     # port adapters
-        │   ├── auth/...                         # auth context (session-based)
-        │   └── ...                              # persistence, exceptions, etc.
-        │
-        ├── presentation/...                     # presentation layer
-        │   └── http/                            # http interface
-        │       ├── auth/...                     # web auth logic
-        │       ├── controllers/...              # controllers and routers
-        │       └── errors/...                   # error handling helpers
-        │
-        ├── setup/
-        │   ├── ioc/...                          # dependency injection setup
-        │   ├── config/...                       # app settings
-        │   └── app_factory.py                   # app builder
-        │  
-        └── run.py                               # app entry point
+        └── ioc/                                 # dependency injection (Dishka)
+            ├── provider_registry.py             # main DI container setup
+            ├── domain.py                        # domain service providers
+            ├── infrastructure.py                # adapter providers
+            ├── entrypoint.py                    # controller providers
+            ├── application.py                   # use case providers
+            └── settings.py                      # config providers
 ```
+
+### Key Architecture Patterns
+
+**Hexagonal Architecture (Ports and Adapters):**
+- Each feature is a **hexagon** with a clear boundary defined by ports
+- **Ports** are abstractions (interfaces) that define how the domain interacts with the outside world:
+  - **Inbound ports** (driving): Use case interfaces that external actors invoke
+  - **Outbound ports** (driven): Gateway interfaces that the domain uses to interact with infrastructure
+- **Adapters** are concrete implementations of ports that connect to external systems (databases, frameworks, etc.)
+- **Domain** contains business logic and depends only on port abstractions, never on adapters
+
+**Feature-Based Organization:**
+- Business capabilities are organized into features (`account`, `user`) rather than technical layers
+- Each feature is a bounded context with its own domain model, ports, adapters, and entrypoints
+- Common shared concerns live in `/common` and are reused across features
+
+**Dependency Rule:**
+- Dependencies point inward: `entrypoint` → `domain/port/inbound` → `domain/core` ← `domain/port/outbound` ← `adapter`
+- Domain layer has **zero dependencies** on outer layers (framework-agnostic, storage-agnostic)
+- Adapters and entrypoints depend on domain ports (abstractions), not on each other
+
+**CQRS Pattern:**
+- Write operations: Commands flow through use cases → domain services → repository
+- Read operations: Queries can bypass domain layer for optimized reads (see `user_queries.py`)
+
+## Makefile Commands Reference
+
+The project includes a comprehensive Makefile for automating common development tasks. Run `make help` to see all available commands.
+
+### Environment Management
+
+- `make env.local` - Print command to set APP_ENV=local (run in shell: `eval $(make env.local)`)
+- `make env` - Display current APP_ENV value
+- `make dotenv` - Generate .env files from config templates
+- `make venv` - Create or update virtual environment using uv
+- `make venv.activate` - Print command to activate virtual environment
+- `make venv.deactivate` - Print command to deactivate virtual environment
+
+### Database Management (Supabase)
+
+- `make up.db` - Start Supabase local database
+- `make up.db-echo` - Start Supabase local database with debug output
+- `make down.db` - Stop Supabase local database
+- `make logs.db` - Tail Supabase database container logs
+- `make shell.db` - Open interactive shell inside Supabase database container
+
+### Docker Compose (Application)
+
+- `make up` - Start application containers in detached mode
+- `make up.echo` - Start application containers in foreground (with logs)
+- `make down` - Stop application containers
+- `make down.total` - Stop application containers and remove volumes
+- `make prune` - Clean up docker compose artifacts (stopped containers, networks, etc.)
+
+### Code Quality
+
+- `make code.format` - Format code using ruff
+- `make code.lint` - Run linters (ruff, slotscheck, mypy)
+- `make code.test` - Run pytest test suite
+- `make code.cov` - Run tests with coverage and print report
+- `make code.cov.html` - Run tests with coverage and generate HTML report
+- `make code.check` - Run full quality check (lint + test)
+
+### Project Utilities
+
+- `make pycache-del` - Remove all __pycache__ directories
+- `make tree` - Display project tree structure (after cleaning)
+- `make plot-data` - Plot Dishka dependency injection graph
+- `make help` - Display this help information
 
 ## Technology Stack
 
