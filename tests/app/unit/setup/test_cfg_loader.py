@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from setup.config.loader import (
+from infrastructure.config.settings.loader import (
     ENV_VAR_NAME,
     DirContents,
     ValidEnvs,

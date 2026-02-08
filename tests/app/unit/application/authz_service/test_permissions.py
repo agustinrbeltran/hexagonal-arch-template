@@ -1,7 +1,7 @@
 import pytest
 
-from features.user.domain.core.enums.user_role import UserRole
-from features.user.domain.core.service.permissions import (
+from domain.user.enums import UserRole
+from domain.user.services import (
     CanManageRole,
     CanManageSelf,
     CanManageSubordinate,

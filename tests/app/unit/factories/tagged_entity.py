@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from common.domain.core.entities.base import Entity
-from common.domain.core.value_objects.base import ValueObject
+from domain.shared.entity import Entity
+from domain.shared.value_object import ValueObject
 
 
 @dataclass(frozen=True, slots=True, repr=False)

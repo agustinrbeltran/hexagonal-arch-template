@@ -1,6 +1,6 @@
 import pytest
 
-from features.user.domain.core.enums.user_role import UserRole
+from domain.user.enums import UserRole
 
 
 @pytest.mark.parametrize(

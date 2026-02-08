@@ -169,10 +169,9 @@ split-on-trailing-comma = true
     "S107", # hardcoded-password-default
 ]
 #
-"src/features/user/adapter/password_hasher_bcrypt.py" = ["E501", ]                 # line-too-long
-"src/features/account/entrypoint/rest/constants.py" = ["S105", ]                   # hardcoded-password-string
-"src/features/user/domain/core/constants.py" = ["S105", ]                          # hardcoded-password-string
-"src/common/entrypoint/rest/errors/translators.py" = ["ARG002", ]                  # unused-method-argument
+"src/infrastructure/security/password_hasher_bcrypt.py" = ["E501", ]               # line-too-long
+"src/infrastructure/http/middleware/constants.py" = ["S105", ]                     # hardcoded-password-string
+"src/infrastructure/http/errors/translators.py" = ["ARG002", ]                    # unused-method-argument
 "scripts/dishka/plot_dependencies_data.py" = ["T201", ]                            # print
 
 [tool.slotscheck]

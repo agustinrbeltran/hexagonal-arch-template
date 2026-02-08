@@ -1,7 +1,7 @@
 import pytest
 from pydantic import PostgresDsn, ValidationError
 
-from setup.config.database import PORT_MAX, PORT_MIN, PostgresSettings
+from infrastructure.config.settings.database import PORT_MAX, PORT_MIN, PostgresSettings
 from tests.app.unit.factories.settings_data import create_postgres_settings_data
 
 

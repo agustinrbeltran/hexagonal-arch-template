@@ -1,2 +1,0 @@
-class EntrypointError(Exception):
-    pass

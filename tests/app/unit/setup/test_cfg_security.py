@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from setup.config.security import AuthSettings
+from infrastructure.config.settings.security import AuthSettings
 from tests.app.unit.factories.settings_data import create_auth_settings_data
 
 

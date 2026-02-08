@@ -1,4 +1,4 @@
-from setup.config.loader import BASE_DIR_PATH
+from infrastructure.config.settings.loader import BASE_DIR_PATH
 
 
 def test_base_dir_points_to_root() -> None:

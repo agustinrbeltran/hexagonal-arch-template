@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 from line_profiler import LineProfiler
 
-from features.user.adapter.password_hasher_bcrypt import BcryptPasswordHasher
-from features.user.domain.core.vo.raw_password import RawPassword
+from infrastructure.security.password_hasher_bcrypt import BcryptPasswordHasher
+from domain.user.value_objects import RawPassword
 
 
 def profile_password_hashing(hasher: BcryptPasswordHasher) -> None:
