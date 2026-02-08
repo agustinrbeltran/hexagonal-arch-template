@@ -11,11 +11,14 @@ packages = ["src/app"]
 [project]
 name = "hexagonal-arch-template"
 version = "0.1"
-description = "Practical Clean Architecture backend example built with FastAPI"
+description = "Hexagonal Architecture template for FastAPI - feature-based organization with ports and adapters"
 readme = "README.md"
 license = "MIT"
 authors = [
     { name = "Ivan Borovets", email = "ivan.r.borovets@gmail.com" },
+]
+maintainers = [
+    { name = "Agustin Renteria Beltran", email = "agustin.rbeltran@gmail.com" },
 ]
 requires-python = "==3.13.*"
 dependencies = [
