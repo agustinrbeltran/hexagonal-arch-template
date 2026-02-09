@@ -33,5 +33,6 @@ def map_users_table() -> None:
             "role": users_table.c.role,
             "is_active": users_table.c.is_active,
         },
+        exclude_properties=["_events"],
         column_prefix="_",
     )

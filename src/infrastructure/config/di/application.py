@@ -1,4 +1,4 @@
-from dishka import Provider, Scope, provide
+from dishka import Provider, Scope, provide, provide_all
 
 from application.activate_user.handler import ActivateUserHandler
 from application.activate_user.port import ActivateUserUseCase
@@ -37,6 +37,9 @@ from infrastructure.security.identity_provider import AuthSessionIdentityProvide
 
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
+
+    # Concrete handler needed by other handlers as a direct dependency
+    current_user_handler = provide_all(CurrentUserHandler)
 
     # Ports Persistence
     unit_of_work = provide(SqlaUnitOfWork, provides=UnitOfWork)

@@ -30,12 +30,15 @@ class SqlaUnitOfWork(UnitOfWork):
         try:
             await self._session.flush()
         except IntegrityError as err:
-            if "uq_users_username" in str(err):
+            log.error("IntegrityError during flush: %s", err)
+            err_str = str(err)
+            if "uq_users_username" in err_str or "users_username_key" in err_str:
                 params: Mapping[str, Any] = cast(Mapping[str, Any], err.params)
                 username = str(params.get("username", "unknown"))
                 raise UsernameAlreadyExistsError(username) from err
             raise DataMapperError(DB_CONSTRAINT_VIOLATION) from err
         except SQLAlchemyError as err:
+            log.error("SQLAlchemyError during flush: %s", err)
             raise DataMapperError(f"{DB_QUERY_FAILED}") from err
 
         try:
