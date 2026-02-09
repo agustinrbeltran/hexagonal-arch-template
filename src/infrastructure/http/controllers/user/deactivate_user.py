@@ -42,9 +42,9 @@ def create_deactivate_user_router() -> APIRouter:
     @inject
     async def deactivate_user(
         user_id: Annotated[UUID, Path()],
-        interactor: FromDishka[DeactivateUserUseCase],
+        use_case: FromDishka[DeactivateUserUseCase],
     ) -> None:
         request_data = DeactivateUserCommand(user_id)
-        await interactor.execute(request_data)
+        await use_case.execute(request_data)
 
     return router

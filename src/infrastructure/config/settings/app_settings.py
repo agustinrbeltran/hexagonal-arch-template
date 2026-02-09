@@ -1,7 +1,11 @@
 from pydantic import BaseModel
 
 from infrastructure.config.settings.database import PostgresSettings, SqlaEngineSettings
-from infrastructure.config.settings.loader import ValidEnvs, get_current_env, load_full_config
+from infrastructure.config.settings.loader import (
+    ValidEnvs,
+    get_current_env,
+    load_full_config,
+)
 from infrastructure.config.settings.logs import LoggingSettings
 from infrastructure.config.settings.security import SecuritySettings
 

@@ -49,12 +49,12 @@ def create_set_user_password_router() -> APIRouter:
     async def set_user_password(
         user_id: Annotated[UUID, Path()],
         password: Annotated[str, Body()],
-        interactor: FromDishka[SetUserPasswordUseCase],
+        use_case: FromDishka[SetUserPasswordUseCase],
     ) -> None:
         request_data = SetUserPasswordCommand(
             user_id=user_id,
             password=password,
         )
-        await interactor.execute(request_data)
+        await use_case.execute(request_data)
 
     return router

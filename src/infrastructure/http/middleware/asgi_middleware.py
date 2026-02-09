@@ -38,16 +38,22 @@ class ASGIAuthMiddleware:
 
     def _maybe_set_cookie(self, request: Request, headers: MutableHeaders) -> None:
         new_access_token: str | None = getattr(
-            request.state, REQUEST_STATE_NEW_ACCESS_TOKEN_KEY, None,
+            request.state,
+            REQUEST_STATE_NEW_ACCESS_TOKEN_KEY,
+            None,
         )
         if new_access_token is None:
             return
 
         cookie_params: CookieParams = getattr(
-            request.state, REQUEST_STATE_COOKIE_PARAMS_KEY, CookieParams(secure=False),
+            request.state,
+            REQUEST_STATE_COOKIE_PARAMS_KEY,
+            CookieParams(secure=False),
         )
         cookie_header = self._make_cookie_header(
-            value=new_access_token, is_secure=cookie_params.secure, samesite=cookie_params.samesite,
+            value=new_access_token,
+            is_secure=cookie_params.secure,
+            samesite=cookie_params.samesite,
         )
         headers.append("Set-Cookie", cookie_header)
         log.debug("Cookie with access token '%s' was set.", new_access_token)
@@ -57,13 +63,23 @@ class ASGIAuthMiddleware:
             return
 
         current_access_token = request.cookies.get(COOKIE_ACCESS_TOKEN_NAME)
-        log.debug("Deleting cookie with access token: '%s'.", current_access_token if current_access_token else "already deleted")
+        log.debug(
+            "Deleting cookie with access token: '%s'.",
+            current_access_token if current_access_token else "already deleted",
+        )
 
         cookie_header = self._make_cookie_header(value="", max_age=0)
         headers.append("Set-Cookie", cookie_header)
         log.debug("Cookie was deleted.")
 
-    def _make_cookie_header(self, *, value: str, is_secure: bool = False, samesite: Literal["strict"] | None = None, max_age: int | None = None) -> str:
+    def _make_cookie_header(
+        self,
+        *,
+        value: str,
+        is_secure: bool = False,
+        samesite: Literal["strict"] | None = None,
+        max_age: int | None = None,
+    ) -> str:
         cookie = SimpleCookie()
         cookie["access_token"] = value
         cookie["access_token"]["path"] = "/"

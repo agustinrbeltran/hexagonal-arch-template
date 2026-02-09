@@ -42,9 +42,9 @@ def create_grant_admin_router() -> APIRouter:
     @inject
     async def grant_admin(
         user_id: Annotated[UUID, Path()],
-        interactor: FromDishka[GrantAdminUseCase],
+        use_case: FromDishka[GrantAdminUseCase],
     ) -> None:
         request_data = GrantAdminCommand(user_id)
-        await interactor.execute(request_data)
+        await use_case.execute(request_data)
 
     return router

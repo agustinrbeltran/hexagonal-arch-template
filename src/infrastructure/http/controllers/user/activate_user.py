@@ -42,9 +42,9 @@ def create_activate_user_router() -> APIRouter:
     @inject
     async def activate_user(
         user_id: Annotated[UUID, Path()],
-        interactor: FromDishka[ActivateUserUseCase],
+        use_case: FromDishka[ActivateUserUseCase],
     ) -> None:
         request_data = ActivateUserCommand(user_id)
-        await interactor.execute(request_data)
+        await use_case.execute(request_data)
 
     return router

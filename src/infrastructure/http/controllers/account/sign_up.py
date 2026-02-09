@@ -9,7 +9,10 @@ from application.sign_up.command import SignUpCommand, SignUpResponse
 from application.sign_up.handler import AlreadyAuthenticatedError
 from application.sign_up.port import SignUpUseCase
 from domain.shared.errors import AuthorizationError, DomainTypeError
-from domain.user.errors import RoleAssignmentNotPermittedError, UsernameAlreadyExistsError
+from domain.user.errors import (
+    RoleAssignmentNotPermittedError,
+    UsernameAlreadyExistsError,
+)
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.persistence.errors import DataMapperError

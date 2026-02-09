@@ -53,10 +53,14 @@ class ApplicationProvider(Provider):
     # User Use Cases
     activate_user_use_case = provide(ActivateUserHandler, provides=ActivateUserUseCase)
     create_user_use_case = provide(CreateUserHandler, provides=CreateUserUseCase)
-    deactivate_user_use_case = provide(DeactivateUserHandler, provides=DeactivateUserUseCase)
+    deactivate_user_use_case = provide(
+        DeactivateUserHandler, provides=DeactivateUserUseCase
+    )
     grant_admin_use_case = provide(GrantAdminHandler, provides=GrantAdminUseCase)
     revoke_admin_use_case = provide(RevokeAdminHandler, provides=RevokeAdminUseCase)
-    set_user_password_use_case = provide(SetUserPasswordHandler, provides=SetUserPasswordUseCase)
+    set_user_password_use_case = provide(
+        SetUserPasswordHandler, provides=SetUserPasswordUseCase
+    )
     list_users_use_case = provide(ListUsersHandler, provides=ListUsersUseCase)
     current_user_use_case = provide(CurrentUserHandler, provides=CurrentUserUseCase)
 
@@ -64,4 +68,6 @@ class ApplicationProvider(Provider):
     sign_up_use_case = provide(SignUpHandler, provides=SignUpUseCase)
     log_in_use_case = provide(LogInHandler, provides=LogInUseCase)
     log_out_use_case = provide(LogOutHandler, provides=LogOutUseCase)
-    change_password_use_case = provide(ChangePasswordHandler, provides=ChangePasswordUseCase)
+    change_password_use_case = provide(
+        ChangePasswordHandler, provides=ChangePasswordUseCase
+    )

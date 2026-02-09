@@ -7,7 +7,10 @@ from fastapi import APIRouter, Body, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.change_password.command import ChangePasswordCommand
-from application.change_password.handler import AuthenticationChangeError, ReAuthenticationError
+from application.change_password.handler import (
+    AuthenticationChangeError,
+    ReAuthenticationError,
+)
 from application.change_password.port import ChangePasswordUseCase
 from domain.shared.errors import AuthorizationError, DomainTypeError
 from domain.auth_session.errors import SessionNotFoundError

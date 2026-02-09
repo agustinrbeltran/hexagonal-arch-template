@@ -14,18 +14,34 @@ from sqlalchemy.ext.asyncio import (
 from starlette.requests import Request
 
 from domain.auth_session.gateway import AuthSessionGateway
-from domain.auth_session.ports import AuthSessionTransactionManager, AuthSessionTransport
-from domain.auth_session.services import AuthSessionIdGenerator, AuthSessionService, AuthSessionTimer
+from domain.auth_session.ports import (
+    AuthSessionTransactionManager,
+    AuthSessionTransport,
+)
+from domain.auth_session.services import (
+    AuthSessionIdGenerator,
+    AuthSessionService,
+    AuthSessionTimer,
+)
 from infrastructure.config.settings.database import PostgresSettings, SqlaEngineSettings
 from infrastructure.config.settings.security import SecuritySettings
 from infrastructure.http.middleware.cookie_params import CookieParams
 from infrastructure.persistence.sqla_auth_session_gateway import SqlaAuthSessionGateway
-from infrastructure.persistence.sqla_auth_session_transaction_manager import SqlaAuthSessionTransactionManager
-from infrastructure.persistence.types_ import AuthAsyncSession, HasherSemaphore, HasherThreadPoolExecutor, MainAsyncSession
+from infrastructure.persistence.sqla_auth_session_transaction_manager import (
+    SqlaAuthSessionTransactionManager,
+)
+from infrastructure.persistence.types_ import (
+    AuthAsyncSession,
+    HasherSemaphore,
+    HasherThreadPoolExecutor,
+    MainAsyncSession,
+)
 from infrastructure.security.access_token_processor_jwt import JwtAccessTokenProcessor
 from infrastructure.security.auth_session_id_generator import StrAuthSessionIdGenerator
 from infrastructure.security.auth_session_timer import UtcAuthSessionTimer
-from infrastructure.security.session_transport_jwt_cookie import JwtCookieAuthSessionTransport
+from infrastructure.security.session_transport_jwt_cookie import (
+    JwtCookieAuthSessionTransport,
+)
 
 log = logging.getLogger(__name__)
 
@@ -143,7 +159,9 @@ class AuthSessionProvider(Provider):
     service = provide(AuthSessionService)
 
     # Ports
-    id_generator = provide(StrAuthSessionIdGenerator, provides=AuthSessionIdGenerator, scope=Scope.APP)
+    id_generator = provide(
+        StrAuthSessionIdGenerator, provides=AuthSessionIdGenerator, scope=Scope.APP
+    )
 
     @provide(scope=Scope.APP)
     def provide_utc_auth_session_timer(

@@ -10,7 +10,10 @@ from application.create_user.command import CreateUserCommand, CreateUserRespons
 from application.create_user.port import CreateUserUseCase
 from domain.shared.errors import AuthorizationError, DomainTypeError
 from domain.user.enums import UserRole
-from domain.user.errors import RoleAssignmentNotPermittedError, UsernameAlreadyExistsError
+from domain.user.errors import (
+    RoleAssignmentNotPermittedError,
+    UsernameAlreadyExistsError,
+)
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme
@@ -56,13 +59,13 @@ def create_create_user_router() -> APIRouter:
     @inject
     async def create_user(
         request_data_pydantic: CreateUserRequestPydantic,
-        interactor: FromDishka[CreateUserUseCase],
+        use_case: FromDishka[CreateUserUseCase],
     ) -> CreateUserResponse:
         request_data = CreateUserCommand(
             username=request_data_pydantic.username,
             password=request_data_pydantic.password,
             role=request_data_pydantic.role,
         )
-        return await interactor.execute(request_data)
+        return await use_case.execute(request_data)
 
     return router

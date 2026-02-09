@@ -56,7 +56,7 @@ def create_list_users_router() -> APIRouter:
     @inject
     async def list_users(
         request_data_pydantic: Annotated[ListUsersRequestPydantic, Depends()],
-        interactor: FromDishka[ListUsersUseCase],
+        use_case: FromDishka[ListUsersUseCase],
     ) -> ListUsersQM:
         request_data = ListUsersQuery(
             limit=request_data_pydantic.limit,
@@ -64,6 +64,6 @@ def create_list_users_router() -> APIRouter:
             sorting_field=request_data_pydantic.sorting_field,
             sorting_order=request_data_pydantic.sorting_order,
         )
-        return await interactor.execute(request_data)
+        return await use_case.execute(request_data)
 
     return router

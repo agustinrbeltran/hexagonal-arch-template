@@ -42,9 +42,9 @@ def create_revoke_admin_router() -> APIRouter:
     @inject
     async def revoke_admin(
         user_id: Annotated[UUID, Path()],
-        interactor: FromDishka[RevokeAdminUseCase],
+        use_case: FromDishka[RevokeAdminUseCase],
     ) -> None:
         request_data = RevokeAdminCommand(user_id)
-        await interactor.execute(request_data)
+        await use_case.execute(request_data)
 
     return router

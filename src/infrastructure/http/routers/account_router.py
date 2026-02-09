@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
-from infrastructure.http.controllers.account.change_password import create_change_password_router
+from infrastructure.http.controllers.account.change_password import (
+    create_change_password_router,
+)
 from infrastructure.http.controllers.account.log_in import create_log_in_router
 from infrastructure.http.controllers.account.log_out import create_log_out_router
 from infrastructure.http.controllers.account.sign_up import create_sign_up_router
