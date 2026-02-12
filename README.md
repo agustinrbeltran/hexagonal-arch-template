@@ -1,20 +1,24 @@
 # Overview
 
-📘 This FastAPI-based project demonstrates a practical implementation of **Hexagonal Architecture** (Ports and Adapters) with feature-based organization. It incorporates Command Query Responsibility Segregation (CQRS) principles and elements of Domain-Driven Design (DDD). While not meant to serve as a comprehensive reference or a strict application of these methodologies, the project shows how their core ideas can be effectively applied in Python. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
+📘 This FastAPI-based project demonstrates a practical implementation of **Domain-Driven Design (DDD)** with **Clean Architecture** using a **layer-based organization**. It showcases DDD tactical patterns including aggregates, domain events, value objects, and the repository pattern, combined with Clean Architecture's dependency rule and CQRS principles. While not meant to serve as a comprehensive reference or a strict application of these methodologies, the project shows how their core ideas can be effectively applied in Python for building maintainable, testable systems with complex business logic. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
 
-This template evolved from a Clean Architecture implementation with layered organization into a true hexagonal architecture with explicit ports, adapters, and feature-based bounded contexts. See [About This Template](#about-this-template) for the relationship to the original work.
+This template demonstrates how to organize code around domain aggregates and use cases rather than technical layers, while maintaining clear separation of concerns through the domain, application, and infrastructure layers. See [About This Template](#about-this-template) for the relationship to the original work.
 
 ## About This Template
 
-This project is a fork and evolution of [fastapi-clean-example](https://github.com/ivan-borovets/fastapi-clean-example) by **Ivan Borovets**. While the original project demonstrated Clean Architecture with layered organization, this template has been refactored to implement true Hexagonal Architecture (Ports and Adapters) with feature-based organization.
+This project demonstrates how to apply Domain-Driven Design tactical patterns in a FastAPI application using Clean Architecture principles. The codebase is organized into three distinct layers (domain, application, infrastructure) with clear boundaries and dependency rules.
 
-**Key Changes from Original:**
-- Migrated from layered structure (domain/application/infrastructure/presentation) to feature-based hexagonal architecture (features with ports/adapters)
-- Explicit port abstractions (inbound/outbound) for each feature
-- Feature-based bounded contexts instead of global layers
-- Enhanced developer tooling (comprehensive Makefile, improved code quality automation)
+**What This Template Provides:**
+- Layer-based DDD architecture with explicit aggregate boundaries
+- Domain events for recording state changes and enabling eventual consistency
+- Rich value objects with embedded validation logic
+- Application layer use cases following the Command/Handler pattern
+- Repository pattern with domain-defined interfaces and infrastructure implementations
+- CQRS separation for optimized read and write operations
+- Comprehensive dependency injection using Dishka (framework-agnostic)
+- Enhanced developer tooling (comprehensive Makefile, code quality automation)
 
-Credit to Ivan Borovets for the excellent foundation and architecture patterns. This template builds upon his work to demonstrate an alternative architectural approach.
+**Foundation:** This template builds upon the excellent architectural foundation from [fastapi-clean-example](https://github.com/ivan-borovets/fastapi-clean-example) by **Ivan Borovets**, evolving it to emphasize DDD tactical patterns and aggregate-driven design. Credit to Ivan for the foundational work that made this possible.
 
 # Table of contents
 
@@ -82,100 +86,854 @@ Concentric circles represent boundaries between different layers. The meaning of
 arrows in the diagram will be discussed [later](#dependency-rule). For now, we
 will focus on the purpose of the layers.
 
-## Hexagonal Architecture Approach
+## Layer-Based DDD Architecture
 
-This project implements **Hexagonal Architecture** (also known as Ports and Adapters) with **feature-based organization**. Instead of organizing code into global layers (domain, application, infrastructure, presentation), each feature is a **bounded context** with its own hexagon containing domain logic, ports, adapters, and entrypoints.
+This project implements **Domain-Driven Design** tactical patterns using **Clean Architecture's** layered approach. Code is organized into three distinct layers (domain, application, infrastructure), with business logic concentrated in domain **aggregates** that represent bounded contexts.
 
-### Feature Organization
+### The Three Layers
 
-Each feature (e.g., `features/account/`, `features/user/`) is a self-contained hexagon:
+The architecture follows a strict layering principle where dependencies flow inward:
 
-- **Domain (Core)** — Business logic at the center of the hexagon
-- **Ports** — Abstractions (interfaces) defining the hexagon's boundaries
-  - **Inbound Ports** (driving) — Use case interfaces invoked by external actors
-  - **Outbound Ports** (driven) — Gateway interfaces for infrastructure dependencies
-- **Adapters** — Concrete implementations connecting to external systems
-- **Entrypoints** — Controllers that handle external requests (REST, CLI, etc.)
+```
+Infrastructure → Application → Domain
+   (adapters)     (use cases)    (core)
+```
 
-![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Core** (`features/{feature}/domain/core/`)
+Each layer has specific responsibilities and constraints:
 
-- **Domain model** is a set of concepts, rules and behaviors that define what
-  business (context) is and how it operates. It is expressed in **ubiquitous
-  language** — consistent terminology shared by developers and domain experts.
-  Each feature domain implements its bounded context model in code.
-- The strictest domain rules are **invariants** — conditions that must always
-  hold true for the model. Enforcing invariants means maintaining data
-  consistency in the model. This can be achieved through **encapsulation**,
-  which hides internal state and couples data with behavior.
-- Building blocks of domain model are (not limited to these):
-  - **value objects** — smart business types (no identity, immutable, equal by
-    value). Examples: `UserId`, `Username`, `RawPassword`
-  - **entities** — business objects (have identity and lifecycle, equal by
-    identity). Examples: `User`, `AuthSession`
-  - **domain services** — containers for behavior that has no place in the
-    components above. Examples: `LogInService`, `CreateUserService`
-- Other domain model building blocks, unused in this project but important for
-  deeper DDD:
-  - **aggregates** — clusters of entities (1+) that must change together as a
-    single unit, managed exclusively through their root, defining boundaries of
-    transactional consistency.
-  - **repositories** — abstractions emulating collections of aggregate roots.
-- Domain model lies on a spectrum from anemic to rich.
-  - **anemic** — simple data types, entities are just data holders, rules and
-    behaviors live outside.
-  - **rich** — value objects and entities encapsulate data and rules; invariants
-    are enforced internally, so the model itself prevents invalid states. For
-    components: anemic means no behavior within, rich — the contrary.
-- Domain services represent operations that don't naturally belong to
-  a specific entity or value object. But in projects with anemic entities, they
-  can also contain logic that would otherwise be in those entities.
-- In early stages of development when the domain model is not yet clearly
-  defined, keeping entities flat and anemic is practical, even though the
-  latter weakens encapsulation. Once domain logic is well established, some
-  entities can, as aggregate roots, become non-flat and rich. This best enforces
-  invariants but can be tricky to design once and for all.
-- Prefer rich value objects early, freeing entities and services from an
-  excessive burden of local rules.
-- Consider the domain core the most important, stable, and independent part of
-  each feature.
+![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer** (`src/domain/`)
 
-![#purple](https://placehold.co/15x15/purple/purple.svg) **Ports** (`features/{feature}/domain/port/`)
+The **domain layer** contains pure business logic with **zero external dependencies**. It is organized into **aggregates**, each representing a bounded context with its own model and rules.
 
-**Inbound Ports (Driving)** — Use case interfaces that define what the hexagon can do:
-- These are **abstractions** (protocols/interfaces) that external actors use to interact with the domain
-- Each port represents a single use case or business operation
-- Examples: `LogInUseCase`, `CreateUserUseCase`, `GrantAdminUseCase`
-- Domain services implement these ports, providing the actual business logic
-- Controllers (entrypoints) depend on these abstractions, not on concrete implementations
-- This allows the domain to remain decoupled from delivery mechanisms (REST, CLI, gRPC, etc.)
+**Aggregates in this project:**
+- `domain/user/` — User identity, roles, and lifecycle management
+- `domain/auth_session/` — Authentication sessions and access control
+- `domain/shared/` — Common domain building blocks (base classes, shared exceptions)
 
-**Outbound Ports (Driven)** — Gateway interfaces that define what the hexagon needs:
-- These are **abstractions** for infrastructure dependencies (databases, external APIs, etc.)
-- Examples: `UserRepository`, `PasswordHasher`, `AuthSessionGateway`
-- Adapters implement these ports, providing concrete infrastructure integrations
-- Domain services depend on these abstractions, not on concrete implementations
-- This allows the domain to remain agnostic of storage mechanisms and external systems
+**What belongs in the domain layer:**
 
-The **ports** define the hexagon's boundary. Everything inside the hexagon depends only on abstractions, never on concrete implementations outside the hexagon.
+✓ **Aggregate Roots** — Entities that serve as entry points to aggregates. They enforce invariants and emit domain events.
+  - Example: `User` entity in `domain/user/entity.py`
+  - Extends `AggregateRoot` base class
+  - Manages its own lifecycle and state changes
 
-![#green](https://placehold.co/15x15/green/green.svg) **Adapters** (`features/{feature}/adapter/`)
+✓ **Value Objects** — Immutable types defined by their attributes, not identity. They contain validation logic.
+  - Examples: `UserId`, `Username`, `UserPasswordHash`, `RawPassword`
+  - Found in `domain/user/value_objects.py`
+  - Equality by value, not reference
 
-- Adapters are concrete implementations of **outbound ports**
-- They translate between the domain's abstractions and real-world infrastructure
-- Examples:
-  - `SqlaUserRepositoryAdapter` implements `UserRepository` using SQLAlchemy
-  - `PasswordHasherBcrypt` implements `PasswordHasher` using bcrypt
-  - `IdentityProvider` implements authentication details
-- Adapters handle infrastructure concerns: database queries, API calls, file I/O, etc.
-- They depend on both domain ports (to implement) and external systems (databases, libraries)
-- Related adapter logic can be grouped into **infrastructure services**
+✓ **Domain Events** — Immutable records of state changes that have occurred.
+  - Examples: `UserCreated`, `UserActivated`, `UserRoleChanged`
+  - Found in `domain/user/events.py`
+  - Past-tense naming, frozen dataclasses
+
+✓ **Repository Interfaces** — Abstractions for aggregate persistence (ports).
+  - Example: `UserRepository` protocol in `domain/user/repository.py`
+  - Defines methods like `get_by_id()`, `save()`, `delete()`
+  - Implementation lives in infrastructure layer
+
+✓ **Domain Services** — Stateless operations that don't naturally fit in entities.
+  - Example: `UserService` in `domain/user/services.py`
+  - Coordinates operations across value objects and entities
+  - May verify business rules or prepare data
+
+✓ **Domain Exceptions** — Business rule violations.
+  - Example: `UserNotFoundError`, `RoleAssignmentNotPermittedError`
+  - Found in `domain/user/errors.py`
+
+**What does NOT belong in the domain layer:**
+
+✗ Database code (SQLAlchemy models, queries)
+✗ HTTP/REST code (FastAPI routes, request models)
+✗ Framework dependencies (except language extensions)
+✗ External API calls
+✗ File I/O operations
+
+**Example - User Aggregate:**
+
+```python
+class User(AggregateRoot[UserId]):
+    """
+    User aggregate root - manages user identity and lifecycle.
+
+    Invariants enforced:
+    - Super admin cannot be deactivated
+    - Only assignable roles can be granted
+    - Username must be unique (via repository)
+    """
+
+    def change_role(self, new_role: UserRole) -> None:
+        """Change user role and emit domain event."""
+        if not new_role.is_assignable:
+            raise RoleAssignmentNotPermittedError(new_role)
+
+        old_role = self.role
+        self.role = new_role
+
+        # Record domain event
+        self.record_event(UserRoleChanged(
+            user_id=self.id_.value,
+            old_role=old_role,
+            new_role=new_role,
+        ))
+```
+
+**Aggregate Boundaries:**
+
+Aggregates define transactional consistency boundaries. Changes within an aggregate are atomic, while changes across aggregates are eventually consistent through domain events.
+
+```
+┌─────────────────────────────────────────┐
+│            User Aggregate               │
+│  (domain/user/)                         │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │  User (Root)                     │  │
+│  │  • id: UserId                    │  │
+│  │  • username: Username            │  │
+│  │  • password_hash: PasswordHash   │  │
+│  │  • role: UserRole                │  │
+│  │  • is_active: bool               │  │
+│  └──────────────────────────────────┘  │
+│                                         │
+│  Invariants:                            │
+│  • Role assignment rules                │
+│  • Activation constraints               │
+│  • Password complexity                  │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│        AuthSession Aggregate            │
+│  (domain/auth_session/)                 │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │  AuthSession (Root)              │  │
+│  │  • id: SessionId                 │  │
+│  │  • user_id: UserId (reference)   │  │◄─ Reference only
+│  │  • created_at: datetime          │  │
+│  │  • expires_at: datetime          │  │
+│  └──────────────────────────────────┘  │
+│                                         │
+│  Invariants:                            │
+│  • Expiry validation                    │
+│  • Termination rules                    │
+└─────────────────────────────────────────┘
+```
+
+Note: Aggregates reference each other **by ID only**, never by embedding. This maintains clear boundaries and supports eventual consistency.
+
+![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer** (`src/application/`)
+
+The **application layer** orchestrates use cases by coordinating domain objects and infrastructure. It depends on the domain layer but has no knowledge of specific infrastructure implementations.
+
+**What belongs in the application layer:**
+
+✓ **Use Case Handlers** — Implement business workflows by orchestrating domain logic.
+  - Example: `LogInHandler` in `application/log_in/handler.py`
+  - Loads aggregates from repositories
+  - Invokes domain services
+  - Persists changes
+  - Dispatches domain events
+
+✓ **Command DTOs** — Plain data structures carrying request data.
+  - Example: `LogInCommand` in `application/log_in/command.py`
+  - Immutable, frozen dataclasses
+  - No business logic, just data transfer
+
+✓ **Use Case Ports** — Interfaces that handlers implement.
+  - Example: `LogInUseCase` protocol in `application/log_in/port.py`
+  - Controllers depend on these abstractions
+  - Enables testing with different implementations
+
+✓ **Transaction Boundaries** — Unit of Work pattern for atomic operations.
+  - Found in `application/shared/unit_of_work.py`
+  - Ensures all-or-nothing persistence
+
+**Application layer responsibilities:**
+1. Validate commands (structure, not business rules)
+2. Load aggregates from repositories
+3. Invoke domain logic (entities, services)
+4. Persist changes (through repositories)
+5. Dispatch domain events
+6. Handle application-level errors
+
+**Example - Log In Use Case:**
+
+```python
+class LogInHandler(LogInUseCase):
+    """
+    Handles user authentication.
+
+    Flow:
+    1. Check if user already authenticated
+    2. Load user aggregate by username
+    3. Verify password (domain service)
+    4. Check if user is active
+    5. Create auth session (domain service)
+    6. Persist session
+    7. Return session ID
+    """
+
+    def __init__(
+        self,
+        current_user_handler: CurrentUserHandler,
+        user_repository: UserRepository,      # Domain port
+        user_service: UserService,             # Domain service
+        auth_session_service: AuthSessionService,
+        session_gateway: AuthSessionGateway,   # Domain port
+    ):
+        self._current_user_handler = current_user_handler
+        self._user_repository = user_repository
+        self._user_service = user_service
+        self._auth_session_service = auth_session_service
+        self._session_gateway = session_gateway
+
+    async def execute(self, command: LogInCommand) -> UUID:
+        # Check existing auth
+        if self._current_user_handler.is_authenticated():
+            raise AlreadyAuthenticatedError()
+
+        # Load aggregate (domain)
+        user = await self._user_repository.get_by_username(
+            Username(command.username)
+        )
+
+        # Verify password (domain logic)
+        if not self._user_service.verify_password(
+            user, RawPassword(command.password)
+        ):
+            raise AuthenticationError("Invalid password")
+
+        # Check business rule (domain)
+        if not user.is_active:
+            raise AuthenticationError("Account inactive")
+
+        # Create session (domain service)
+        session = self._auth_session_service.create_session(
+            user_id=user.id_
+        )
+
+        # Persist & return
+        await self._session_gateway.save(session)
+        return session.id_.value
+```
+
+**Key principle:** Application handlers orchestrate but never contain business logic. All business rules live in the domain layer.
+
+![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer** (`src/infrastructure/`)
+
+The **infrastructure layer** provides concrete implementations of domain and application ports. It contains all framework-specific code and external system integrations.
+
+**What belongs in the infrastructure layer:**
+
+✓ **Repository Implementations** — Concrete persistence adapters.
+  - Example: `SqlaUserRepository` in `infrastructure/persistence/`
+  - Implements `UserRepository` domain port
+  - Uses SQLAlchemy for database access
+  - Translates between domain entities and ORM models
+
+✓ **HTTP Controllers** — REST API endpoints.
+  - Example: Controllers in `infrastructure/http/controllers/`
+  - Validate HTTP request structure
+  - Invoke application use cases
+  - Format HTTP responses
+  - Translate domain errors to HTTP status codes
+
+✓ **Security Implementations** — Concrete security adapters.
+  - Example: `PasswordHasherBcrypt` in `infrastructure/security/`
+  - Implements password hashing domain port
+  - Uses bcrypt library
+
+✓ **Event Dispatchers** — Publish domain events to handlers.
+  - Example: Event dispatcher in `infrastructure/events/`
+  - Collects events from aggregates after persistence
+  - Dispatches to registered handlers
+
+✓ **Configuration** — Settings and dependency injection.
+  - Found in `infrastructure/config/`
+  - Dishka DI container setup
+  - Environment-based configuration
+
+**Example - Repository Implementation:**
+
+```python
+class SqlaUserRepository(UserRepository):
+    """SQLAlchemy implementation of UserRepository domain port."""
+
+    def __init__(self, session: AsyncSession, mapper: UserMapper):
+        self._session = session
+        self._mapper = mapper
+
+    async def get_by_username(self, username: Username) -> User:
+        stmt = select(UserModel).where(
+            UserModel.username == username.value
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+
+        if not model:
+            raise UserNotFoundByUsernameError(username)
+
+        # Translate ORM model to domain entity
+        return self._mapper.to_entity(model)
+
+    async def save(self, user: User) -> None:
+        # Translate domain entity to ORM model
+        model = self._mapper.to_model(user)
+        await self._session.merge(model)
+```
+
+**Example - HTTP Controller:**
+
+```python
+@router.post("/login")
+async def log_in(
+    request: LogInRequest,
+    use_case: FromDishka[LogInUseCase],  # Application port
+) -> LogInResponse:
+    """Authenticate user and create session."""
+    try:
+        session_id = await use_case.execute(
+            LogInCommand(
+                username=request.username,
+                password=request.password,
+            )
+        )
+        return LogInResponse(session_id=session_id)
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+```
 
 > [!IMPORTANT]
 >
-> - Each feature is a **bounded context** with its own hexagon. Features can share
->   common building blocks from `/common`, but each maintains its own domain model.
-> - The key principle remains the **Dependency Rule**: dependencies point inward
->   toward the domain core. Ports provide the abstraction layer that enables this.
+> - The domain layer has **zero dependencies** on application or infrastructure
+> - The application layer depends on domain ports (abstractions), never on infrastructure
+> - The infrastructure layer implements both domain and application ports
+> - This creates testable boundaries: domain can be tested in isolation, application can be tested with in-memory implementations
+
+## DDD Tactical Patterns Deep Dive
+
+This section provides a consolidated reference for all Domain-Driven Design tactical patterns used in this project. Each pattern is explained with real code examples from the codebase.
+
+### Aggregates
+
+An **aggregate** is a cluster of domain objects (entities and value objects) treated as a single unit for data changes. Each aggregate has an **aggregate root** — the only entity externally accessible.
+
+**Key principles:**
+- Only the aggregate root can be obtained directly from a repository
+- External objects can only reference the aggregate root by identity (ID)
+- Aggregates define transactional consistency boundaries
+- Changes within an aggregate are atomic; changes across aggregates are eventually consistent
+
+**Aggregates in this project:**
+
+```
+User Aggregate (domain/user/)
+├── Root: User entity
+├── Value Objects: UserId, Username, UserPasswordHash
+├── Domain Events: UserCreated, UserActivated, UserRoleChanged
+└── Consistency Rules:
+    • Username uniqueness
+    • Role assignment validation
+    • Activation constraints
+```
+
+```python
+# domain/user/entity.py
+class User(AggregateRoot[UserId]):
+    """
+    User aggregate root.
+
+    Manages user identity, roles, and lifecycle.
+    Enforces invariants and emits domain events.
+    """
+
+    def __init__(
+        self,
+        *,
+        id_: UserId,
+        username: Username,
+        password_hash: UserPasswordHash,
+        role: UserRole,
+        is_active: bool,
+    ) -> None:
+        super().__init__(id_=id_)
+        self.username = username
+        self.password_hash = password_hash
+        self.role = role
+        self.is_active = is_active
+
+    def activate(self) -> None:
+        """Activate a deactivated user."""
+        if self.is_active:
+            return  # Already active, idempotent
+
+        self.is_active = True
+        self.record_event(UserActivated(user_id=self.id_.value))
+
+    def deactivate(self) -> None:
+        """Deactivate an active user."""
+        if not self.role.can_be_deactivated:
+            raise ActivationChangeNotPermittedError(
+                "Super admin cannot be deactivated"
+            )
+
+        if not self.is_active:
+            return  # Already inactive, idempotent
+
+        self.is_active = False
+        self.record_event(UserDeactivated(user_id=self.id_.value))
+```
+
+**Why aggregates matter:**
+- Prevent invariant violations (e.g., super admin deactivation)
+- Define clear transaction boundaries
+- Enable domain events for eventual consistency
+- Simplify testing (test aggregate behavior in isolation)
+
+### Domain Events
+
+**Domain events** are immutable records of something that happened in the domain. They enable loose coupling between aggregates and support eventual consistency.
+
+**Characteristics:**
+- Past-tense naming (UserCreated, not CreateUser)
+- Immutable (frozen dataclass)
+- Contain only necessary data (no objects, just primitives/enums)
+- Emitted by aggregate roots
+
+**Events in this project:**
+
+```python
+# domain/user/events.py
+@dataclass(frozen=True, kw_only=True)
+class UserCreated(DomainEvent):
+    """Emitted when a new user is created."""
+    user_id: UUID
+    username: str
+    role: UserRole
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserActivated(DomainEvent):
+    """Emitted when a deactivated user is reactivated."""
+    user_id: UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserRoleChanged(DomainEvent):
+    """Emitted when a user's role changes."""
+    user_id: UUID
+    old_role: UserRole
+    new_role: UserRole
+```
+
+**Event flow:**
+
+```
+1. Aggregate root performs action
+   └─> User.change_role(UserRole.ADMIN)
+
+2. Aggregate records event internally
+   └─> self.record_event(UserRoleChanged(...))
+
+3. Repository persists aggregate
+   └─> await user_repository.save(user)
+
+4. Repository collects and dispatches events
+   └─> for event in user.collect_events():
+           await event_dispatcher.dispatch(event)
+
+5. Event handlers react
+   └─> logger.info(f"User {event.user_id} role changed")
+   └─> await cache_invalidator.invalidate_user(event.user_id)
+   └─> await notification_service.notify_admin(event)
+```
+
+**Use cases for domain events:**
+- Audit logging (record all state changes)
+- Cache invalidation (when user changes, invalidate cache)
+- Notifications (send email when user activated)
+- Analytics (track user behavior)
+- Eventual consistency across aggregates
+
+### Value Objects
+
+**Value objects** are immutable types defined by their attributes, not identity. They encapsulate validation logic and domain concepts.
+
+**Characteristics:**
+- Immutable (frozen dataclass)
+- Equality by value, not reference
+- Self-validating (validation in `__post_init__`)
+- Can have methods (not just data containers)
+
+**Value objects in this project:**
+
+```python
+# domain/user/value_objects.py
+@dataclass(frozen=True, kw_only=True, slots=True)
+class Username(ValueObject):
+    """
+    Username value object.
+
+    Rules:
+    - 3-32 characters
+    - Only alphanumeric and underscore
+    - Case-insensitive equality
+    """
+    value: str
+
+    def __post_init__(self) -> None:
+        if not 3 <= len(self.value) <= 32:
+            raise InvalidUsernameError(
+                f"Username must be 3-32 characters, got {len(self.value)}"
+            )
+        if not self.value.replace("_", "").isalnum():
+            raise InvalidUsernameError(
+                "Username must be alphanumeric with optional underscores"
+            )
+
+    def __eq__(self, other: object) -> bool:
+        """Case-insensitive equality."""
+        if not isinstance(other, Username):
+            return False
+        return self.value.lower() == other.value.lower()
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class RawPassword(ValueObject):
+    """
+    Raw (unhashed) password value object.
+
+    Rules:
+    - Minimum 8 characters
+    - Maximum 128 characters
+    - Must not be empty
+    """
+    value: str
+
+    def __post_init__(self) -> None:
+        if not 8 <= len(self.value) <= 128:
+            raise InvalidPasswordError(
+                "Password must be 8-128 characters"
+            )
+```
+
+**Benefits:**
+- Type safety (can't pass string where Username expected)
+- Encapsulated validation (can't create invalid username)
+- Self-documenting (method signature shows intent)
+- Reusable (use Username across domain)
+
+### Repository Pattern
+
+**Repositories** provide collection-like access to aggregates, abstracting persistence details.
+
+**Key principles:**
+- One repository per aggregate (not per table!)
+- Interface defined in domain, implementation in infrastructure
+- Returns domain entities, not ORM models
+- Only aggregate roots have repositories
+
+**Repository in this project:**
+
+```python
+# domain/user/repository.py (PORT - Interface)
+class UserRepository(Protocol):
+    """
+    Repository port for User aggregate.
+
+    Defines persistence operations without
+    specifying implementation details.
+    """
+
+    async def get_by_id(self, user_id: UserId) -> User:
+        """Get user by ID. Raises UserNotFoundError if not found."""
+        ...
+
+    async def get_by_username(self, username: Username) -> User:
+        """Get user by username. Raises UserNotFoundByUsernameError if not found."""
+        ...
+
+    async def save(self, user: User) -> None:
+        """Persist user. Create if new, update if exists."""
+        ...
+
+    async def delete(self, user_id: UserId) -> None:
+        """Delete user by ID."""
+        ...
+
+
+# infrastructure/persistence/repositories/user_repository.py (ADAPTER - Implementation)
+class SqlaUserRepository(UserRepository):
+    """SQLAlchemy implementation of UserRepository."""
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        mapper: UserMapper,
+    ):
+        self._session = session
+        self._mapper = mapper
+
+    async def get_by_username(self, username: Username) -> User:
+        stmt = select(UserModel).where(
+            UserModel.username == username.value
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+
+        if not model:
+            raise UserNotFoundByUsernameError(username)
+
+        # Translate ORM model to domain entity
+        return self._mapper.to_entity(model)
+
+    async def save(self, user: User) -> None:
+        # Translate domain entity to ORM model
+        model = self._mapper.to_model(user)
+        await self._session.merge(model)
+```
+
+**Why repositories matter:**
+- Domain doesn't know about databases, ORMs, SQL
+- Easy to test (swap with in-memory implementation)
+- Easy to replace (swap PostgreSQL for MongoDB)
+- Enforces aggregate boundaries (no cross-aggregate joins)
+
+### Domain Services
+
+**Domain services** contain stateless business logic that doesn't naturally fit in an entity or value object.
+
+**When to use domain services:**
+- Logic involves multiple entities or aggregates
+- Operation is stateless and doesn't belong to one entity
+- Computation depends on external domain concepts
+
+**Domain services in this project:**
+
+```python
+# domain/user/services.py
+class UserService:
+    """
+    Domain service for user operations.
+
+    Contains business logic that doesn't naturally
+    belong to the User entity or value objects.
+    """
+
+    def __init__(self, password_hasher: PasswordHasher):
+        self._password_hasher = password_hasher
+
+    def verify_password(
+        self,
+        user: User,
+        raw_password: RawPassword
+    ) -> bool:
+        """
+        Verify password against hash.
+
+        This is a domain service because:
+        - It involves User entity and RawPassword VO
+        - It delegates to infrastructure (PasswordHasher)
+        - It's stateless business logic
+        """
+        return self._password_hasher.verify(
+            raw_password.value,
+            user.password_hash.value,
+        )
+
+    def hash_password(
+        self,
+        raw_password: RawPassword
+    ) -> UserPasswordHash:
+        """Hash password for storage."""
+        hashed = self._password_hasher.hash(raw_password.value)
+        return UserPasswordHash(value=hashed)
+
+
+# domain/auth_session/services.py
+class AuthSessionService:
+    """Domain service for auth session operations."""
+
+    def __init__(
+        self,
+        session_id_generator: SessionIdGenerator,
+        timer: Timer,
+    ):
+        self._session_id_generator = session_id_generator
+        self._timer = timer
+
+    def create_session(self, user_id: UserId) -> AuthSession:
+        """
+        Create new auth session.
+
+        Business logic:
+        - Generate unique session ID
+        - Set creation time to now
+        - Set expiry to 24 hours from now
+        - Record SessionCreated event
+        """
+        now = self._timer.now()
+        expires_at = now + timedelta(hours=24)
+
+        session = AuthSession.create(
+            id_=self._session_id_generator.generate(),
+            user_id=user_id,
+            created_at=now,
+            expires_at=expires_at,
+        )
+
+        return session
+```
+
+**Domain service vs Entity method:**
+
+| Put in Entity | Put in Domain Service |
+|---------------|----------------------|
+| Single entity operation | Multi-entity coordination |
+| Internal state change | External dependencies |
+| Entity lifecycle (create, activate) | Stateless computation |
+| Enforcing invariants | Cross-aggregate logic |
+
+### Application Services (Use Case Handlers)
+
+**Application services** (handlers) orchestrate use cases by coordinating domain objects and infrastructure.
+
+**Responsibilities:**
+- Load aggregates from repositories
+- Invoke domain services
+- Coordinate multiple aggregates
+- Manage transactions (Unit of Work)
+- Dispatch domain events
+
+**Handler in this project:**
+
+```python
+# application/create_user/handler.py
+class CreateUserHandler(CreateUserUseCase):
+    """
+    Application service for creating users.
+
+    Orchestrates domain and infrastructure
+    without containing business logic.
+    """
+
+    def __init__(
+        self,
+        user_repository: UserRepository,          # Domain port
+        user_service: UserService,                 # Domain service
+        user_id_generator: UserIdGenerator,        # Domain port
+    ):
+        self._user_repository = user_repository
+        self._user_service = user_service
+        self._user_id_generator = user_id_generator
+
+    async def execute(self, command: CreateUserCommand) -> UUID:
+        # 1. Generate ID (domain port)
+        user_id = self._user_id_generator.generate()
+
+        # 2. Hash password (domain service)
+        password_hash = self._user_service.hash_password(
+            RawPassword(command.password)
+        )
+
+        # 3. Create aggregate (domain)
+        user = User.create(
+            id_=user_id,
+            username=Username(command.username),
+            password_hash=password_hash,
+            role=command.role,
+        )
+
+        # 4. Check uniqueness (could raise UsernameAlreadyExistsError)
+        # This is enforced by database constraint, translated to domain error
+
+        # 5. Persist (infrastructure)
+        await self._user_repository.save(user)
+
+        # 6. Events dispatched automatically after save
+
+        return user.id_.value
+```
+
+**Application service vs Domain service:**
+
+| Application Service | Domain Service |
+|---------------------|----------------|
+| Orchestrates workflow | Pure business logic |
+| Coordinates multiple services | Stateless computation |
+| Manages transactions | No transaction concerns |
+| Can be async (I/O) | Typically sync |
+| Lives in `application/` | Lives in `domain/` |
+
+### Command/Handler Pattern
+
+Commands are immutable DTOs carrying request data. Handlers implement use cases.
+
+```python
+# application/log_in/command.py
+@dataclass(frozen=True, kw_only=True)
+class LogInCommand:
+    """Command for logging in a user."""
+    username: str
+    password: str
+
+
+# application/log_in/port.py
+class LogInUseCase(Protocol):
+    """Port defining the log in use case contract."""
+    async def execute(self, command: LogInCommand) -> UUID:
+        ...
+
+
+# application/log_in/handler.py
+class LogInHandler(LogInUseCase):
+    """Handler implementing the log in use case."""
+    async def execute(self, command: LogInCommand) -> UUID:
+        # Implementation details
+        ...
+```
+
+**Benefits:**
+- Clear separation of input (command) and logic (handler)
+- Easy to test (commands are just data)
+- Can add middleware (validation, logging, metrics)
+- Commands can be queued, replayed, audited
+
+### When to Use Which Pattern
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Decision Tree: Where Does This Code Belong?            │
+└─────────────────────────────────────────────────────────┘
+
+Is it pure business logic with no I/O?
+├─ Yes → DOMAIN LAYER
+│  │
+│  ├─ Does it have identity and lifecycle?
+│  │  ├─ Yes → ENTITY (User, AuthSession)
+│  │  └─ No → VALUE OBJECT (Username, UserId)
+│  │
+│  ├─ Does it record something that happened?
+│  │  └─ Yes → DOMAIN EVENT (UserCreated)
+│  │
+│  ├─ Does it define persistence operations?
+│  │  └─ Yes → REPOSITORY INTERFACE (UserRepository)
+│  │
+│  └─ Is it stateless logic involving multiple entities?
+│     └─ Yes → DOMAIN SERVICE (UserService)
+│
+└─ No → Does it orchestrate domain + infrastructure?
+   ├─ Yes → APPLICATION LAYER
+   │  └─ APPLICATION SERVICE (CreateUserHandler)
+   │
+   └─ No → Is it a technical detail?
+      └─ Yes → INFRASTRUCTURE LAYER
+         ├─ Database → REPOSITORY IMPLEMENTATION
+         ├─ HTTP → CONTROLLER
+         ├─ Events → EVENT DISPATCHER
+         └─ Security → PASSWORD HASHER
+```
 
 ## Dependency Rule
 
@@ -345,6 +1103,275 @@ External systems operate completely outside the hexagon's boundaries:
   <br><em>Figure 3: Basic Dependency Graph</em>
 </p>
 
+## Request Flow Example
+
+Let's trace a complete request through all three layers to see how they interact. We'll follow a user login request from HTTP to database and back.
+
+### HTTP POST /api/v1/account/login
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. INFRASTRUCTURE LAYER - HTTP Controller                  │
+│     infrastructure/http/controllers/account/log_in.py       │
+└─────────────────────────────────────────────────────────────┘
+         │
+         │  Validates HTTP request structure
+         │  Creates LogInCommand
+         │  Invokes use case port
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. APPLICATION LAYER - Use Case Handler                    │
+│     application/log_in/handler.py                           │
+└─────────────────────────────────────────────────────────────┘
+         │
+         │  Checks if already authenticated
+         │  Loads User aggregate from repository
+         │  Invokes domain services
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. DOMAIN LAYER - Domain Services & Entities               │
+│     domain/user/services.py                                 │
+│     domain/auth_session/services.py                         │
+└─────────────────────────────────────────────────────────────┘
+         │
+         │  Verifies password (domain logic)
+         │  Checks user activation status
+         │  Creates AuthSession aggregate
+         │  Emits SessionCreated event
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  4. INFRASTRUCTURE LAYER - Repository                       │
+│     infrastructure/persistence/repositories/                │
+└─────────────────────────────────────────────────────────────┘
+         │
+         │  Converts AuthSession entity to ORM model
+         │  Persists to database
+         │  Dispatches domain events
+         │
+         ▼
+     Response
+```
+
+### Detailed Flow with Code
+
+**Step 1: HTTP Controller (Infrastructure)**
+
+```python
+# infrastructure/http/controllers/account/log_in.py
+@router.post("/login")
+async def log_in(
+    request: LogInRequest,              # HTTP request model (Pydantic)
+    use_case: FromDishka[LogInUseCase], # Injected use case port
+) -> LogInResponse:
+    """
+    HTTP endpoint responsibilities:
+    - Validate request structure
+    - Convert HTTP model to command
+    - Invoke use case
+    - Translate domain errors to HTTP errors
+    - Format response
+    """
+    try:
+        session_id = await use_case.execute(
+            LogInCommand(
+                username=request.username,
+                password=request.password,
+            )
+        )
+        return LogInResponse(session_id=session_id)
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+```
+
+**Step 2: Application Handler (Application)**
+
+```python
+# application/log_in/handler.py
+class LogInHandler(LogInUseCase):
+    """
+    Use case responsibilities:
+    - Orchestrate workflow
+    - Load aggregates
+    - Coordinate domain services
+    - Manage transactions
+    - Handle application errors
+    """
+
+    def __init__(
+        self,
+        current_user_handler: CurrentUserHandler,
+        user_repository: UserRepository,           # Domain port
+        user_service: UserService,                  # Domain service
+        auth_session_service: AuthSessionService,   # Domain service
+        session_gateway: AuthSessionGateway,        # Domain port
+    ):
+        self._current_user_handler = current_user_handler
+        self._user_repository = user_repository
+        self._user_service = user_service
+        self._auth_session_service = auth_session_service
+        self._session_gateway = session_gateway
+
+    async def execute(self, command: LogInCommand) -> UUID:
+        # 1. Check preconditions
+        if self._current_user_handler.is_authenticated():
+            raise AlreadyAuthenticatedError()
+
+        # 2. Load aggregate (from repository)
+        user = await self._user_repository.get_by_username(
+            Username(command.username)
+        )
+
+        # 3. Verify password (domain service)
+        if not self._user_service.verify_password(
+            user, RawPassword(command.password)
+        ):
+            raise AuthenticationError("Invalid password")
+
+        # 4. Check business rules (domain)
+        if not user.is_active:
+            raise AuthenticationError("Account inactive")
+
+        # 5. Create session (domain service)
+        session = self._auth_session_service.create_session(
+            user_id=user.id_
+        )
+
+        # 6. Persist changes
+        await self._session_gateway.save(session)
+
+        # 7. Return result
+        return session.id_.value
+```
+
+**Step 3: Domain Services (Domain)**
+
+```python
+# domain/user/services.py
+class UserService:
+    """
+    Domain service responsibilities:
+    - Pure business logic
+    - No infrastructure dependencies
+    - Stateless operations
+    """
+
+    def __init__(self, password_hasher: PasswordHasher):
+        self._password_hasher = password_hasher
+
+    def verify_password(
+        self,
+        user: User,
+        raw_password: RawPassword
+    ) -> bool:
+        """Verify password against hash (business logic)."""
+        return self._password_hasher.verify(
+            raw_password.value,
+            user.password_hash.value,
+        )
+
+# domain/auth_session/services.py
+class AuthSessionService:
+    """Domain service for auth session operations."""
+
+    def __init__(self, session_id_generator: SessionIdGenerator):
+        self._session_id_generator = session_id_generator
+
+    def create_session(self, user_id: UserId) -> AuthSession:
+        """Create new auth session (business logic)."""
+        session = AuthSession.create(
+            id_=self._session_id_generator.generate(),
+            user_id=user_id,
+        )
+        # AuthSession.create() records SessionCreated event
+        return session
+```
+
+**Step 4: Repository Implementation (Infrastructure)**
+
+```python
+# infrastructure/persistence/repositories/auth_session_gateway.py
+class SqlaAuthSessionGateway(AuthSessionGateway):
+    """
+    Repository responsibilities:
+    - Translate domain entities to ORM models
+    - Execute database operations
+    - Handle persistence errors
+    - Dispatch domain events after persistence
+    """
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        mapper: AuthSessionMapper,
+        event_dispatcher: EventDispatcher,
+    ):
+        self._session = session
+        self._mapper = mapper
+        self._event_dispatcher = event_dispatcher
+
+    async def save(self, auth_session: AuthSession) -> None:
+        # Convert domain entity to ORM model
+        model = self._mapper.to_model(auth_session)
+
+        # Persist to database
+        await self._session.merge(model)
+        await self._session.flush()
+
+        # Dispatch domain events
+        for event in auth_session.collect_events():
+            await self._event_dispatcher.dispatch(event)
+```
+
+### Data Flow
+
+```
+HTTP Request                  Domain Entities                Database
+    │                             │                            │
+    │  LogInRequest              │  User                      │
+    │  (Pydantic)                │  (aggregate root)          │
+    ├──────────────▶             │                            │
+    │                             │                            │
+    │  LogInCommand              │  AuthSession               │
+    │  (dataclass)               │  (aggregate root)          │
+    ├──────────────▶             │                            │
+    │                             │                            │
+    │                             │  SessionCreated            │
+    │                             │  (domain event)            │
+    │                             ├────────────────────▶       │
+    │                             │                            │
+    │                             │  AuthSessionModel          │
+    │                             │  (ORM model)               │
+    │                             ├────────────────────▶       │
+    │                             │                      INSERT │
+    │                             │                            │
+    │  LogInResponse              │                            │
+    │  (Pydantic)                 │                            │
+    ◄──────────────              │                            │
+```
+
+### Key Observations
+
+**Separation of Concerns:**
+- HTTP layer only knows about HTTP (request/response models, status codes)
+- Application layer only orchestrates (no HTTP, no SQL)
+- Domain layer only knows business logic (no frameworks, no infrastructure)
+- Infrastructure layer handles technical details (database, HTTP, events)
+
+**Dependency Direction:**
+- HTTP Controller depends on `LogInUseCase` port (abstraction)
+- Application Handler depends on `UserRepository`, `AuthSessionGateway` ports (abstractions)
+- Infrastructure repositories implement those ports (concrete)
+- Domain has zero dependencies on outer layers
+
+**Testing Strategy:**
+- Test domain in isolation with no infrastructure
+- Test application with in-memory repositories
+- Test HTTP with mocked use cases
+- Integration tests exercise the full stack
+
 ## Dependency Inversion
 
 The **dependency inversion** technique enables reversing dependencies **by
@@ -429,21 +1456,24 @@ This separation enables:
 
 ## Dependency Graphs
 
+> [!NOTE]
+> The following diagrams illustrate general dependency patterns and architectural principles. While the specific terminology and structure have evolved, the core dependency principles (dependency inversion, ports and adapters, layered architecture) remain fundamental to this implementation.
+
 <details>
-  <summary>Application Controller - Interactor</summary>
+  <summary>HTTP Controller - Use Case Handler</summary>
 
 <p align="center">
   <img src="docs/application_controller_interactor.svg" alt="Application Controller - Interactor" />
-  <br><em>Figure 7: Application Controller - Interactor</em>
+  <br><em>Figure 7: HTTP Controller invoking Use Case Handler</em>
   </p>
 
-In the presentation layer, a Pydantic model appears when working with FastAPI
-and detailed information needs to be displayed in OpenAPI documentation. You
+In the infrastructure layer (HTTP controllers), Pydantic models are used when working with FastAPI
+to display detailed information in OpenAPI documentation. You
 might also find it convenient to validate certain fields using Pydantic;
-however, be cautious to avoid leaking business rules into the presentation
+however, be cautious to avoid leaking business rules into the controller
 layer.
 
-For request data, a plain `dataclass` is often sufficient. Unlike lighter
+For command data in the application layer, a plain `dataclass` is often sufficient. Unlike lighter
 alternatives, it provides attribute access, which is more convenient for working
 in the application layer. However, such access is unnecessary for data returned
 to the client, where a `TypedDict` is sufficient (it's approximately twice as
@@ -452,21 +1482,21 @@ fast to create as a dataclass with slots, with comparable access times).
 </details>
 
 <details>
-  <summary>Application Interactor</summary>
+  <summary>Application Use Case Handler</summary>
 
 <p align="center">
   <img src="docs/application_interactor.svg" alt="Application Interactor" />
-  <br><em>Figure 8: Application Interactor</em>
+  <br><em>Figure 8: Application Use Case Handler dependencies</em>
   </p>
 
 </details>
 
 <details>
-  <summary>Application Interactor - Adapter</summary>
+  <summary>Application Handler - Repository Adapter</summary>
 
 <p align="center">
   <img src="docs/application_interactor_adapter.svg" alt="Application Interactor - Adapter" />
-  <br><em>Figure 9: Application Interactor - Adapter</em>
+  <br><em>Figure 9: Application Handler interacting with Repository (via domain port)</em>
   </p>
 
 </details>
@@ -482,63 +1512,66 @@ fast to create as a dataclass with slots, with comparable access times).
 </details>
 
 <details>
-  <summary>Infrastructure Controller - Handler</summary>
+  <summary>HTTP Controller - Application Handler</summary>
   <p align="center">
   <img src="docs/infrastructure_controller_handler.svg" alt="Infrastructure Controller - Handler" />
-  <br><em>Figure 11: Infrastructure Controller - Handler</em>
+  <br><em>Figure 11: HTTP Controller invoking Application Handler through port abstraction</em>
   </p>
 
-An infrastructure handler may be required as a temporary solution in cases where
-a separate context exists but isn't physically separated into a distinct domain
-(e.g., not implemented as a standalone module within a monolithic application).
-In such cases, the handler operates as an application-level interactor but
-resides in the infrastructure layer.
+This diagram shows how HTTP controllers (infrastructure layer) depend on application use case ports (abstractions)
+rather than concrete implementations. The controller invokes the use case through an interface,
+allowing the application layer to remain independent of HTTP concerns.
 
-Initially, I called these handlers interactors, but the community reacted very
-negatively to the idea of interactors in the infrastructure layer, refusing to
-acknowledge that these essentially belong to another context.
-
-In this application, such handlers include those managing user accounts, such as
-registration, login, and logout.
+In this architecture:
+- HTTP controllers live in `infrastructure/http/controllers/`
+- They depend on use case ports (interfaces) like `LogInUseCase`, `CreateUserUseCase`
+- Concrete handlers live in `application/` and implement these ports
+- Dependency injection wires up the concrete implementations
 
 </details>
 
 <details>
-  <summary>Infrastructure Handler</summary>
+  <summary>Repository Implementation Pattern</summary>
   <p align="center">
   <img src="docs/infrastructure_handler.svg" alt="Infrastructure Handler" />
-  <br><em>Figure 12: Infrastructure Handler</em>
+  <br><em>Figure 12: Repository implementing domain port</em>
   </p>
 
-Ports in infrastructure are not commonly seen — typically, only concrete
-implementations are present. However, in this project, since we have a separate
-layer of adapters (presentation) located outside the infrastructure, ports are
-necessary to comply with the dependency rule.
+This diagram illustrates how infrastructure repositories implement domain-defined ports (interfaces).
+The repository depends on both the domain port it implements and the infrastructure
+technologies (SQLAlchemy, ORM models) it uses.
+
+In this architecture:
+- Domain defines repository interfaces (ports) like `UserRepository`
+- Infrastructure implements these ports: `SqlaUserRepository`
+- The repository translates between domain entities and ORM models
+- Application layer depends on the port, not the concrete implementation
 
 </details>
 
 <details>
-
-**Identity Provider (IdP)** abstracts authentication details, linking the main
-business context with the authentication context. In this example, the
-authentication context is not physically separated, making it an infrastructure
-detail. However, it can potentially evolve into a separate domain.
-
-<summary>Identity Provider</summary>
+<summary>Identity Provider Pattern</summary>
   <p align="center">
   <img src="docs/identity_provider.svg" alt="Identity Provider" />
-  <br><em>Figure 13: Identity Provider</em>
+  <br><em>Figure 13: Identity Provider abstracting authentication details</em>
   </p>
 
-Normally, IdP is expected to provide all information about current user.
-However, in this project, since roles are not stored in sessions or tokens,
-retrieving them in main context was more natural.
+**Identity Provider (IdP)** abstracts authentication details, serving as a bridge between
+the HTTP layer and the application layer. In this architecture:
+
+- The IdP extracts user identity from requests (JWT tokens, session cookies)
+- It provides the current user's ID without exposing authentication mechanisms
+- Domain remains unaware of how authentication works (tokens, sessions, etc.)
+- Application layer uses IdP to get current user context
+
+The authentication aggregate (`domain/auth_session/`) handles session lifecycle,
+while the IdP (infrastructure) handles request-level authentication extraction.
 
 </details>
 
 ## Structure
 
-This project implements **Hexagonal Architecture** (Ports and Adapters) with feature-based organization. Each feature is a bounded context containing its own hexagon with clearly separated domain logic, ports (abstractions), adapters (implementations), and entrypoints.
+This project implements **Domain-Driven Design** with **Clean Architecture** using a layer-based organization. Code is organized into three distinct layers (domain, application, infrastructure) with aggregates representing bounded contexts.
 
 ```
 .
@@ -549,183 +1582,148 @@ This project implements **Hexagonal Architecture** (Ports and Adapters) with fea
 └── src/
     ├── run.py                                   # application entry point
     │
-    ├── common/                                  # shared cross-cutting concerns
-    │   ├── adapter/                             # shared infrastructure adapters
-    │   │   ├── persistence_sqla/                # SQLAlchemy session management
-    │   │   │   ├── registry.py                  # SQLAlchemy registry setup
-    │   │   │   └── ...
-    │   │   └── exceptions/...                   # adapter-level exceptions
+    ├── domain/                                  # DOMAIN LAYER - Core business logic
+    │   │                                        # (NO external dependencies)
+    │   ├── user/                                # User aggregate (bounded context)
+    │   │   ├── entity.py                        # User aggregate root
+    │   │   ├── value_objects.py                 # UserId, Username, UserPasswordHash, RawPassword
+    │   │   ├── events.py                        # UserCreated, UserActivated, UserRoleChanged, etc.
+    │   │   ├── enums.py                         # UserRole enum
+    │   │   ├── services.py                      # Domain services (business logic)
+    │   │   ├── repository.py                    # UserRepository interface (DRIVEN PORT)
+    │   │   ├── ports.py                         # Additional port abstractions
+    │   │   └── errors.py                        # Domain exceptions
     │   │
-    │   ├── domain/                              # shared domain building blocks
-    │   │   ├── core/
-    │   │   │   ├── entities/                    # base entity classes
-    │   │   │   ├── value_objects/               # base value object classes
-    │   │   │   └── exceptions/                  # common domain exceptions
-    │   │   └── port/                            # shared port abstractions
-    │   │       ├── inbound/
-    │   │       │   └── queries/                 # common query interfaces
-    │   │       └── outbound/                    # common outbound ports
+    │   ├── auth_session/                        # Auth session aggregate (bounded context)
+    │   │   ├── entity.py                        # AuthSession aggregate root
+    │   │   ├── events.py                        # SessionCreated, SessionTerminated, etc.
+    │   │   ├── services.py                      # Auth domain services
+    │   │   ├── gateway.py                       # AuthSessionGateway interface (DRIVEN PORT)
+    │   │   ├── ports.py                         # Transaction manager ports
+    │   │   └── errors.py                        # Auth domain exceptions
     │   │
-    │   └── entrypoint/                          # shared presentation layer
-    │       ├── rest/
-    │       │   ├── controllers/                 # health check, root handlers
-    │       │   ├── errors/                      # error translators, handlers
-    │       │   └── ...                          # FastAPI router setup
-    │       └── exceptions/...                   # presentation exceptions
+    │   └── shared/                              # Shared domain building blocks
+    │       ├── aggregate_root.py                # Base aggregate root class
+    │       ├── domain_event.py                  # Base domain event class
+    │       ├── entity.py                        # Base entity classes
+    │       ├── value_object.py                  # Base value object classes
+    │       └── errors.py                        # Common domain exceptions
     │
-    ├── features/                                # feature modules (bounded contexts)
+    ├── application/                             # APPLICATION LAYER - Use cases
+    │   │                                        # (Orchestrates domain + infrastructure)
+    │   ├── log_in/                              # Log in use case
+    │   │   ├── handler.py                       # LogInHandler (use case implementation)
+    │   │   ├── command.py                       # LogInCommand DTO
+    │   │   └── port.py                          # LogInUseCase interface (DRIVER PORT)
     │   │
-    │   ├── account/                             # account management feature
-    │   │   ├── adapter/                         # infrastructure implementations
-    │   │   │   ├── sqla_auth_session_gateway_session_adapter.py
-    │   │   │   ├── sqla_auth_session_transaction_manager.py
-    │   │   │   └── types_.py
-    │   │   │
-    │   │   ├── domain/                          # business logic
-    │   │   │   ├── core/                        # domain model
-    │   │   │   │   ├── entities/                # AuthSession entity
-    │   │   │   │   └── service/                 # domain services
-    │   │   │   │       ├── change_password_service.py
-    │   │   │   │       ├── log_in_service.py
-    │   │   │   │       ├── log_out_service.py
-    │   │   │   │       └── sign_up_service.py
-    │   │   │   └── port/                        # abstractions (hexagon boundary)
-    │   │   │       ├── inbound/                 # use case interfaces (driving)
-    │   │   │       │   ├── change_password_use_case.py
-    │   │   │       │   ├── log_in_use_case.py
-    │   │   │       │   ├── log_out_use_case.py
-    │   │   │       │   └── sign_up_use_case.py
-    │   │   │       └── outbound/                # gateway interfaces (driven)
-    │   │   │           ├── auth_session_gateway.py
-    │   │   │           └── auth_session_transaction_manager.py
-    │   │   │
-    │   │   └── entrypoint/                      # presentation layer
-    │   │       ├── rest/
-    │   │       │   ├── controllers/             # HTTP handlers
-    │   │       │   │   ├── change_password.py
-    │   │       │   │   ├── log_in.py
-    │   │       │   │   ├── log_out.py
-    │   │       │   │   └── sign_up.py
-    │   │       │   ├── account_router.py        # FastAPI router
-    │   │       │   ├── constants.py             # JWT/cookie settings
-    │   │       │   └── ...                      # JWT utils, cookie handlers
-    │   │       └── exceptions/...               # account-specific exceptions
+    │   ├── sign_up/                             # Sign up use case
+    │   │   ├── handler.py                       # SignUpHandler
+    │   │   ├── command.py                       # SignUpCommand DTO
+    │   │   └── port.py                          # SignUpUseCase interface (DRIVER PORT)
     │   │
-    │   └── user/                                # user management feature
-    │       ├── adapter/                         # infrastructure implementations
-    │       │   ├── sqla_user_repository_adapter_.py
-    │       │   ├── password_hasher_bcrypt.py
-    │       │   ├── identity_provider.py
-    │       │   ├── access_revoker.py
-    │       │   ├── mapper/                      # entity-to-model mappers
-    │       │   │   ├── user.py
-    │       │   │   ├── auth_session.py
-    │       │   │   └── all.py
-    │       │   ├── utils/                       # adapter utilities
-    │       │   │   ├── user_id_generator_uuid.py
-    │       │   │   ├── timer_utc.py
-    │       │   │   └── ...
-    │       │   └── exceptions/...               # adapter exceptions
-    │       │
-    │       ├── domain/                          # business logic
-    │       │   ├── core/                        # domain model
-    │       │   │   ├── entities/
-    │       │   │   │   └── user.py              # User aggregate root
-    │       │   │   ├── vo/                      # value objects
-    │       │   │   │   ├── user_id.py
-    │       │   │   │   ├── username.py
-    │       │   │   │   ├── user_password_hash.py
-    │       │   │   │   └── raw_password.py
-    │       │   │   ├── enums/                   # domain enumerations
-    │       │   │   │   ├── user_role.py
-    │       │   │   │   └── role_hierarchy.py
-    │       │   │   ├── service/                 # domain services
-    │       │   │   │   ├── user_service.py      # core user business logic
-    │       │   │   │   ├── current_user_service.py
-    │       │   │   │   ├── create_user_service.py
-    │       │   │   │   ├── activate_user_service.py
-    │       │   │   │   ├── deactivate_user_service.py
-    │       │   │   │   ├── grant_admin_service.py
-    │       │   │   │   ├── revoke_admin_service.py
-    │       │   │   │   ├── set_user_password_service.py
-    │       │   │   │   ├── list_users_service.py
-    │       │   │   │   └── permissions.py       # authorization logic
-    │       │   │   ├── utils/                   # domain utilities
-    │       │   │   │   └── authorize.py
-    │       │   │   ├── exceptions/              # domain exceptions
-    │       │   │   │   └── user.py
-    │       │   │   └── constants.py             # domain constants
-    │       │   │
-    │       │   └── port/                        # abstractions (hexagon boundary)
-    │       │       ├── inbound/                 # use case interfaces (driving ports)
-    │       │       │   ├── create_user_use_case.py
-    │       │       │   ├── activate_user_use_case.py
-    │       │       │   ├── deactivate_user_use_case.py
-    │       │       │   ├── grant_admin_use_case.py
-    │       │       │   ├── revoke_admin_use_case.py
-    │       │       │   ├── set_user_password_use_case.py
-    │       │       │   └── list_users_use_case.py
-    │       │       └── outbound/                # gateway interfaces (driven ports)
-    │       │           ├── user_repository.py
-    │       │           ├── password_hasher.py
-    │       │           ├── identity_provider.py
-    │       │           ├── user_id_generator.py
-    │       │           ├── access_revoker.py
-    │       │           └── queries/
-    │       │               └── user_queries.py
-    │       │
-    │       └── entrypoint/                      # presentation layer
-    │           └── rest/
-    │               ├── controllers/             # HTTP handlers
-    │               │   ├── create_user.py
-    │               │   ├── activate_user.py
-    │               │   ├── deactivate_user.py
-    │               │   ├── grant_admin.py
-    │               │   ├── revoke_admin.py
-    │               │   ├── set_user_password.py
-    │               │   └── list_users.py
-    │               └── user_router.py           # FastAPI router
+    │   ├── create_user/                         # Create user use case
+    │   │   ├── handler.py
+    │   │   ├── command.py
+    │   │   └── port.py
+    │   │
+    │   ├── activate_user/                       # Activate user use case
+    │   ├── deactivate_user/                     # Deactivate user use case
+    │   ├── grant_admin/                         # Grant admin use case
+    │   ├── revoke_admin/                        # Revoke admin use case
+    │   ├── set_user_password/                   # Set password use case
+    │   ├── change_password/                     # Change password use case
+    │   ├── list_users/                          # List users use case
+    │   ├── current_user/                        # Current user query
+    │   ├── log_out/                             # Log out use case
+    │   │
+    │   └── shared/                              # Shared application layer
+    │       └── unit_of_work.py                  # Transaction abstraction
     │
-    └── setup/                                   # application configuration
-        ├── config/                              # settings management
-        │   ├── settings.py                      # environment-based configuration
-        │   ├── loader.py                        # config file loader
-        │   ├── database.py                      # database settings
-        │   ├── security.py                      # JWT/auth settings
-        │   └── logs.py                          # logging configuration
+    └── infrastructure/                          # INFRASTRUCTURE LAYER - Adapters
+        │                                        # (External systems and frameworks)
+        ├── http/                                # REST adapters (DRIVER ADAPTERS)
+        │   ├── controllers/                     # HTTP request handlers
+        │   │   ├── account/                     # Account-related endpoints
+        │   │   │   ├── log_in.py
+        │   │   │   ├── sign_up.py
+        │   │   │   ├── change_password.py
+        │   │   │   └── log_out.py
+        │   │   └── user/                        # User-related endpoints
+        │   │       ├── create_user.py
+        │   │       ├── activate_user.py
+        │   │       ├── deactivate_user.py
+        │   │       ├── grant_admin.py
+        │   │       ├── revoke_admin.py
+        │   │       ├── set_user_password.py
+        │   │       └── list_users.py
+        │   ├── routers/                         # FastAPI routers
+        │   │   ├── account_router.py
+        │   │   └── user_router.py
+        │   ├── middleware/                      # HTTP middleware
+        │   └── errors/                          # Error translators, handlers
         │
-        └── ioc/                                 # dependency injection (Dishka)
-            ├── provider_registry.py             # main DI container setup
-            ├── domain.py                        # domain service providers
-            ├── infrastructure.py                # adapter providers
-            ├── entrypoint.py                    # controller providers
-            ├── application.py                   # use case providers
-            └── settings.py                      # config providers
+        ├── persistence/                         # Database adapters (DRIVEN ADAPTERS)
+        │   ├── repositories/                    # Repository implementations
+        │   │   ├── user_repository.py           # SqlaUserRepository (implements UserRepository)
+        │   │   └── auth_session_gateway.py      # SqlaAuthSessionGateway
+        │   ├── mappers/                         # Entity-to-model mappers
+        │   │   ├── user.py                      # User entity <-> UserModel ORM
+        │   │   └── auth_session.py              # AuthSession entity <-> AuthSessionModel ORM
+        │   └── models.py                        # SQLAlchemy ORM models
+        │
+        ├── security/                            # Security implementations
+        │   ├── password_hasher.py               # PasswordHasher implementation (bcrypt)
+        │   └── ...
+        │
+        ├── events/                              # Event handling infrastructure
+        │   └── dispatcher.py                    # Event dispatcher implementation
+        │
+        └── config/                              # Application configuration
+            ├── di/                              # Dependency injection (Dishka)
+            │   ├── container.py                 # DI container setup
+            │   ├── domain.py                    # Domain service providers
+            │   ├── application.py               # Application service providers
+            │   └── infrastructure.py            # Infrastructure providers
+            └── settings/                        # Settings management
+                ├── settings.py                  # Environment-based configuration
+                ├── loader.py                    # Config file loader
+                ├── database.py                  # Database settings
+                ├── security.py                  # JWT/auth settings
+                └── logs.py                      # Logging configuration
 ```
 
 ### Key Architecture Patterns
 
-**Hexagonal Architecture (Ports and Adapters):**
-- Each feature is a **hexagon** with a clear boundary defined by ports
-- **Ports** are abstractions (interfaces) that define how the domain interacts with the outside world:
-  - **Inbound ports** (driving): Use case interfaces that external actors invoke
-  - **Outbound ports** (driven): Gateway interfaces that the domain uses to interact with infrastructure
-- **Adapters** are concrete implementations of ports that connect to external systems (databases, frameworks, etc.)
-- **Domain** contains business logic and depends only on port abstractions, never on adapters
+**Layer-Based DDD:**
+- Business logic organized into **aggregates** (user, auth_session) representing bounded contexts
+- Each aggregate defines a **consistency boundary** for transactions
+- Clear separation: Domain → Application → Infrastructure
+- Dependencies flow inward: Infrastructure depends on Application depends on Domain
 
-**Feature-Based Organization:**
-- Business capabilities are organized into features (`account`, `user`) rather than technical layers
-- Each feature is a bounded context with its own domain model, ports, adapters, and entrypoints
-- Common shared concerns live in `/common` and are reused across features
+**Aggregate Structure:**
+- **Aggregate Root**: Entry point for all operations (User, AuthSession entities)
+- **Domain Events**: Record state changes (UserCreated, UserActivated)
+- **Value Objects**: Immutable business types (UserId, Username)
+- **Repository Interfaces**: Persistence abstractions defined in domain
+- **Domain Services**: Stateless business logic
+
+**Application Layer (Use Cases):**
+- **Command**: Input DTO for use case (LogInCommand)
+- **Handler**: Orchestrates domain logic + infrastructure (LogInHandler)
+- **Port**: Interface defining use case contract (LogInUseCase)
+- Handlers coordinate multiple domain services and repositories
+- All business logic delegated to domain layer
 
 **Dependency Rule:**
-- Dependencies point inward: `entrypoint` → `domain/port/inbound` → `domain/core` ← `domain/port/outbound` ← `adapter`
-- Domain layer has **zero dependencies** on outer layers (framework-agnostic, storage-agnostic)
-- Adapters and entrypoints depend on domain ports (abstractions), not on each other
+- Dependencies point inward: Infrastructure → Application → Domain
+- Domain has **zero dependencies** on frameworks or infrastructure
+- Application depends on domain abstractions (ports)
+- Infrastructure implements domain ports (adapters)
 
 **CQRS Pattern:**
-- Write operations: Commands flow through use cases → domain services → repository
-- Read operations: Queries can bypass domain layer for optimized reads (see `user_queries.py`)
+- Write operations: Commands flow through handlers → domain services → repository
+- Read operations: Queries can bypass domain for optimized reads
+- Separate models for commands and queries where beneficial
 
 ## Makefile Commands Reference
 
