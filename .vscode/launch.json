@@ -1,0 +1,92 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🐞 debug: app.local (python)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/run.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "APP_ENV": "local",
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "envFile": "${workspaceFolder}/config/local/.env.local"
+    },
+    {
+      "name": "🚀 make: up.local",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make up.local",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "APP_ENV": "local"
+      }
+    },
+    {
+      "name": "🗄️ make: up.db",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make up.db",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "🛑 make: down.db",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make down.db",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "♻️ make: reset.db",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make reset.db",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "✨ make: code.format",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.format",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "🔎 make: code.lint",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.lint",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "🧪 make: code.test",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.test",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "📊 make: code.cov",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.cov",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "📈 make: code.cov.html",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.cov.html",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "✅ make: code.check",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make code.check",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

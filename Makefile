@@ -66,6 +66,16 @@ help:
 	@echo "  code.cov.html  Run tests with coverage and generate HTML report"
 	@echo "  code.check     Run lint and tests"
 
+# App (local)
+.PHONY: up.local
+up.local: guard-APP_ENV
+	@echo "Running app locally with APP_ENV=$(APP_ENV)"
+	@uv run -- python src/run.py
+
+install.local: guard-APP_ENV
+	@echo "Installing app locally with APP_ENV=$(APP_ENV)"
+	@cd $(CONFIGS_DIG)/$(APP_ENV) && uv sync --group dev
+
 # App (docker compose)
 DOCKER_COMPOSE := docker compose
 DOCKER_COMPOSE_PRUNE := scripts/makefile/docker_prune.sh
@@ -104,6 +114,9 @@ up.db-echo:
 
 down.db:
 	@$(SUPABASE) stop
+
+reset.db:
+	@$(SUPABASE) reset
 
 logs.db:
 	@$(DOCKER) logs -f $(SUPABASE_DB_CONTAINER)
