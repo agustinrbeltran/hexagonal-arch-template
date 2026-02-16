@@ -1,12 +1,12 @@
 from sqlalchemy import UUID, Column, DateTime, String, Table
 from sqlalchemy.orm import composite
 
-from domain.auth_session.entity import AuthSession
+from domain.refresh_token.entity import RefreshToken
 from domain.user.value_objects import UserId
 from infrastructure.persistence.registry import mapper_registry
 
-auth_sessions_table = Table(
-    "auth_sessions",
+refresh_tokens_table = Table(
+    "refresh_tokens",
     mapper_registry.metadata,
     Column("id", String, primary_key=True),
     Column("user_id", UUID(as_uuid=True), nullable=False),
@@ -14,14 +14,14 @@ auth_sessions_table = Table(
 )
 
 
-def map_auth_sessions_table() -> None:
+def map_refresh_tokens_table() -> None:
     mapper_registry.map_imperatively(
-        AuthSession,
-        auth_sessions_table,
+        RefreshToken,
+        refresh_tokens_table,
         properties={
-            "id_": auth_sessions_table.c.id,
-            "user_id": composite(UserId, auth_sessions_table.c.user_id),
-            "expiration": auth_sessions_table.c.expiration,
+            "id_": refresh_tokens_table.c.id,
+            "user_id": composite(UserId, refresh_tokens_table.c.user_id),
+            "expiration": refresh_tokens_table.c.expiration,
         },
         column_prefix="_",
     )

@@ -1,7 +1,6 @@
-from datetime import timedelta
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class AuthSettings(BaseModel):
@@ -14,25 +13,8 @@ class AuthSettings(BaseModel):
         "RS384",
         "RS512",
     ] = Field(alias="JWT_ALGORITHM")
-    session_ttl_min: timedelta = Field(alias="SESSION_TTL_MIN")
-    session_refresh_threshold: float = Field(
-        gt=0,
-        lt=1,
-        alias="SESSION_REFRESH_THRESHOLD",
-    )
-
-    @field_validator("session_ttl_min", mode="before")
-    @classmethod
-    def convert_session_ttl_min(cls, v: Any) -> timedelta:
-        if not isinstance(v, (int, float)):
-            raise ValueError("SESSION_TTL_MIN must be a number (n of minutes, n >= 1).")
-        if v < 1:
-            raise ValueError("SESSION_TTL_MIN must be at least 1 (n of minutes).")
-        return timedelta(minutes=v)
-
-
-class CookiesSettings(BaseModel):
-    secure: bool = Field(alias="SECURE")
+    access_token_expiry_min: int = Field(alias="ACCESS_TOKEN_EXPIRY_MIN", ge=1)
+    refresh_token_expiry_days: int = Field(alias="REFRESH_TOKEN_EXPIRY_DAYS", ge=1)
 
 
 class PasswordSettings(BaseModel):
@@ -46,5 +28,4 @@ class PasswordSettings(BaseModel):
 
 class SecuritySettings(BaseModel):
     auth: AuthSettings
-    cookies: CookiesSettings
     password: PasswordSettings

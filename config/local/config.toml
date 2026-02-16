@@ -26,14 +26,10 @@ LEVEL = "DEBUG"
 [security.auth]
 # Can be set to "HS256", "HS384", "HS512", "RS256", "RS384", "RS512"
 JWT_ALGORITHM = "HS256"
-# Must be at least 1 (number of minutes)
-SESSION_TTL_MIN = 5
-# Must be a number (fraction, 0 < fraction < 1)
-SESSION_REFRESH_THRESHOLD = 0.2
-
-[security.cookies]
-# Choose `true` for production (secure=True, samesite="Strict")
-SECURE = false
+# Access token lifetime in minutes (short-lived, stateless)
+ACCESS_TOKEN_EXPIRY_MIN = 15
+# Refresh token lifetime in days (long-lived, server-side)
+REFRESH_TOKEN_EXPIRY_DAYS = 7
 
 [security.password]
 # https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#introduction

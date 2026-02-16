@@ -10,5 +10,9 @@ class NotFoundError(DomainError):
     """Requested entity was not found."""
 
 
+class AuthenticationError(DomainError):
+    """Caller could not be authenticated."""
+
+
 class AuthorizationError(DomainError):
     """Caller is not authorized to perform the action."""

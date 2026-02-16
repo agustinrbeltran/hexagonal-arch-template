@@ -11,8 +11,8 @@ class AuthSettingsData(TypedDict):
         "RS384",
         "RS512",
     ]
-    SESSION_TTL_MIN: int | float
-    SESSION_REFRESH_THRESHOLD: int | float
+    ACCESS_TOKEN_EXPIRY_MIN: int
+    REFRESH_TOKEN_EXPIRY_DAYS: int
 
 
 class PostgresSettingsData(TypedDict):
@@ -34,14 +34,14 @@ def create_auth_settings_data(
         "RS384",
         "RS512",
     ] = "RS256",
-    session_ttl_min: int | float = 2,
-    session_refresh_threshold: int | float = 0.5,
+    access_token_expiry_min: int = 15,
+    refresh_token_expiry_days: int = 7,
 ) -> AuthSettingsData:
     return AuthSettingsData(
         JWT_SECRET=jwt_secret,
         JWT_ALGORITHM=jwt_algorithm,
-        SESSION_TTL_MIN=session_ttl_min,
-        SESSION_REFRESH_THRESHOLD=session_refresh_threshold,
+        ACCESS_TOKEN_EXPIRY_MIN=access_token_expiry_min,
+        REFRESH_TOKEN_EXPIRY_DAYS=refresh_token_expiry_days,
     )
 
 

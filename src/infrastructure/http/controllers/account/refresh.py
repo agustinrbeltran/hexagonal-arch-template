@@ -5,49 +5,45 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
-from application.log_in.command import LogInCommand
-from application.log_in.handler import AuthenticationError
-from application.log_in.port import LogInUseCase
-from domain.shared.errors import DomainTypeError
-from domain.user.errors import UserNotFoundByUsernameError
+from application.refresh_token.command import RefreshTokenCommand
+from application.refresh_token.port import RefreshTokenUseCase
+from domain.refresh_token.errors import (
+    RefreshTokenExpiredError,
+    RefreshTokenNotFoundError,
+)
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
+from infrastructure.http.schemas.refresh_request import RefreshRequest
 from infrastructure.http.schemas.token_response import TokenResponse
 from infrastructure.persistence.errors import DataMapperError
-from infrastructure.security.errors import PasswordHasherBusyError
 
 
-def create_log_in_router() -> APIRouter:
+def create_refresh_router() -> APIRouter:
     router = ErrorAwareRouter()
 
     @router.post(
-        "/login",
-        description=getdoc(LogInUseCase),
+        "/refresh",
+        description=getdoc(RefreshTokenUseCase),
         error_map={
+            RefreshTokenNotFoundError: status.HTTP_401_UNAUTHORIZED,
+            RefreshTokenExpiredError: status.HTTP_401_UNAUTHORIZED,
             DataMapperError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
             ),
-            DomainTypeError: status.HTTP_400_BAD_REQUEST,
-            UserNotFoundByUsernameError: status.HTTP_404_NOT_FOUND,
-            PasswordHasherBusyError: rule(
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                translator=ServiceUnavailableTranslator(),
-                on_error=log_error,
-            ),
-            AuthenticationError: status.HTTP_401_UNAUTHORIZED,
         },
         default_on_error=log_info,
         status_code=status.HTTP_200_OK,
         response_model=TokenResponse,
     )
     @inject
-    async def login(
-        request_data: LogInCommand,
-        handler: FromDishka[LogInUseCase],
+    async def refresh(
+        request_data: RefreshRequest,
+        handler: FromDishka[RefreshTokenUseCase],
     ) -> TokenResponse:
-        result = await handler.execute(request_data)
+        command = RefreshTokenCommand(refresh_token=request_data.refresh_token)
+        result = await handler.execute(command)
         return TokenResponse(
             access_token=result.access_token,
             refresh_token=result.refresh_token,

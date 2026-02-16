@@ -9,12 +9,11 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.revoke_admin.command import RevokeAdminCommand
 from application.revoke_admin.port import RevokeAdminUseCase
-from domain.auth_session.errors import SessionNotFoundError
-from domain.shared.errors import AuthorizationError
+from domain.shared.errors import AuthenticationError, AuthorizationError
 from domain.user.errors import RoleChangeNotPermittedError, UserNotFoundByIdError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
-from infrastructure.http.middleware.openapi_marker import cookie_scheme
+from infrastructure.http.middleware.openapi_marker import bearer_scheme
 from infrastructure.persistence.errors import DataMapperError
 
 
@@ -25,7 +24,7 @@ def create_revoke_admin_router() -> APIRouter:
         "/{user_id}/roles/admin",
         description=getdoc(RevokeAdminUseCase),
         error_map={
-            SessionNotFoundError: status.HTTP_401_UNAUTHORIZED,
+            AuthenticationError: status.HTTP_401_UNAUTHORIZED,
             DataMapperError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
@@ -37,7 +36,7 @@ def create_revoke_admin_router() -> APIRouter:
         },
         default_on_error=log_info,
         status_code=status.HTTP_204_NO_CONTENT,
-        dependencies=[Security(cookie_scheme)],
+        dependencies=[Security(bearer_scheme)],
     )
     @inject
     async def revoke_admin(

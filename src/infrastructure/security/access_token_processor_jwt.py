@@ -1,24 +1,25 @@
 import logging
+from datetime import datetime
 from typing import Any, Literal, TypedDict, cast
 
 import jwt
 
-from domain.auth_session.entity import AuthSession
-from infrastructure.http.middleware.constants import (
-    ACCESS_TOKEN_INVALID_OR_EXPIRED,
-    ACCESS_TOKEN_PAYLOAD_MISSING,
-    ACCESS_TOKEN_PAYLOAD_OF_INTEREST,
-)
+from domain.refresh_token.services import AccessTokenEncoder
+from domain.user.value_objects import UserId
 
 log = logging.getLogger(__name__)
 
+ACCESS_TOKEN_INVALID_OR_EXPIRED = "Invalid or expired JWT."
+ACCESS_TOKEN_PAYLOAD_MISSING = "JWT payload missing claim."
+
 
 class JwtPayload(TypedDict):
-    auth_session_id: str
+    sub: str
     exp: int
+    iat: int
 
 
-class JwtAccessTokenProcessor:
+class JwtAccessTokenProcessor(AccessTokenEncoder):
     def __init__(
         self,
         secret: str,
@@ -34,10 +35,12 @@ class JwtAccessTokenProcessor:
         self._secret = secret
         self._algorithm = algorithm
 
-    def encode(self, auth_session: AuthSession) -> str:
+    def encode(self, user_id: UserId, expiration: datetime) -> str:
+        now = datetime.now(tz=expiration.tzinfo)
         payload = JwtPayload(
-            auth_session_id=auth_session.id_,
-            exp=int(auth_session.expiration.timestamp()),
+            sub=str(user_id.value),
+            exp=int(expiration.timestamp()),
+            iat=int(now.timestamp()),
         )
         return jwt.encode(
             cast(dict[str, Any], payload),
@@ -45,25 +48,20 @@ class JwtAccessTokenProcessor:
             algorithm=self._algorithm,
         )
 
-    def decode_auth_session_id(self, token: str) -> str | None:
+    def decode_user_id(self, token: str) -> str | None:
         try:
             payload = jwt.decode(
                 token,
                 key=self._secret,
                 algorithms=[self._algorithm],
             )
-
         except jwt.PyJWTError as err:
             log.debug("%s %s", ACCESS_TOKEN_INVALID_OR_EXPIRED, err)
             return None
 
-        auth_session_id: str | None = payload.get(ACCESS_TOKEN_PAYLOAD_OF_INTEREST)
-        if auth_session_id is None:
-            log.debug(
-                "%s '%s'",
-                ACCESS_TOKEN_PAYLOAD_MISSING,
-                ACCESS_TOKEN_PAYLOAD_OF_INTEREST,
-            )
+        sub: str | None = payload.get("sub")
+        if sub is None:
+            log.debug("%s 'sub'", ACCESS_TOKEN_PAYLOAD_MISSING)
             return None
 
-        return auth_session_id
+        return sub

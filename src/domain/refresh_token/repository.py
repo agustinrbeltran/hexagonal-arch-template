@@ -1,25 +1,21 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from domain.auth_session.entity import AuthSession
+from domain.refresh_token.entity import RefreshToken
 from domain.user.value_objects import UserId
 
 
-class AuthSessionGateway(Protocol):
+class RefreshTokenRepository(Protocol):
     @abstractmethod
-    def add(self, auth_session: AuthSession) -> None:
+    def add(self, token: RefreshToken) -> None:
         """:raises DataMapperError:"""
 
     @abstractmethod
-    async def read_by_id(self, auth_session_id: str) -> AuthSession | None:
+    async def get_by_id(self, token_id: str) -> RefreshToken | None:
         """:raises DataMapperError:"""
 
     @abstractmethod
-    async def update(self, auth_session: AuthSession) -> None:
-        """:raises DataMapperError:"""
-
-    @abstractmethod
-    async def delete(self, auth_session_id: str) -> None:
+    async def delete(self, token_id: str) -> None:
         """:raises DataMapperError:"""
 
     @abstractmethod

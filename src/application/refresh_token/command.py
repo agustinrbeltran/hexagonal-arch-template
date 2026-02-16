@@ -2,13 +2,12 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class LogInCommand:
-    username: str
-    password: str
+class RefreshTokenCommand:
+    refresh_token: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class LogInResult:
+class RefreshTokenResult:
     access_token: str
     refresh_token: str
     expires_in: int
