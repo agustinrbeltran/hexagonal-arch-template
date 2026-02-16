@@ -1,7 +1,7 @@
 from sqlalchemy import UUID, Column, DateTime, String, Table
 from sqlalchemy.orm import composite
 
-from domain.refresh_token.entity import RefreshToken
+from infrastructure.security.refresh_token import RefreshToken
 from domain.user.value_objects import UserId
 from infrastructure.persistence.registry import mapper_registry
 

@@ -67,9 +67,7 @@ class ApplicationProvider(Provider):
     # Account Use Cases
     sign_up_use_case = provide(SignUpHandler, provides=SignUpUseCase)
     log_in_use_case = provide(LogInHandler, provides=LogInUseCase)
-    refresh_token_use_case = provide(
-        RefreshTokenHandler, provides=RefreshTokenUseCase
-    )
+    refresh_token_use_case = provide(RefreshTokenHandler, provides=RefreshTokenUseCase)
     change_password_use_case = provide(
         ChangePasswordHandler, provides=ChangePasswordUseCase
     )

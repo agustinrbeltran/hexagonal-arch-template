@@ -1,8 +1,8 @@
 from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 
-from domain.refresh_token.entity import RefreshToken
-from domain.refresh_token.repository import RefreshTokenRepository
+from infrastructure.security.refresh_token import RefreshToken
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
 from domain.user.value_objects import UserId
 from infrastructure.persistence.constants import DB_QUERY_FAILED
 from infrastructure.persistence.errors import DataMapperError

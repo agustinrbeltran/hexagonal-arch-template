@@ -12,7 +12,11 @@ from application.change_password.handler import (
     ReAuthenticationError,
 )
 from application.change_password.port import ChangePasswordUseCase
-from domain.shared.errors import AuthenticationError, AuthorizationError, DomainTypeError
+from domain.shared.errors import (
+    AuthenticationError,
+    AuthorizationError,
+    DomainTypeError,
+)
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import bearer_scheme

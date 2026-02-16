@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from domain.refresh_token.entity import RefreshToken
 from domain.user.value_objects import UserId
+from infrastructure.security.refresh_token import RefreshToken
 
 
 class RefreshTokenRepository(Protocol):

@@ -7,7 +7,7 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.refresh_token.command import RefreshTokenCommand
 from application.refresh_token.port import RefreshTokenUseCase
-from domain.refresh_token.errors import (
+from infrastructure.security.errors import (
     RefreshTokenExpiredError,
     RefreshTokenNotFoundError,
 )

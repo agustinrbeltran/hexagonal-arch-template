@@ -13,8 +13,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from starlette.requests import Request
 
-from domain.refresh_token.repository import RefreshTokenRepository
-from domain.refresh_token.services import (
+from application.shared.token_pair_issuer import TokenPairIssuer
+from application.shared.token_pair_refresher import TokenPairRefresher
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
+from infrastructure.security.refresh_token_service import (
     AccessTokenEncoder,
     RefreshTokenIdGenerator,
     RefreshTokenService,
@@ -172,6 +174,20 @@ class RefreshTokenProvider(Provider):
             access_token_expiry_min=security.auth.access_token_expiry_min,
             refresh_token_expiry_days=security.auth.refresh_token_expiry_days,
         )
+
+    @provide
+    def provide_token_pair_issuer(
+        self,
+        service: RefreshTokenService,
+    ) -> TokenPairIssuer:
+        return service
+
+    @provide
+    def provide_token_pair_refresher(
+        self,
+        service: RefreshTokenService,
+    ) -> TokenPairRefresher:
+        return service
 
 
 def infrastructure_providers() -> tuple[Provider, ...]:

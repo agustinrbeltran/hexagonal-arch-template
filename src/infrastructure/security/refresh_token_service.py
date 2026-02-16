@@ -3,10 +3,15 @@ from abc import abstractmethod
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
-from domain.refresh_token.entity import RefreshToken
-from domain.refresh_token.errors import RefreshTokenExpiredError, RefreshTokenNotFoundError
-from domain.refresh_token.repository import RefreshTokenRepository
+from application.shared.token_pair_issuer import TokenPairIssuer
+from application.shared.token_pair_refresher import TokenPairRefresher
 from domain.user.value_objects import UserId
+from infrastructure.security.errors import (
+    RefreshTokenExpiredError,
+    RefreshTokenNotFoundError,
+)
+from infrastructure.security.refresh_token import RefreshToken
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +29,7 @@ class AccessTokenEncoder(Protocol):
     def encode(self, user_id: UserId, expiration: datetime) -> str: ...
 
 
-class RefreshTokenService:
+class RefreshTokenService(TokenPairIssuer, TokenPairRefresher):
     def __init__(
         self,
         refresh_token_repository: RefreshTokenRepository,
@@ -38,6 +43,10 @@ class RefreshTokenService:
         self._access_token_encoder = access_token_encoder
         self._access_token_expiry_min = access_token_expiry_min
         self._refresh_token_expiry_days = refresh_token_expiry_days
+
+    @property
+    def access_token_expiry_seconds(self) -> int:
+        return self._access_token_expiry_min * 60
 
     def issue_token_pair(self, user_id: UserId) -> tuple[str, str]:
         log.debug("Issue token pair: started. User ID: '%s'.", user_id.value)
@@ -56,9 +65,7 @@ class RefreshTokenService:
 
     async def refresh(self, refresh_token_id: str) -> tuple[str, str]:
         """:raises RefreshTokenNotFoundError, RefreshTokenExpiredError:"""
-        log.debug(
-            "Refresh token: started. Refresh token ID: '%s'.", refresh_token_id
-        )
+        log.debug("Refresh token: started. Refresh token ID: '%s'.", refresh_token_id)
 
         old_token = await self._repository.get_by_id(refresh_token_id)
         if old_token is None:
@@ -84,13 +91,9 @@ class RefreshTokenService:
 
     async def revoke_all_for_user(self, user_id: UserId) -> None:
         """:raises DataMapperError:"""
-        log.debug(
-            "Revoke all refresh tokens: started. User ID: '%s'.", user_id.value
-        )
+        log.debug("Revoke all refresh tokens: started. User ID: '%s'.", user_id.value)
         await self._repository.delete_all_for_user(user_id)
-        log.debug(
-            "Revoke all refresh tokens: done. User ID: '%s'.", user_id.value
-        )
+        log.debug("Revoke all refresh tokens: done. User ID: '%s'.", user_id.value)
 
     def _create_refresh_token(self, user_id: UserId) -> RefreshToken:
         return RefreshToken(

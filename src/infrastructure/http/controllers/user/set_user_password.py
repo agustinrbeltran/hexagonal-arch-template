@@ -9,7 +9,11 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.set_user_password.command import SetUserPasswordCommand
 from application.set_user_password.port import SetUserPasswordUseCase
-from domain.shared.errors import AuthenticationError, AuthorizationError, DomainTypeError
+from domain.shared.errors import (
+    AuthenticationError,
+    AuthorizationError,
+    DomainTypeError,
+)
 from domain.user.errors import UserNotFoundByIdError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator

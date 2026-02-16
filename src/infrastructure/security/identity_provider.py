@@ -29,7 +29,7 @@ class JwtBearerIdentityProvider(IdentityProvider):
         if auth_header is None or not auth_header.startswith("Bearer "):
             raise AuthenticationError(AUTH_NOT_AUTHENTICATED)
 
-        token = auth_header[len("Bearer "):]
+        token = auth_header[len("Bearer ") :]
         user_id_str = self._access_token_processor.decode_user_id(token)
         if user_id_str is None:
             raise AuthenticationError(AUTH_INVALID_TOKEN)

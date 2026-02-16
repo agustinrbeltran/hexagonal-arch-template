@@ -8,7 +8,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from application.create_user.command import CreateUserCommand, CreateUserResponse
 from application.create_user.port import CreateUserUseCase
-from domain.shared.errors import AuthenticationError, AuthorizationError, DomainTypeError
+from domain.shared.errors import (
+    AuthenticationError,
+    AuthorizationError,
+    DomainTypeError,
+)
 from domain.user.enums import UserRole
 from domain.user.errors import (
     RoleAssignmentNotPermittedError,

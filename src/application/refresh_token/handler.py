@@ -2,7 +2,7 @@ import logging
 
 from application.refresh_token.command import RefreshTokenCommand, RefreshTokenResult
 from application.refresh_token.port import RefreshTokenUseCase
-from domain.refresh_token.services import RefreshTokenService
+from application.shared.token_pair_refresher import TokenPairRefresher
 
 log = logging.getLogger(__name__)
 
@@ -10,15 +10,15 @@ log = logging.getLogger(__name__)
 class RefreshTokenHandler(RefreshTokenUseCase):
     def __init__(
         self,
-        refresh_token_service: RefreshTokenService,
+        token_pair_refresher: TokenPairRefresher,
     ) -> None:
-        self._refresh_token_service = refresh_token_service
+        self._token_pair_refresher = token_pair_refresher
 
     async def execute(self, command: RefreshTokenCommand) -> RefreshTokenResult:
         """:raises RefreshTokenNotFoundError, RefreshTokenExpiredError:"""
         log.info("Refresh token: started.")
 
-        access_token, refresh_token = await self._refresh_token_service.refresh(
+        access_token, refresh_token = await self._token_pair_refresher.refresh(
             command.refresh_token,
         )
 
@@ -27,5 +27,5 @@ class RefreshTokenHandler(RefreshTokenUseCase):
         return RefreshTokenResult(
             access_token=access_token,
             refresh_token=refresh_token,
-            expires_in=self._refresh_token_service._access_token_expiry_min * 60,
+            expires_in=self._token_pair_refresher.access_token_expiry_seconds,
         )

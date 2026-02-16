@@ -3,7 +3,7 @@ from typing import Final
 
 from application.log_in.command import LogInCommand, LogInResult
 from application.log_in.port import LogInUseCase
-from domain.refresh_token.services import RefreshTokenService
+from application.shared.token_pair_issuer import TokenPairIssuer
 from domain.user.entity import User
 from domain.user.errors import UserNotFoundByUsernameError
 from domain.user.repository import UserRepository
@@ -25,11 +25,11 @@ class LogInHandler(LogInUseCase):
         self,
         user_repository: UserRepository,
         user_service: UserService,
-        refresh_token_service: RefreshTokenService,
+        token_pair_issuer: TokenPairIssuer,
     ) -> None:
         self._user_repository = user_repository
         self._user_service = user_service
-        self._refresh_token_service = refresh_token_service
+        self._token_pair_issuer = token_pair_issuer
 
     async def execute(self, command: LogInCommand) -> LogInResult:
         log.info("Log in: started. Username: '%s'.", command.username)
@@ -47,9 +47,7 @@ class LogInHandler(LogInUseCase):
         if not user.is_active:
             raise AuthenticationError(AUTH_ACCOUNT_INACTIVE)
 
-        access_token, refresh_token = self._refresh_token_service.issue_token_pair(
-            user.id_
-        )
+        access_token, refresh_token = self._token_pair_issuer.issue_token_pair(user.id_)
 
         log.info(
             "Log in: done. User, ID: '%s', username '%s', role '%s'.",
@@ -61,5 +59,5 @@ class LogInHandler(LogInUseCase):
         return LogInResult(
             access_token=access_token,
             refresh_token=refresh_token,
-            expires_in=self._refresh_token_service._access_token_expiry_min * 60,
+            expires_in=self._token_pair_issuer.access_token_expiry_seconds,
         )

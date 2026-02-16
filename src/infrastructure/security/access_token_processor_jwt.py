@@ -4,7 +4,7 @@ from typing import Any, Literal, TypedDict, cast
 
 import jwt
 
-from domain.refresh_token.services import AccessTokenEncoder
+from infrastructure.security.refresh_token_service import AccessTokenEncoder
 from domain.user.value_objects import UserId
 
 log = logging.getLogger(__name__)
