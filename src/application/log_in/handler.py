@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 AUTH_ALREADY_AUTHENTICATED: Final[str] = (
     "You are already authenticated. Consider logging out."
 )
-AUTH_PASSWORD_INVALID: Final[str] = "Invalid password."
+AUTH_INVALID_CREDENTIAL: Final[str] = "Invalid password."
 AUTH_ACCOUNT_INACTIVE: Final[str] = "Your account is inactive. Please contact support."
 
 
@@ -58,7 +58,7 @@ class LogInHandler(LogInUseCase):
             raise UserNotFoundByUsernameError(username)
 
         if not await self._user_service.is_password_valid(user, password):
-            raise AuthenticationError(AUTH_PASSWORD_INVALID)
+            raise AuthenticationError(AUTH_INVALID_CREDENTIAL)
 
         if not user.is_active:
             raise AuthenticationError(AUTH_ACCOUNT_INACTIVE)

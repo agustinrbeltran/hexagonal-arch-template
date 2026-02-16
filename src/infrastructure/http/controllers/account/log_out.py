@@ -6,8 +6,8 @@ from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.log_out.port import LogOutUseCase
-from domain.shared.errors import AuthorizationError
 from domain.auth_session.errors import SessionNotFoundError
+from domain.shared.errors import AuthorizationError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme

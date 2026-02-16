@@ -9,10 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from application.list_users.port import ListUsersUseCase
 from application.list_users.query import ListUsersQuery
+from domain.auth_session.errors import SessionNotFoundError
 from domain.shared.errors import AuthorizationError
 from domain.shared.queries import PaginationError, SortingError, SortingOrder
 from domain.user.repository import ListUsersQM
-from domain.auth_session.errors import SessionNotFoundError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme

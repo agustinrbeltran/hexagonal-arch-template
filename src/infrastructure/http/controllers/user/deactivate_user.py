@@ -9,9 +9,9 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.deactivate_user.command import DeactivateUserCommand
 from application.deactivate_user.port import DeactivateUserUseCase
+from domain.auth_session.errors import SessionNotFoundError
 from domain.shared.errors import AuthorizationError
 from domain.user.errors import ActivationChangeNotPermittedError, UserNotFoundByIdError
-from domain.auth_session.errors import SessionNotFoundError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme

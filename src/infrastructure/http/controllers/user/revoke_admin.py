@@ -9,9 +9,9 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from application.revoke_admin.command import RevokeAdminCommand
 from application.revoke_admin.port import RevokeAdminUseCase
+from domain.auth_session.errors import SessionNotFoundError
 from domain.shared.errors import AuthorizationError
 from domain.user.errors import RoleChangeNotPermittedError, UserNotFoundByIdError
-from domain.auth_session.errors import SessionNotFoundError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme

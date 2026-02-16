@@ -3,10 +3,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from domain.shared.value_object import ValueObject
-from domain.user.value_objects import RawPassword
-from domain.user.value_objects import UserId
-from domain.user.value_objects import UserPasswordHash
-from domain.user.value_objects import Username
+from domain.user.value_objects import RawPassword, UserId, Username, UserPasswordHash
 
 
 @dataclass(frozen=True, slots=True, repr=False)

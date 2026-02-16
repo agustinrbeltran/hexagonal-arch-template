@@ -1,7 +1,12 @@
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from domain.shared.queries import OffsetPaginationParams, SortingOrder, SortingParams
+from domain.shared.queries import (
+    OffsetPaginationParams,
+    SortingError,
+    SortingOrder,
+    SortingParams,
+)
 from domain.user.entity import User
 from domain.user.repository import ListUsersQM, UserQueryModel, UserRepository
 from domain.user.value_objects import UserId, Username
@@ -9,8 +14,6 @@ from infrastructure.persistence.constants import DB_QUERY_FAILED
 from infrastructure.persistence.errors import DataMapperError, ReaderError
 from infrastructure.persistence.mappers.user import users_table
 from infrastructure.persistence.types_ import MainAsyncSession
-
-from domain.shared.queries import SortingError
 
 
 class SqlaUserRepository(UserRepository):

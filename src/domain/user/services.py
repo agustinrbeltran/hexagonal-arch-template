@@ -7,7 +7,7 @@ from domain.shared.errors import AuthorizationError
 from domain.user.entity import User
 from domain.user.enums import SUBORDINATE_ROLES, UserRole
 from domain.user.ports import PasswordHasher, UserIdGenerator
-from domain.user.value_objects import RawPassword, UserPasswordHash, UserId, Username
+from domain.user.value_objects import RawPassword, Username, UserPasswordHash
 
 AUTHZ_NOT_AUTHORIZED: Final[str] = "Not authorized."
 

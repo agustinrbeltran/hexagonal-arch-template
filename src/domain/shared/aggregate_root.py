@@ -6,6 +6,8 @@ from domain.shared.value_object import ValueObject
 
 
 class AggregateRoot[T: ValueObject](Entity[T]):
+    _events: list[DomainEvent]
+
     def __new__(cls, *_args: Any, **_kwargs: Any) -> Self:
         if cls is AggregateRoot:
             raise TypeError("Base AggregateRoot cannot be instantiated directly.")
@@ -13,7 +15,7 @@ class AggregateRoot[T: ValueObject](Entity[T]):
 
     def __init__(self, *, id_: T) -> None:
         super().__init__(id_=id_)
-        object.__setattr__(self, "_events", [])
+        self._events = []
 
     def _register_event(self, event: DomainEvent) -> None:
         self._events.append(event)

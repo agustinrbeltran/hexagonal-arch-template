@@ -1,8 +1,10 @@
 import logging
-from datetime import datetime
-from typing import Final
+from abc import abstractmethod
+from datetime import datetime, timedelta
+from typing import Final, Protocol
 
 from domain.auth_session.entity import AuthSession
+from domain.auth_session.errors import SessionExpiredError, SessionNotFoundError
 from domain.auth_session.gateway import AuthSessionGateway
 from domain.auth_session.ports import (
     AuthSessionTransactionManager,
@@ -22,23 +24,27 @@ AUTH_SESSION_EXTRACTION_FAILED: Final[str] = "Auth session extraction failed."
 AUTH_SESSION_NOT_FOUND: Final[str] = "Auth session not found."
 
 
-class AuthSessionIdGenerator:
+class AuthSessionIdGenerator(Protocol):
     """Abstract base for session ID generation."""
 
+    @abstractmethod
     def generate(self) -> str: ...
 
 
-class AuthSessionTimer:
+class AuthSessionTimer(Protocol):
     """Abstract base for session timing."""
 
     @property
+    @abstractmethod
     def current_time(self) -> datetime: ...
 
     @property
+    @abstractmethod
     def auth_session_expiration(self) -> datetime: ...
 
     @property
-    def refresh_trigger_interval(self) -> "datetime.timedelta": ...
+    @abstractmethod
+    def refresh_trigger_interval(self) -> timedelta: ...
 
 
 class AuthSessionService:
@@ -74,8 +80,6 @@ class AuthSessionService:
             await self._auth_transaction_manager.commit()
 
         except Exception as err:
-            from domain.auth_session.errors import SessionNotFoundError
-
             raise SessionNotFoundError(AUTH_UNAVAILABLE) from err
 
         self._auth_session_transport.deliver(auth_session)
@@ -181,7 +185,6 @@ class AuthSessionService:
         auth_session_id: str | None = self._auth_session_transport.extract_id()
         if auth_session_id is None:
             log.debug(AUTH_SESSION_NOT_FOUND)
-            from domain.auth_session.errors import SessionNotFoundError
 
             raise SessionNotFoundError(AUTH_NOT_AUTHENTICATED)
 
@@ -197,13 +200,11 @@ class AuthSessionService:
 
         except Exception as err:
             log.error("%s: '%s'", AUTH_SESSION_EXTRACTION_FAILED, err)
-            from domain.auth_session.errors import SessionNotFoundError
 
             raise SessionNotFoundError(AUTH_NOT_AUTHENTICATED) from err
 
         if auth_session is None:
             log.debug(AUTH_SESSION_NOT_FOUND)
-            from domain.auth_session.errors import SessionNotFoundError
 
             raise SessionNotFoundError(AUTH_NOT_AUTHENTICATED)
 
@@ -225,7 +226,6 @@ class AuthSessionService:
         now = self._auth_session_timer.current_time
         if auth_session.expiration <= now:
             log.debug(AUTH_SESSION_EXPIRED)
-            from domain.auth_session.errors import SessionExpiredError
 
             raise SessionExpiredError(AUTH_NOT_AUTHENTICATED)
 

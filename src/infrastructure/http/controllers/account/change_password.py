@@ -12,8 +12,8 @@ from application.change_password.handler import (
     ReAuthenticationError,
 )
 from application.change_password.port import ChangePasswordUseCase
-from domain.shared.errors import AuthorizationError, DomainTypeError
 from domain.auth_session.errors import SessionNotFoundError
+from domain.shared.errors import AuthorizationError, DomainTypeError
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme

@@ -3,7 +3,7 @@ from sqlalchemy.orm import composite
 
 from domain.user.entity import User
 from domain.user.enums import UserRole
-from domain.user.value_objects import UserId, UserPasswordHash, Username
+from domain.user.value_objects import UserId, Username, UserPasswordHash
 from infrastructure.persistence.registry import mapper_registry
 
 users_table = Table(

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from application.create_user.command import CreateUserCommand, CreateUserResponse
 from application.create_user.port import CreateUserUseCase
+from domain.auth_session.errors import SessionNotFoundError
 from domain.shared.errors import AuthorizationError, DomainTypeError
 from domain.user.enums import UserRole
 from domain.user.errors import (
@@ -19,7 +20,6 @@ from infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from infrastructure.http.middleware.openapi_marker import cookie_scheme
 from infrastructure.persistence.errors import DataMapperError
 from infrastructure.security.errors import PasswordHasherBusyError
-from domain.auth_session.errors import SessionNotFoundError
 
 
 class CreateUserRequestPydantic(BaseModel):

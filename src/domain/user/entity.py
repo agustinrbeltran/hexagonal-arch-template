@@ -12,7 +12,7 @@ from domain.user.events import (
     UserPasswordChanged,
     UserRoleChanged,
 )
-from domain.user.value_objects import UserId, UserPasswordHash, Username
+from domain.user.value_objects import UserId, Username, UserPasswordHash
 
 
 class User(AggregateRoot[UserId]):

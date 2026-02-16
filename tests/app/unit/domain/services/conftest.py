@@ -3,8 +3,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from domain.user.ports import PasswordHasher
-from domain.user.ports import UserIdGenerator
+from domain.user.ports import PasswordHasher, UserIdGenerator
 from tests.app.unit.domain.services.mock_types import (
     PasswordHasherMock,
     UserIdGeneratorMock,

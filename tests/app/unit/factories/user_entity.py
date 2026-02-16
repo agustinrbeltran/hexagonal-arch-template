@@ -1,8 +1,6 @@
 from domain.user.entity import User
 from domain.user.enums import UserRole
-from domain.user.value_objects import UserId
-from domain.user.value_objects import UserPasswordHash
-from domain.user.value_objects import Username
+from domain.user.value_objects import UserId, Username, UserPasswordHash
 from tests.app.unit.factories.value_objects import (
     create_password_hash,
     create_user_id,

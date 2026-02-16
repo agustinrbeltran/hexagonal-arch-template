@@ -10,8 +10,8 @@ from domain.user.value_objects import RawPassword
 
 log = logging.getLogger(__name__)
 
-AUTH_PASSWORD_INVALID: Final[str] = "Invalid password."
-AUTH_PASSWORD_NEW_SAME_AS_CURRENT: Final[str] = (
+AUTH_INVALID_CURRENT_CREDENTIAL: Final[str] = "Invalid password."
+AUTH_NEW_CREDENTIAL_SAME_AS_CURRENT: Final[str] = (
     "New password must differ from current password."
 )
 
@@ -45,13 +45,13 @@ class ChangePasswordHandler(ChangePasswordUseCase):
         current_password = RawPassword(command.current_password)
         new_password = RawPassword(command.new_password)
         if current_password == new_password:
-            raise AuthenticationChangeError(AUTH_PASSWORD_NEW_SAME_AS_CURRENT)
+            raise AuthenticationChangeError(AUTH_NEW_CREDENTIAL_SAME_AS_CURRENT)
 
         if not await self._user_service.is_password_valid(
             current_user,
             current_password,
         ):
-            raise ReAuthenticationError(AUTH_PASSWORD_INVALID)
+            raise ReAuthenticationError(AUTH_INVALID_CURRENT_CREDENTIAL)
 
         await self._user_service.change_password(current_user, new_password)
         await self._unit_of_work.commit()
