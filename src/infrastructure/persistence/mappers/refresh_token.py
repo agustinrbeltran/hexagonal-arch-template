@@ -1,9 +1,9 @@
 from sqlalchemy import UUID, Column, DateTime, String, Table
 from sqlalchemy.orm import composite
 
-from infrastructure.security.refresh_token import RefreshToken
 from domain.user.value_objects import UserId
 from infrastructure.persistence.registry import mapper_registry
+from infrastructure.security.refresh_token import RefreshToken
 
 refresh_tokens_table = Table(
     "refresh_tokens",

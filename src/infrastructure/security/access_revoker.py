@@ -1,6 +1,6 @@
-from infrastructure.security.refresh_token_service import RefreshTokenService
 from domain.user.ports import AccessRevoker
 from domain.user.value_objects import UserId
+from infrastructure.security.refresh_token_service import RefreshTokenService
 
 
 class RefreshTokenAccessRevoker(AccessRevoker):

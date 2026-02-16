@@ -15,8 +15,8 @@ from infrastructure.security.refresh_token_repository import RefreshTokenReposit
 
 log = logging.getLogger(__name__)
 
-TOKEN_NOT_FOUND: str = "Refresh token not found."
-TOKEN_EXPIRED: str = "Refresh token has expired."
+TOKEN_NOT_FOUND: str = "Refresh token not found."  # noqa: S105
+TOKEN_EXPIRED: str = "Refresh token has expired."  # noqa: S105
 
 
 class RefreshTokenIdGenerator(Protocol):

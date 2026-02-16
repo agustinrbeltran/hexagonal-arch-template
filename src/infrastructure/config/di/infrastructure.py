@@ -15,12 +15,6 @@ from starlette.requests import Request
 
 from application.shared.token_pair_issuer import TokenPairIssuer
 from application.shared.token_pair_refresher import TokenPairRefresher
-from infrastructure.security.refresh_token_repository import RefreshTokenRepository
-from infrastructure.security.refresh_token_service import (
-    AccessTokenEncoder,
-    RefreshTokenIdGenerator,
-    RefreshTokenService,
-)
 from infrastructure.config.settings.database import PostgresSettings, SqlaEngineSettings
 from infrastructure.config.settings.security import SecuritySettings
 from infrastructure.persistence.sqla_refresh_token_repository import (
@@ -35,6 +29,12 @@ from infrastructure.persistence.types_ import (
 from infrastructure.security.access_token_processor_jwt import JwtAccessTokenProcessor
 from infrastructure.security.refresh_token_id_generator import (
     StrRefreshTokenIdGenerator,
+)
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
+from infrastructure.security.refresh_token_service import (
+    AccessTokenEncoder,
+    RefreshTokenIdGenerator,
+    RefreshTokenService,
 )
 
 log = logging.getLogger(__name__)

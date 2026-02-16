@@ -1,12 +1,12 @@
 from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.security.refresh_token import RefreshToken
-from infrastructure.security.refresh_token_repository import RefreshTokenRepository
 from domain.user.value_objects import UserId
 from infrastructure.persistence.constants import DB_QUERY_FAILED
 from infrastructure.persistence.errors import DataMapperError
 from infrastructure.persistence.types_ import AuthAsyncSession
+from infrastructure.security.refresh_token import RefreshToken
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
 
 
 class SqlaRefreshTokenRepository(RefreshTokenRepository):

@@ -4,13 +4,13 @@ from typing import Any, Literal, TypedDict, cast
 
 import jwt
 
-from infrastructure.security.refresh_token_service import AccessTokenEncoder
 from domain.user.value_objects import UserId
+from infrastructure.security.refresh_token_service import AccessTokenEncoder
 
 log = logging.getLogger(__name__)
 
-ACCESS_TOKEN_INVALID_OR_EXPIRED = "Invalid or expired JWT."
-ACCESS_TOKEN_PAYLOAD_MISSING = "JWT payload missing claim."
+ACCESS_TOKEN_INVALID_OR_EXPIRED = "Invalid or expired JWT."  # noqa: S105
+ACCESS_TOKEN_PAYLOAD_MISSING = "JWT payload missing claim."  # noqa: S105
 
 
 class JwtPayload(TypedDict):

@@ -11,7 +11,7 @@ from infrastructure.security.access_token_processor_jwt import JwtAccessTokenPro
 log = logging.getLogger(__name__)
 
 AUTH_NOT_AUTHENTICATED = "Not authenticated."
-AUTH_INVALID_TOKEN = "Invalid or expired access token."
+AUTH_INVALID_TOKEN = "Invalid or expired access token."  # noqa: S105
 
 
 class JwtBearerIdentityProvider(IdentityProvider):

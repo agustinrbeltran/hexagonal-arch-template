@@ -33,7 +33,7 @@ def test_auth_settings_custom_expiry() -> None:
         pytest.param({"REFRESH_TOKEN_EXPIRY_DAYS": 0}, id="expiry_days_too_small"),
     ],
 )
-def test_auth_rejects_invalid_expiry(field_override: dict) -> None:
+def test_auth_rejects_invalid_expiry(field_override: dict[str, int]) -> None:
     data = {**create_auth_settings_data(), **field_override}
 
     with pytest.raises(ValidationError):
