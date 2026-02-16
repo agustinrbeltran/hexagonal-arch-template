@@ -1,4 +1,4 @@
-from common.domain.core.entities.permission import AnyOf
+from domain.user.services import AnyOf
 from tests.app.unit.application.authz_service.permission_stubs import (
     AlwaysAllow,
     AlwaysDeny,

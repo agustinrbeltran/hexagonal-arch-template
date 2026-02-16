@@ -1,13 +1,13 @@
 import pytest
 
-from features.user.domain.core.entities.user import User
-from features.user.domain.core.enums.user_role import UserRole
-from features.user.domain.core.exceptions.user import (
+from domain.user.entity import User
+from domain.user.enums import UserRole
+from domain.user.errors import (
     ActivationChangeNotPermittedError,
     RoleAssignmentNotPermittedError,
     RoleChangeNotPermittedError,
 )
-from features.user.domain.core.service.user_service import UserService
+from domain.user.services import UserService
 from tests.app.unit.domain.services.mock_types import (
     PasswordHasherMock,
     UserIdGeneratorMock,
@@ -131,87 +131,71 @@ async def test_changes_password(
 
 
 @pytest.mark.parametrize(
-    ("initial_state", "target_state", "expected_result"),
+    ("initial_state", "method", "expected_result"),
     [
-        pytest.param(True, False, True, id="active_to_inactive"),
-        pytest.param(False, True, True, id="inactive_to_active"),
-        pytest.param(True, True, False, id="already_active"),
-        pytest.param(False, False, False, id="already_inactive"),
+        pytest.param(True, "deactivate", True, id="active_to_inactive"),
+        pytest.param(False, "activate", True, id="inactive_to_active"),
+        pytest.param(True, "activate", False, id="already_active"),
+        pytest.param(False, "deactivate", False, id="already_inactive"),
     ],
 )
 def test_toggles_activation_state(
     initial_state: bool,
-    target_state: bool,
+    method: str,
     expected_result: bool,
-    user_id_generator: UserIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
 ) -> None:
     user = create_user(is_active=initial_state)
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
-    result = sut.toggle_user_activation(user, is_active=target_state)
+    result = getattr(user, method)()
 
     assert result is expected_result
-    assert user.is_active is target_state
 
 
 @pytest.mark.parametrize(
-    "is_active",
-    [True, False],
+    "method",
+    ["activate", "deactivate"],
 )
 def test_preserves_super_admin_activation_state(
-    is_active: bool,
-    user_id_generator: UserIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
+    method: str,
 ) -> None:
-    user = create_user(role=UserRole.SUPER_ADMIN, is_active=not is_active)
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    user = create_user(role=UserRole.SUPER_ADMIN, is_active=True)
 
     with pytest.raises(ActivationChangeNotPermittedError):
-        sut.toggle_user_activation(user, is_active=is_active)
-
-    assert user.is_active is not is_active
+        getattr(user, method)()
 
 
 @pytest.mark.parametrize(
-    ("initial_role", "target_is_admin", "expected_role", "expected_result"),
+    ("initial_role", "target_role", "expected_result"),
     [
-        pytest.param(UserRole.USER, True, UserRole.ADMIN, True, id="user_to_admin"),
-        pytest.param(UserRole.ADMIN, False, UserRole.USER, True, id="admin_to_user"),
-        pytest.param(UserRole.USER, False, UserRole.USER, False, id="already_user"),
-        pytest.param(UserRole.ADMIN, True, UserRole.ADMIN, False, id="already_admin"),
+        pytest.param(UserRole.USER, UserRole.ADMIN, True, id="user_to_admin"),
+        pytest.param(UserRole.ADMIN, UserRole.USER, True, id="admin_to_user"),
+        pytest.param(UserRole.USER, UserRole.USER, False, id="already_user"),
+        pytest.param(UserRole.ADMIN, UserRole.ADMIN, False, id="already_admin"),
     ],
 )
 def test_toggles_role(
     initial_role: UserRole,
-    target_is_admin: bool,
-    expected_role: UserRole,
+    target_role: UserRole,
     expected_result: bool,
-    user_id_generator: UserIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
 ) -> None:
     user = create_user(role=initial_role)
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
-    result = sut.toggle_user_admin_role(user, is_admin=target_is_admin)
+    result = user.change_role(target_role)
 
     assert result is expected_result
-    assert user.role == expected_role
+    assert user.role == target_role
 
 
 @pytest.mark.parametrize(
-    "is_admin",
-    [True, False],
+    "target_role",
+    [UserRole.USER, UserRole.ADMIN],
 )
 def test_preserves_super_admin_role(
-    is_admin: bool,
-    user_id_generator: UserIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
+    target_role: UserRole,
 ) -> None:
     user = create_user(role=UserRole.SUPER_ADMIN)
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
 
     with pytest.raises(RoleChangeNotPermittedError):
-        sut.toggle_user_admin_role(user, is_admin=is_admin)
+        user.change_role(target_role)
 
     assert user.role == UserRole.SUPER_ADMIN

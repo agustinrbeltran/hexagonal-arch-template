@@ -2,9 +2,9 @@ from dishka import Provider
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 
-from setup.app_factory import create_ioc_container, create_web_app
-from setup.config.logs import configure_logging
-from setup.config.settings import AppSettings, load_settings
+from infrastructure.config.app_factory import create_ioc_container, create_web_app
+from infrastructure.config.settings.app_settings import AppSettings, load_settings
+from infrastructure.config.settings.logs import configure_logging
 
 
 def make_app(
