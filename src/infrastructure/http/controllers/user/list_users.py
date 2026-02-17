@@ -9,13 +9,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from application.list_users.port import ListUsersUseCase
 from application.list_users.query import ListUsersQuery
-from domain.auth_session.errors import SessionNotFoundError
-from domain.shared.errors import AuthorizationError
+from domain.shared.errors import AuthenticationError, AuthorizationError
 from domain.shared.queries import PaginationError, SortingError, SortingOrder
 from domain.user.repository import ListUsersQM
 from infrastructure.http.errors.callbacks import log_error, log_info
 from infrastructure.http.errors.translators import ServiceUnavailableTranslator
-from infrastructure.http.middleware.openapi_marker import cookie_scheme
+from infrastructure.http.middleware.openapi_marker import bearer_scheme
 from infrastructure.persistence.errors import DataMapperError, ReaderError
 
 
@@ -34,7 +33,7 @@ def create_list_users_router() -> APIRouter:
         "/",
         description=getdoc(ListUsersUseCase),
         error_map={
-            SessionNotFoundError: status.HTTP_401_UNAUTHORIZED,
+            AuthenticationError: status.HTTP_401_UNAUTHORIZED,
             DataMapperError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
@@ -51,7 +50,7 @@ def create_list_users_router() -> APIRouter:
         },
         default_on_error=log_info,
         status_code=status.HTTP_200_OK,
-        dependencies=[Security(cookie_scheme)],
+        dependencies=[Security(bearer_scheme)],
     )
     @inject
     async def list_users(

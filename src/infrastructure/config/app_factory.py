@@ -7,7 +7,6 @@ from fastapi.responses import ORJSONResponse
 
 from infrastructure.config.di.provider_registry import get_providers
 from infrastructure.config.settings.app_settings import AppSettings
-from infrastructure.http.middleware.asgi_middleware import ASGIAuthMiddleware
 from infrastructure.http.routers.root_router import create_root_router
 from infrastructure.persistence.mappers.all import map_tables
 
@@ -28,8 +27,6 @@ def create_web_app() -> FastAPI:
         lifespan=lifespan,
         default_response_class=ORJSONResponse,
     )
-    # https://github.com/encode/starlette/discussions/2451
-    app.add_middleware(ASGIAuthMiddleware)
     app.include_router(create_root_router())
     return app
 

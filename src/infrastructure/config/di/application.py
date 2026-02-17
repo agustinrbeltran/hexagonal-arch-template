@@ -16,8 +16,8 @@ from application.list_users.handler import ListUsersHandler
 from application.list_users.port import ListUsersUseCase
 from application.log_in.handler import LogInHandler
 from application.log_in.port import LogInUseCase
-from application.log_out.handler import LogOutHandler
-from application.log_out.port import LogOutUseCase
+from application.refresh_token.handler import RefreshTokenHandler
+from application.refresh_token.port import RefreshTokenUseCase
 from application.revoke_admin.handler import RevokeAdminHandler
 from application.revoke_admin.port import RevokeAdminUseCase
 from application.set_user_password.handler import SetUserPasswordHandler
@@ -31,8 +31,8 @@ from domain.user.repository import UserRepository
 from infrastructure.events.in_process_dispatcher import InProcessEventDispatcher
 from infrastructure.persistence.sqla_unit_of_work import SqlaUnitOfWork
 from infrastructure.persistence.sqla_user_repository import SqlaUserRepository
-from infrastructure.security.access_revoker import AuthSessionAccessRevoker
-from infrastructure.security.identity_provider import AuthSessionIdentityProvider
+from infrastructure.security.access_revoker import RefreshTokenAccessRevoker
+from infrastructure.security.identity_provider import JwtBearerIdentityProvider
 
 
 class ApplicationProvider(Provider):
@@ -47,8 +47,8 @@ class ApplicationProvider(Provider):
     event_dispatcher = provide(InProcessEventDispatcher, provides=EventDispatcher)
 
     # Ports Auth
-    access_revoker = provide(AuthSessionAccessRevoker, provides=AccessRevoker)
-    identity_provider = provide(AuthSessionIdentityProvider, provides=IdentityProvider)
+    access_revoker = provide(RefreshTokenAccessRevoker, provides=AccessRevoker)
+    identity_provider = provide(JwtBearerIdentityProvider, provides=IdentityProvider)
 
     # User Use Cases
     activate_user_use_case = provide(ActivateUserHandler, provides=ActivateUserUseCase)
@@ -67,7 +67,7 @@ class ApplicationProvider(Provider):
     # Account Use Cases
     sign_up_use_case = provide(SignUpHandler, provides=SignUpUseCase)
     log_in_use_case = provide(LogInHandler, provides=LogInUseCase)
-    log_out_use_case = provide(LogOutHandler, provides=LogOutUseCase)
+    refresh_token_use_case = provide(RefreshTokenHandler, provides=RefreshTokenUseCase)
     change_password_use_case = provide(
         ChangePasswordHandler, provides=ChangePasswordUseCase
     )

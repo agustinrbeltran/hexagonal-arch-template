@@ -13,22 +13,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from starlette.requests import Request
 
-from domain.auth_session.gateway import AuthSessionGateway
-from domain.auth_session.ports import (
-    AuthSessionTransactionManager,
-    AuthSessionTransport,
-)
-from domain.auth_session.services import (
-    AuthSessionIdGenerator,
-    AuthSessionService,
-    AuthSessionTimer,
-)
+from application.shared.token_pair_issuer import TokenPairIssuer
+from application.shared.token_pair_refresher import TokenPairRefresher
 from infrastructure.config.settings.database import PostgresSettings, SqlaEngineSettings
 from infrastructure.config.settings.security import SecuritySettings
-from infrastructure.http.middleware.cookie_params import CookieParams
-from infrastructure.persistence.sqla_auth_session_gateway import SqlaAuthSessionGateway
-from infrastructure.persistence.sqla_auth_session_transaction_manager import (
-    SqlaAuthSessionTransactionManager,
+from infrastructure.persistence.sqla_refresh_token_repository import (
+    SqlaRefreshTokenRepository,
 )
 from infrastructure.persistence.types_ import (
     AuthAsyncSession,
@@ -37,10 +27,14 @@ from infrastructure.persistence.types_ import (
     MainAsyncSession,
 )
 from infrastructure.security.access_token_processor_jwt import JwtAccessTokenProcessor
-from infrastructure.security.auth_session_id_generator import StrAuthSessionIdGenerator
-from infrastructure.security.auth_session_timer import UtcAuthSessionTimer
-from infrastructure.security.session_transport_jwt_cookie import (
-    JwtCookieAuthSessionTransport,
+from infrastructure.security.refresh_token_id_generator import (
+    StrRefreshTokenIdGenerator,
+)
+from infrastructure.security.refresh_token_repository import RefreshTokenRepository
+from infrastructure.security.refresh_token_service import (
+    AccessTokenEncoder,
+    RefreshTokenIdGenerator,
+    RefreshTokenService,
 )
 
 log = logging.getLogger(__name__)
@@ -148,43 +142,58 @@ class EntrypointProvider(Provider):
             algorithm=security.auth.jwt_algorithm,
         )
 
-    @provide
-    def provide_cookie_params(self, security: SecuritySettings) -> CookieParams:
-        return CookieParams(secure=security.cookies.secure)
 
-
-class AuthSessionProvider(Provider):
+class RefreshTokenProvider(Provider):
     scope = Scope.REQUEST
-
-    service = provide(AuthSessionService)
 
     # Ports
     id_generator = provide(
-        StrAuthSessionIdGenerator, provides=AuthSessionIdGenerator, scope=Scope.APP
+        StrRefreshTokenIdGenerator, provides=RefreshTokenIdGenerator, scope=Scope.APP
     )
+    repository = provide(SqlaRefreshTokenRepository, provides=RefreshTokenRepository)
 
-    @provide(scope=Scope.APP)
-    def provide_utc_auth_session_timer(
+    @provide
+    def provide_access_token_encoder(
         self,
+        processor: JwtAccessTokenProcessor,
+    ) -> AccessTokenEncoder:
+        return processor
+
+    @provide
+    def provide_refresh_token_service(
+        self,
+        repository: RefreshTokenRepository,
+        id_generator: RefreshTokenIdGenerator,
+        access_token_encoder: AccessTokenEncoder,
         security: SecuritySettings,
-    ) -> AuthSessionTimer:
-        return UtcAuthSessionTimer(
-            ttl_min=security.auth.session_ttl_min,
-            refresh_threshold=security.auth.session_refresh_threshold,
+    ) -> RefreshTokenService:
+        return RefreshTokenService(
+            refresh_token_repository=repository,
+            refresh_token_id_generator=id_generator,
+            access_token_encoder=access_token_encoder,
+            access_token_expiry_min=security.auth.access_token_expiry_min,
+            refresh_token_expiry_days=security.auth.refresh_token_expiry_days,
         )
 
-    gateway = provide(SqlaAuthSessionGateway, provides=AuthSessionGateway)
-    transport = provide(JwtCookieAuthSessionTransport, provides=AuthSessionTransport)
-    tx_manager = provide(
-        SqlaAuthSessionTransactionManager,
-        provides=AuthSessionTransactionManager,
-    )
+    @provide
+    def provide_token_pair_issuer(
+        self,
+        service: RefreshTokenService,
+    ) -> TokenPairIssuer:
+        return service
+
+    @provide
+    def provide_token_pair_refresher(
+        self,
+        service: RefreshTokenService,
+    ) -> TokenPairRefresher:
+        return service
 
 
 def infrastructure_providers() -> tuple[Provider, ...]:
     return (
         MainAdaptersProvider(),
         PersistenceSqlaProvider(),
-        AuthSessionProvider(),
+        RefreshTokenProvider(),
         EntrypointProvider(),
     )

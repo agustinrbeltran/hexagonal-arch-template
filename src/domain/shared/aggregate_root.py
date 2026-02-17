@@ -18,9 +18,16 @@ class AggregateRoot[T: ValueObject](Entity[T]):
         self._events = []
 
     def _register_event(self, event: DomainEvent) -> None:
-        self._events.append(event)
+        try:
+            self._events.append(event)
+        except AttributeError:
+            self._events = [event]
 
     def collect_events(self) -> list[DomainEvent]:
-        events = list(self._events)
-        self._events.clear()
+        try:
+            events = list(self._events)
+            self._events.clear()
+        except AttributeError:
+            self._events = []
+            events = []
         return events

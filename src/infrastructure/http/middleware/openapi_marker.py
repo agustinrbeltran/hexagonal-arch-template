@@ -1,5 +1,3 @@
-from fastapi.security import APIKeyCookie
+from fastapi.security import HTTPBearer
 
-from infrastructure.http.middleware.constants import COOKIE_ACCESS_TOKEN_NAME
-
-cookie_scheme = APIKeyCookie(name=COOKIE_ACCESS_TOKEN_NAME)
+bearer_scheme = HTTPBearer()
