@@ -13,10 +13,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from starlette.requests import Request
 
+from application.shared.auth_unit_of_work import AuthUnitOfWork
 from application.shared.token_pair_issuer import TokenPairIssuer
 from application.shared.token_pair_refresher import TokenPairRefresher
 from infrastructure.config.settings.database import PostgresSettings, SqlaEngineSettings
 from infrastructure.config.settings.security import SecuritySettings
+from infrastructure.persistence.sqla_auth_unit_of_work import SqlaAuthUnitOfWork
 from infrastructure.persistence.sqla_refresh_token_repository import (
     SqlaRefreshTokenRepository,
 )
@@ -147,6 +149,7 @@ class RefreshTokenProvider(Provider):
     scope = Scope.REQUEST
 
     # Ports
+    auth_unit_of_work = provide(SqlaAuthUnitOfWork, provides=AuthUnitOfWork)
     id_generator = provide(
         StrRefreshTokenIdGenerator, provides=RefreshTokenIdGenerator, scope=Scope.APP
     )

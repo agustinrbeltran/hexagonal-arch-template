@@ -5,6 +5,7 @@
       "name": "🐞 debug: app.local (python)",
       "type": "debugpy",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "program": "${workspaceFolder}/src/run.py",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",

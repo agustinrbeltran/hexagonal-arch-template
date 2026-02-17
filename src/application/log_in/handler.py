@@ -3,6 +3,7 @@ from typing import Final
 
 from application.log_in.command import LogInCommand, LogInResult
 from application.log_in.port import LogInUseCase
+from application.shared.auth_unit_of_work import AuthUnitOfWork
 from application.shared.token_pair_issuer import TokenPairIssuer
 from domain.user.entity import User
 from domain.user.errors import UserNotFoundByUsernameError
@@ -26,10 +27,12 @@ class LogInHandler(LogInUseCase):
         user_repository: UserRepository,
         user_service: UserService,
         token_pair_issuer: TokenPairIssuer,
+        auth_unit_of_work: AuthUnitOfWork,
     ) -> None:
         self._user_repository = user_repository
         self._user_service = user_service
         self._token_pair_issuer = token_pair_issuer
+        self._auth_unit_of_work = auth_unit_of_work
 
     async def execute(self, command: LogInCommand) -> LogInResult:
         log.info("Log in: started. Username: '%s'.", command.username)
@@ -48,6 +51,7 @@ class LogInHandler(LogInUseCase):
             raise AuthenticationError(AUTH_ACCOUNT_INACTIVE)
 
         access_token, refresh_token = self._token_pair_issuer.issue_token_pair(user.id_)
+        await self._auth_unit_of_work.commit()
 
         log.info(
             "Log in: done. User, ID: '%s', username '%s', role '%s'.",
