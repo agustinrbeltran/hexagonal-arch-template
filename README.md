@@ -107,8 +107,9 @@ The **domain layer** contains pure business logic with **zero external dependenc
 
 **Aggregates in this project:**
 - `domain/user/` — User identity, roles, and lifecycle management
-- `domain/auth_session/` — Authentication sessions and access control
 - `domain/shared/` — Common domain building blocks (base classes, shared exceptions)
+
+> **Note:** Authentication (JWT access tokens and refresh tokens) is handled entirely in the infrastructure layer — it is not a domain concern. The domain layer contains only the `User` aggregate.
 
 **What belongs in the domain layer:**
 
@@ -202,25 +203,9 @@ Aggregates define transactional consistency boundaries. Changes within an aggreg
 │  • Password complexity                  │
 └─────────────────────────────────────────┘
 
-┌─────────────────────────────────────────┐
-│        AuthSession Aggregate            │
-│  (domain/auth_session/)                 │
-│                                         │
-│  ┌──────────────────────────────────┐  │
-│  │  AuthSession (Root)              │  │
-│  │  • id: SessionId                 │  │
-│  │  • user_id: UserId (reference)   │  │◄─ Reference only
-│  │  • created_at: datetime          │  │
-│  │  • expires_at: datetime          │  │
-│  └──────────────────────────────────┘  │
-│                                         │
-│  Invariants:                            │
-│  • Expiry validation                    │
-│  • Termination rules                    │
-└─────────────────────────────────────────┘
 ```
 
-Note: Aggregates reference each other **by ID only**, never by embedding. This maintains clear boundaries and supports eventual consistency.
+Note: In projects with multiple aggregates, they reference each other **by ID only**, never by embedding. This maintains clear boundaries and supports eventual consistency.
 
 ![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer** (`src/application/`)
 
@@ -262,44 +247,34 @@ The **application layer** orchestrates use cases by coordinating domain objects 
 ```python
 class LogInHandler(LogInUseCase):
     """
-    Handles user authentication.
+    Handles user authentication and issues JWT token pair.
 
     Flow:
-    1. Check if user already authenticated
-    2. Load user aggregate by username
-    3. Verify password (domain service)
-    4. Check if user is active
-    5. Create auth session (domain service)
-    6. Persist session
-    7. Return session ID
+    1. Load user aggregate by username
+    2. Verify password (domain service)
+    3. Check if user is active
+    4. Issue access + refresh token pair (infrastructure)
+    5. Return tokens
     """
 
     def __init__(
         self,
-        current_user_handler: CurrentUserHandler,
-        user_repository: UserRepository,      # Domain port
-        user_service: UserService,             # Domain service
-        auth_session_service: AuthSessionService,
-        session_gateway: AuthSessionGateway,   # Domain port
-    ):
-        self._current_user_handler = current_user_handler
+        user_repository: UserRepository,       # Domain port
+        user_service: UserService,              # Domain service
+        token_pair_issuer: TokenPairIssuer,     # Application port
+    ) -> None:
         self._user_repository = user_repository
         self._user_service = user_service
-        self._auth_session_service = auth_session_service
-        self._session_gateway = session_gateway
+        self._token_pair_issuer = token_pair_issuer
 
-    async def execute(self, command: LogInCommand) -> UUID:
-        # Check existing auth
-        if self._current_user_handler.is_authenticated():
-            raise AlreadyAuthenticatedError()
-
+    async def execute(self, command: LogInCommand) -> LogInResult:
         # Load aggregate (domain)
         user = await self._user_repository.get_by_username(
             Username(command.username)
         )
 
         # Verify password (domain logic)
-        if not self._user_service.verify_password(
+        if not await self._user_service.is_password_valid(
             user, RawPassword(command.password)
         ):
             raise AuthenticationError("Invalid password")
@@ -308,14 +283,16 @@ class LogInHandler(LogInUseCase):
         if not user.is_active:
             raise AuthenticationError("Account inactive")
 
-        # Create session (domain service)
-        session = self._auth_session_service.create_session(
-            user_id=user.id_
+        # Issue JWT access token + refresh token (infrastructure)
+        access_token, refresh_token = (
+            self._token_pair_issuer.issue_token_pair(user.id_)
         )
 
-        # Persist & return
-        await self._session_gateway.save(session)
-        return session.id_.value
+        return LogInResult(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=self._token_pair_issuer.access_token_expiry_seconds,
+        )
 ```
 
 **Key principle:** Application handlers orchestrate but never contain business logic. All business rules live in the domain layer.
@@ -340,9 +317,11 @@ The **infrastructure layer** provides concrete implementations of domain and app
   - Translate domain errors to HTTP status codes
 
 ✓ **Security Implementations** — Concrete security adapters.
-  - Example: `PasswordHasherBcrypt` in `infrastructure/security/`
-  - Implements password hashing domain port
-  - Uses bcrypt library
+  - Example: `BcryptPasswordHasher` in `infrastructure/security/`
+  - Implements password hashing domain port (bcrypt + HMAC pepper)
+  - `JwtAccessTokenProcessor` — JWT encoding/decoding
+  - `RefreshTokenService` — Implements `TokenPairIssuer` and `TokenPairRefresher` ports
+  - `JwtBearerIdentityProvider` — Extracts user identity from Bearer tokens
 
 ✓ **Event Dispatchers** — Publish domain events to handlers.
   - Example: Event dispatcher in `infrastructure/events/`
@@ -386,22 +365,26 @@ class SqlaUserRepository(UserRepository):
 **Example - HTTP Controller:**
 
 ```python
-@router.post("/login")
-async def log_in(
-    request: LogInRequest,
-    use_case: FromDishka[LogInUseCase],  # Application port
-) -> LogInResponse:
-    """Authenticate user and create session."""
-    try:
-        session_id = await use_case.execute(
-            LogInCommand(
-                username=request.username,
-                password=request.password,
-            )
-        )
-        return LogInResponse(session_id=session_id)
-    except AuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+# infrastructure/http/controllers/account/log_in.py
+@router.post(
+    "/login",
+    error_map={
+        AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+        UserNotFoundByUsernameError: status.HTTP_404_NOT_FOUND,
+    },
+    response_model=TokenResponse,
+)
+@inject
+async def login(
+    request_data: LogInCommand,
+    handler: FromDishka[LogInUseCase],   # Application port
+) -> TokenResponse:
+    result = await handler.execute(request_data)
+    return TokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        expires_in=result.expires_in,
+    )
 ```
 
 > [!IMPORTANT]
@@ -721,69 +704,51 @@ class UserService:
     belong to the User entity or value objects.
     """
 
-    def __init__(self, password_hasher: PasswordHasher):
-        self._password_hasher = password_hasher
-
-    def verify_password(
-        self,
-        user: User,
-        raw_password: RawPassword
-    ) -> bool:
-        """
-        Verify password against hash.
-
-        This is a domain service because:
-        - It involves User entity and RawPassword VO
-        - It delegates to infrastructure (PasswordHasher)
-        - It's stateless business logic
-        """
-        return self._password_hasher.verify(
-            raw_password.value,
-            user.password_hash.value,
-        )
-
-    def hash_password(
-        self,
-        raw_password: RawPassword
-    ) -> UserPasswordHash:
-        """Hash password for storage."""
-        hashed = self._password_hasher.hash(raw_password.value)
-        return UserPasswordHash(value=hashed)
-
-
-# domain/auth_session/services.py
-class AuthSessionService:
-    """Domain service for auth session operations."""
-
     def __init__(
         self,
-        session_id_generator: SessionIdGenerator,
-        timer: Timer,
-    ):
-        self._session_id_generator = session_id_generator
-        self._timer = timer
+        user_id_generator: UserIdGenerator,
+        password_hasher: PasswordHasher,
+    ) -> None:
+        self._user_id_generator = user_id_generator
+        self._password_hasher = password_hasher
 
-    def create_session(self, user_id: UserId) -> AuthSession:
-        """
-        Create new auth session.
-
-        Business logic:
-        - Generate unique session ID
-        - Set creation time to now
-        - Set expiry to 24 hours from now
-        - Record SessionCreated event
-        """
-        now = self._timer.now()
-        expires_at = now + timedelta(hours=24)
-
-        session = AuthSession.create(
-            id_=self._session_id_generator.generate(),
-            user_id=user_id,
-            created_at=now,
-            expires_at=expires_at,
+    async def create(
+        self,
+        username: Username,
+        raw_password: RawPassword,
+        role: UserRole = UserRole.USER,
+        is_active: bool = True,
+    ) -> User:
+        """Create a new User aggregate with hashed password."""
+        user_id = self._user_id_generator.generate()
+        password_hash = await self._password_hasher.hash(raw_password)
+        return User.create(
+            id_=user_id,
+            username=username,
+            password_hash=password_hash,
+            role=role,
+            is_active=is_active,
         )
 
-        return session
+    async def is_password_valid(
+        self,
+        user: User,
+        raw_password: RawPassword,
+    ) -> bool:
+        """Verify password against stored hash."""
+        return await self._password_hasher.verify(
+            raw_password=raw_password,
+            hashed_password=user.password_hash,
+        )
+
+    async def change_password(
+        self,
+        user: User,
+        raw_password: RawPassword,
+    ) -> None:
+        """Hash new password and update user aggregate."""
+        new_hash = await self._password_hasher.hash(raw_password)
+        user.change_password(new_hash)
 ```
 
 **Domain service vs Entity method:**
@@ -820,40 +785,46 @@ class CreateUserHandler(CreateUserUseCase):
 
     def __init__(
         self,
-        user_repository: UserRepository,          # Domain port
+        current_user_handler: CurrentUserHandler,
         user_service: UserService,                 # Domain service
-        user_id_generator: UserIdGenerator,        # Domain port
-    ):
-        self._user_repository = user_repository
+        user_repository: UserRepository,           # Domain port
+        unit_of_work: UnitOfWork,                  # Application port
+        event_dispatcher: EventDispatcher,         # Application port
+    ) -> None:
+        self._current_user_handler = current_user_handler
         self._user_service = user_service
-        self._user_id_generator = user_id_generator
+        self._user_repository = user_repository
+        self._unit_of_work = unit_of_work
+        self._event_dispatcher = event_dispatcher
 
-    async def execute(self, command: CreateUserCommand) -> UUID:
-        # 1. Generate ID (domain port)
-        user_id = self._user_id_generator.generate()
+    async def execute(self, command: CreateUserCommand) -> CreateUserResponse:
+        # 1. Get current user (authorization context)
+        current_user = await self._current_user_handler.get_current_user()
 
-        # 2. Hash password (domain service)
-        password_hash = self._user_service.hash_password(
-            RawPassword(command.password)
+        # 2. Authorize (domain permission framework)
+        authorize(
+            CanManageRole(),
+            context=RoleManagementContext(
+                subject=current_user,
+                target_role=command.role,
+            ),
         )
 
-        # 3. Create aggregate (domain)
-        user = User.create(
-            id_=user_id,
-            username=Username(command.username),
-            password_hash=password_hash,
-            role=command.role,
+        # 3. Create aggregate via domain service (hashes password)
+        user = await self._user_service.create(
+            Username(command.username),
+            RawPassword(command.password),
+            command.role,
         )
 
-        # 4. Check uniqueness (could raise UsernameAlreadyExistsError)
-        # This is enforced by database constraint, translated to domain error
+        # 4. Persist (infrastructure)
+        self._user_repository.save(user)
+        await self._unit_of_work.commit()
 
-        # 5. Persist (infrastructure)
-        await self._user_repository.save(user)
+        # 5. Dispatch domain events
+        await self._event_dispatcher.dispatch(user.collect_events())
 
-        # 6. Events dispatched automatically after save
-
-        return user.id_.value
+        return CreateUserResponse(id=user.id_.value)
 ```
 
 **Application service vs Domain service:**
@@ -872,24 +843,28 @@ Commands are immutable DTOs carrying request data. Handlers implement use cases.
 
 ```python
 # application/log_in/command.py
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class LogInCommand:
-    """Command for logging in a user."""
     username: str
     password: str
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class LogInResult:
+    access_token: str
+    refresh_token: str
+    expires_in: int
+
 
 # application/log_in/port.py
-class LogInUseCase(Protocol):
-    """Port defining the log in use case contract."""
-    async def execute(self, command: LogInCommand) -> UUID:
-        ...
+class LogInUseCase(ABC):
+    @abstractmethod
+    async def execute(self, command: LogInCommand) -> LogInResult: ...
 
 
 # application/log_in/handler.py
 class LogInHandler(LogInUseCase):
     """Handler implementing the log in use case."""
-    async def execute(self, command: LogInCommand) -> UUID:
+    async def execute(self, command: LogInCommand) -> LogInResult:
         # Implementation details
         ...
 ```
@@ -911,7 +886,7 @@ Is it pure business logic with no I/O?
 ├─ Yes → DOMAIN LAYER
 │  │
 │  ├─ Does it have identity and lifecycle?
-│  │  ├─ Yes → ENTITY (User, AuthSession)
+│  │  ├─ Yes → ENTITY (User)
 │  │  └─ No → VALUE OBJECT (Username, UserId)
 │  │
 │  ├─ Does it record something that happened?
@@ -990,13 +965,13 @@ Hexagonal Architecture distinguishes between two types of adapters:
 - **Entrypoints** such as REST controllers, CLI handlers, message consumers
 - These adapters **drive** the application by invoking inbound ports (use cases)
 - They translate external requests into domain operations
-- Example: `features/account/entrypoint/rest/controllers/log_in.py`
+- Example: `infrastructure/http/controllers/account/log_in.py`
 
 **Driven Adapters (Secondary)** — Provide infrastructure services to the domain:
 - **Infrastructure adapters** such as database repositories, external API clients
 - These adapters are **driven by** the domain through outbound ports
 - They translate domain abstractions into concrete infrastructure operations
-- Example: `features/user/adapter/sqla_user_repository_adapter_.py`
+- Example: `infrastructure/persistence/sqla_user_repository.py`
 
 Both adapter types depend on the domain through **ports** (abstractions). This creates a dependency structure where:
 - Entrypoints depend on **inbound ports** (use case interfaces)
@@ -1027,7 +1002,7 @@ The domain core (entities, value objects, domain services, ports) has zero depen
 
 ## Hexagonal Architecture Continued
 
-![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`features/{feature}/entrypoint/`)
+![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`infrastructure/http/controllers/`)
 
 Entrypoints are **driving adapters** that receive external requests and invoke the domain through inbound ports:
 
@@ -1042,11 +1017,11 @@ Entrypoints are **driving adapters** that receive external requests and invoke t
 
 **Example Flow:**
 1. HTTP request arrives at `POST /api/v1/account/login`
-2. Controller (`features/account/entrypoint/rest/controllers/log_in.py`) validates request structure
+2. Controller (`infrastructure/http/controllers/account/log_in.py`) validates request structure
 3. Controller invokes `LogInUseCase` (inbound port) with validated data
-4. Domain service (`LogInService`) implements the use case, orchestrating business logic
-5. Domain service calls outbound ports (`UserRepository`, `AuthSessionGateway`) as needed
-6. Adapters implement outbound ports, executing database queries
+4. Handler (`application/log_in/handler.py`) orchestrates the use case
+5. Handler calls domain services and outbound ports (`UserRepository`, `TokenPairIssuer`) as needed
+6. Infrastructure implements outbound ports, executing database queries and JWT encoding
 7. Controller receives result and formats HTTP response
 
 > [!IMPORTANT]
@@ -1116,8 +1091,8 @@ Let's trace a complete request through all three layers to see how they interact
 └─────────────────────────────────────────────────────────────┘
          │
          │  Validates HTTP request structure
-         │  Creates LogInCommand
-         │  Invokes use case port
+         │  Passes LogInCommand to use case
+         │  Maps errors to HTTP status codes
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -1125,34 +1100,31 @@ Let's trace a complete request through all three layers to see how they interact
 │     application/log_in/handler.py                           │
 └─────────────────────────────────────────────────────────────┘
          │
-         │  Checks if already authenticated
          │  Loads User aggregate from repository
-         │  Invokes domain services
+         │  Invokes domain service (password verification)
+         │  Checks user activation status
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  3. DOMAIN LAYER - Domain Services & Entities               │
 │     domain/user/services.py                                 │
-│     domain/auth_session/services.py                         │
 └─────────────────────────────────────────────────────────────┘
          │
-         │  Verifies password (domain logic)
-         │  Checks user activation status
-         │  Creates AuthSession aggregate
-         │  Emits SessionCreated event
+         │  Verifies password via PasswordHasher port
+         │  Returns validation result
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  4. INFRASTRUCTURE LAYER - Repository                       │
-│     infrastructure/persistence/repositories/                │
+│  4. INFRASTRUCTURE LAYER - Token Issuance                   │
+│     infrastructure/security/refresh_token_service.py        │
 └─────────────────────────────────────────────────────────────┘
          │
-         │  Converts AuthSession entity to ORM model
-         │  Persists to database
-         │  Dispatches domain events
+         │  Creates JWT access token (short-lived, stateless)
+         │  Creates refresh token (long-lived, stored in DB)
+         │  Returns token pair to handler
          │
          ▼
-     Response
+     TokenResponse (access_token + refresh_token + expires_in)
 ```
 
 ### Detailed Flow with Code
@@ -1161,29 +1133,25 @@ Let's trace a complete request through all three layers to see how they interact
 
 ```python
 # infrastructure/http/controllers/account/log_in.py
-@router.post("/login")
-async def log_in(
-    request: LogInRequest,              # HTTP request model (Pydantic)
-    use_case: FromDishka[LogInUseCase], # Injected use case port
-) -> LogInResponse:
-    """
-    HTTP endpoint responsibilities:
-    - Validate request structure
-    - Convert HTTP model to command
-    - Invoke use case
-    - Translate domain errors to HTTP errors
-    - Format response
-    """
-    try:
-        session_id = await use_case.execute(
-            LogInCommand(
-                username=request.username,
-                password=request.password,
-            )
-        )
-        return LogInResponse(session_id=session_id)
-    except AuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+@router.post(
+    "/login",
+    error_map={
+        AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+        UserNotFoundByUsernameError: status.HTTP_404_NOT_FOUND,
+    },
+    response_model=TokenResponse,
+)
+@inject
+async def login(
+    request_data: LogInCommand,
+    handler: FromDishka[LogInUseCase],   # Injected use case port
+) -> TokenResponse:
+    result = await handler.execute(request_data)
+    return TokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        expires_in=result.expires_in,
+    )
 ```
 
 **Step 2: Application Handler (Application)**
@@ -1191,184 +1159,141 @@ async def log_in(
 ```python
 # application/log_in/handler.py
 class LogInHandler(LogInUseCase):
-    """
-    Use case responsibilities:
-    - Orchestrate workflow
-    - Load aggregates
-    - Coordinate domain services
-    - Manage transactions
-    - Handle application errors
-    """
-
     def __init__(
         self,
-        current_user_handler: CurrentUserHandler,
-        user_repository: UserRepository,           # Domain port
-        user_service: UserService,                  # Domain service
-        auth_session_service: AuthSessionService,   # Domain service
-        session_gateway: AuthSessionGateway,        # Domain port
-    ):
-        self._current_user_handler = current_user_handler
+        user_repository: UserRepository,       # Domain port
+        user_service: UserService,              # Domain service
+        token_pair_issuer: TokenPairIssuer,     # Application port
+    ) -> None:
         self._user_repository = user_repository
         self._user_service = user_service
-        self._auth_session_service = auth_session_service
-        self._session_gateway = session_gateway
+        self._token_pair_issuer = token_pair_issuer
 
-    async def execute(self, command: LogInCommand) -> UUID:
-        # 1. Check preconditions
-        if self._current_user_handler.is_authenticated():
-            raise AlreadyAuthenticatedError()
-
-        # 2. Load aggregate (from repository)
+    async def execute(self, command: LogInCommand) -> LogInResult:
+        # 1. Load aggregate (from repository)
         user = await self._user_repository.get_by_username(
             Username(command.username)
         )
 
-        # 3. Verify password (domain service)
-        if not self._user_service.verify_password(
+        # 2. Verify password (domain service)
+        if not await self._user_service.is_password_valid(
             user, RawPassword(command.password)
         ):
             raise AuthenticationError("Invalid password")
 
-        # 4. Check business rules (domain)
+        # 3. Check business rules (domain)
         if not user.is_active:
             raise AuthenticationError("Account inactive")
 
-        # 5. Create session (domain service)
-        session = self._auth_session_service.create_session(
-            user_id=user.id_
+        # 4. Issue token pair (infrastructure, via application port)
+        access_token, refresh_token = (
+            self._token_pair_issuer.issue_token_pair(user.id_)
         )
 
-        # 6. Persist changes
-        await self._session_gateway.save(session)
-
-        # 7. Return result
-        return session.id_.value
+        return LogInResult(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=self._token_pair_issuer.access_token_expiry_seconds,
+        )
 ```
 
-**Step 3: Domain Services (Domain)**
+**Step 3: Domain Service (Domain)**
 
 ```python
 # domain/user/services.py
 class UserService:
-    """
-    Domain service responsibilities:
-    - Pure business logic
-    - No infrastructure dependencies
-    - Stateless operations
-    """
-
-    def __init__(self, password_hasher: PasswordHasher):
-        self._password_hasher = password_hasher
-
-    def verify_password(
-        self,
-        user: User,
-        raw_password: RawPassword
-    ) -> bool:
-        """Verify password against hash (business logic)."""
-        return self._password_hasher.verify(
-            raw_password.value,
-            user.password_hash.value,
-        )
-
-# domain/auth_session/services.py
-class AuthSessionService:
-    """Domain service for auth session operations."""
-
-    def __init__(self, session_id_generator: SessionIdGenerator):
-        self._session_id_generator = session_id_generator
-
-    def create_session(self, user_id: UserId) -> AuthSession:
-        """Create new auth session (business logic)."""
-        session = AuthSession.create(
-            id_=self._session_id_generator.generate(),
-            user_id=user_id,
-        )
-        # AuthSession.create() records SessionCreated event
-        return session
-```
-
-**Step 4: Repository Implementation (Infrastructure)**
-
-```python
-# infrastructure/persistence/repositories/auth_session_gateway.py
-class SqlaAuthSessionGateway(AuthSessionGateway):
-    """
-    Repository responsibilities:
-    - Translate domain entities to ORM models
-    - Execute database operations
-    - Handle persistence errors
-    - Dispatch domain events after persistence
-    """
-
     def __init__(
         self,
-        session: AsyncSession,
-        mapper: AuthSessionMapper,
-        event_dispatcher: EventDispatcher,
-    ):
-        self._session = session
-        self._mapper = mapper
-        self._event_dispatcher = event_dispatcher
+        user_id_generator: UserIdGenerator,
+        password_hasher: PasswordHasher,
+    ) -> None:
+        self._user_id_generator = user_id_generator
+        self._password_hasher = password_hasher
 
-    async def save(self, auth_session: AuthSession) -> None:
-        # Convert domain entity to ORM model
-        model = self._mapper.to_model(auth_session)
+    async def is_password_valid(
+        self,
+        user: User,
+        raw_password: RawPassword,
+    ) -> bool:
+        """Verify password against stored hash."""
+        return await self._password_hasher.verify(
+            raw_password=raw_password,
+            hashed_password=user.password_hash,
+        )
+```
 
-        # Persist to database
-        await self._session.merge(model)
-        await self._session.flush()
+**Step 4: Token Issuance (Infrastructure)**
 
-        # Dispatch domain events
-        for event in auth_session.collect_events():
-            await self._event_dispatcher.dispatch(event)
+```python
+# infrastructure/security/refresh_token_service.py
+class RefreshTokenService(TokenPairIssuer, TokenPairRefresher):
+    """
+    Infrastructure service responsibilities:
+    - Encode JWT access tokens (short-lived, stateless)
+    - Generate and persist refresh tokens (long-lived, server-side)
+    - Rotate refresh tokens on use
+    - Revoke all tokens for a user (on deactivation/deletion)
+    """
+
+    def issue_token_pair(self, user_id: UserId) -> tuple[str, str]:
+        # 1. Create refresh token and persist to database
+        refresh_token = self._create_refresh_token(user_id)
+        self._repository.add(refresh_token)
+
+        # 2. Create JWT access token
+        access_token = self._create_access_token(user_id)
+
+        return access_token, refresh_token.id_
 ```
 
 ### Data Flow
 
 ```
-HTTP Request                  Domain Entities                Database
-    │                             │                            │
-    │  LogInRequest              │  User                      │
-    │  (Pydantic)                │  (aggregate root)          │
-    ├──────────────▶             │                            │
-    │                             │                            │
-    │  LogInCommand              │  AuthSession               │
-    │  (dataclass)               │  (aggregate root)          │
-    ├──────────────▶             │                            │
-    │                             │                            │
-    │                             │  SessionCreated            │
-    │                             │  (domain event)            │
-    │                             ├────────────────────▶       │
-    │                             │                            │
-    │                             │  AuthSessionModel          │
-    │                             │  (ORM model)               │
-    │                             ├────────────────────▶       │
-    │                             │                      INSERT │
-    │                             │                            │
-    │  LogInResponse              │                            │
-    │  (Pydantic)                 │                            │
-    ◄──────────────              │                            │
+HTTP Request                  Domain / Application             Infrastructure
+    │                             │                               │
+    │  LogInCommand              │                               │
+    │  (dataclass)               │                               │
+    ├──────────────▶             │                               │
+    │                             │  User                        │
+    │                             │  (aggregate root)            │
+    │                             ├──────── load ───────────────▶│ DB SELECT
+    │                             │                               │
+    │                             │  PasswordHasher.verify()     │
+    │                             ├──────── verify ─────────────▶│ bcrypt
+    │                             │                               │
+    │                             │  TokenPairIssuer             │
+    │                             │  .issue_token_pair()         │
+    │                             ├──────── issue ──────────────▶│ JWT + DB INSERT
+    │                             │                               │
+    │  TokenResponse              │                               │
+    │  (access_token,            │                               │
+    │   refresh_token,           │                               │
+    │   expires_in)              │                               │
+    ◄──────────────              │                               │
 ```
 
 ### Key Observations
 
 **Separation of Concerns:**
 - HTTP layer only knows about HTTP (request/response models, status codes)
-- Application layer only orchestrates (no HTTP, no SQL)
-- Domain layer only knows business logic (no frameworks, no infrastructure)
-- Infrastructure layer handles technical details (database, HTTP, events)
+- Application layer only orchestrates (no HTTP, no SQL, no JWT)
+- Domain layer only knows business logic (password verification, user status)
+- Infrastructure layer handles technical details (JWT encoding, token storage, database)
+
+**Authentication as Infrastructure:**
+- Token management (JWT + refresh tokens) lives entirely in infrastructure
+- The application layer uses the `TokenPairIssuer` port — it doesn't know about JWTs
+- Refresh tokens are stored server-side for revocability; access tokens are stateless
 
 **Dependency Direction:**
 - HTTP Controller depends on `LogInUseCase` port (abstraction)
-- Application Handler depends on `UserRepository`, `AuthSessionGateway` ports (abstractions)
-- Infrastructure repositories implement those ports (concrete)
+- Application Handler depends on `UserRepository`, `TokenPairIssuer` ports (abstractions)
+- Infrastructure implements those ports (`SqlaUserRepository`, `RefreshTokenService`)
 - Domain has zero dependencies on outer layers
 
 **Testing Strategy:**
 - Test domain in isolation with no infrastructure
-- Test application with in-memory repositories
+- Test application with in-memory repositories and mock token issuers
 - Test HTTP with mocked use cases
 - Integration tests exercise the full stack
 
@@ -1559,13 +1484,13 @@ In this architecture:
 **Identity Provider (IdP)** abstracts authentication details, serving as a bridge between
 the HTTP layer and the application layer. In this architecture:
 
-- The IdP extracts user identity from requests (JWT tokens, session cookies)
+- The IdP extracts user identity from JWT Bearer tokens in the `Authorization` header
 - It provides the current user's ID without exposing authentication mechanisms
-- Domain remains unaware of how authentication works (tokens, sessions, etc.)
+- Domain remains unaware of how authentication works (tokens, etc.)
 - Application layer uses IdP to get current user context
 
-The authentication aggregate (`domain/auth_session/`) handles session lifecycle,
-while the IdP (infrastructure) handles request-level authentication extraction.
+The `JwtBearerIdentityProvider` (infrastructure) decodes the JWT access token and
+extracts the user ID, abstracting all token details from the application layer.
 
 </details>
 
@@ -1589,32 +1514,30 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     │   │   ├── value_objects.py                 # UserId, Username, UserPasswordHash, RawPassword
     │   │   ├── events.py                        # UserCreated, UserActivated, UserRoleChanged, etc.
     │   │   ├── enums.py                         # UserRole enum
-    │   │   ├── services.py                      # Domain services (business logic)
+    │   │   ├── services.py                      # Domain services + permission framework
     │   │   ├── repository.py                    # UserRepository interface (DRIVEN PORT)
-    │   │   ├── ports.py                         # Additional port abstractions
+    │   │   ├── ports.py                         # PasswordHasher, IdentityProvider, AccessRevoker
     │   │   └── errors.py                        # Domain exceptions
-    │   │
-    │   ├── auth_session/                        # Auth session aggregate (bounded context)
-    │   │   ├── entity.py                        # AuthSession aggregate root
-    │   │   ├── events.py                        # SessionCreated, SessionTerminated, etc.
-    │   │   ├── services.py                      # Auth domain services
-    │   │   ├── gateway.py                       # AuthSessionGateway interface (DRIVEN PORT)
-    │   │   ├── ports.py                         # Transaction manager ports
-    │   │   └── errors.py                        # Auth domain exceptions
     │   │
     │   └── shared/                              # Shared domain building blocks
     │       ├── aggregate_root.py                # Base aggregate root class
     │       ├── domain_event.py                  # Base domain event class
     │       ├── entity.py                        # Base entity classes
     │       ├── value_object.py                  # Base value object classes
+    │       ├── queries.py                       # Shared query types
     │       └── errors.py                        # Common domain exceptions
     │
     ├── application/                             # APPLICATION LAYER - Use cases
     │   │                                        # (Orchestrates domain + infrastructure)
-    │   ├── log_in/                              # Log in use case
-    │   │   ├── handler.py                       # LogInHandler (use case implementation)
-    │   │   ├── command.py                       # LogInCommand DTO
+    │   ├── log_in/                              # Log in use case → returns token pair
+    │   │   ├── handler.py                       # LogInHandler
+    │   │   ├── command.py                       # LogInCommand, LogInResult
     │   │   └── port.py                          # LogInUseCase interface (DRIVER PORT)
+    │   │
+    │   ├── refresh_token/                       # Refresh token use case → rotates token pair
+    │   │   ├── handler.py                       # RefreshTokenHandler
+    │   │   ├── command.py                       # RefreshTokenCommand, RefreshTokenResult
+    │   │   └── port.py                          # RefreshTokenUseCase interface
     │   │
     │   ├── sign_up/                             # Sign up use case
     │   │   ├── handler.py                       # SignUpHandler
@@ -1634,20 +1557,22 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     │   ├── change_password/                     # Change password use case
     │   ├── list_users/                          # List users use case
     │   ├── current_user/                        # Current user query
-    │   ├── log_out/                             # Log out use case
     │   │
     │   └── shared/                              # Shared application layer
-    │       └── unit_of_work.py                  # Transaction abstraction
+    │       ├── unit_of_work.py                  # Transaction abstraction
+    │       ├── event_dispatcher.py              # EventDispatcher protocol
+    │       ├── token_pair_issuer.py             # TokenPairIssuer protocol
+    │       └── token_pair_refresher.py          # TokenPairRefresher protocol
     │
     └── infrastructure/                          # INFRASTRUCTURE LAYER - Adapters
         │                                        # (External systems and frameworks)
         ├── http/                                # REST adapters (DRIVER ADAPTERS)
         │   ├── controllers/                     # HTTP request handlers
         │   │   ├── account/                     # Account-related endpoints
-        │   │   │   ├── log_in.py
-        │   │   │   ├── sign_up.py
-        │   │   │   ├── change_password.py
-        │   │   │   └── log_out.py
+        │   │   │   ├── log_in.py                # POST /login → TokenResponse
+        │   │   │   ├── sign_up.py               # POST /signup
+        │   │   │   ├── refresh.py               # POST /refresh → TokenResponse
+        │   │   │   └── change_password.py       # PUT /password
         │   │   └── user/                        # User-related endpoints
         │   │       ├── create_user.py
         │   │       ├── activate_user.py
@@ -1658,50 +1583,65 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
         │   │       └── list_users.py
         │   ├── routers/                         # FastAPI routers
         │   │   ├── account_router.py
-        │   │   └── user_router.py
-        │   ├── middleware/                      # HTTP middleware
+        │   │   ├── user_router.py
+        │   │   ├── api_v1_router.py
+        │   │   └── root_router.py
+        │   ├── schemas/                         # Response/request schemas
+        │   │   ├── token_response.py            # TokenResponse (access + refresh + expires_in)
+        │   │   └── refresh_request.py           # RefreshRequest
+        │   ├── middleware/                       # HTTP middleware
         │   └── errors/                          # Error translators, handlers
         │
         ├── persistence/                         # Database adapters (DRIVEN ADAPTERS)
-        │   ├── repositories/                    # Repository implementations
-        │   │   ├── user_repository.py           # SqlaUserRepository (implements UserRepository)
-        │   │   └── auth_session_gateway.py      # SqlaAuthSessionGateway
+        │   ├── sqla_user_repository.py          # SqlaUserRepository (implements UserRepository)
+        │   ├── sqla_refresh_token_repository.py # SqlaRefreshTokenRepository
+        │   ├── sqla_unit_of_work.py             # SqlaUnitOfWork
         │   ├── mappers/                         # Entity-to-model mappers
-        │   │   ├── user.py                      # User entity <-> UserModel ORM
-        │   │   └── auth_session.py              # AuthSession entity <-> AuthSessionModel ORM
-        │   └── models.py                        # SQLAlchemy ORM models
+        │   │   ├── user.py                      # User entity <-> users table
+        │   │   └── refresh_token.py             # RefreshToken <-> refresh_tokens table
+        │   └── ...                              # registry, constants, types
         │
         ├── security/                            # Security implementations
-        │   ├── password_hasher.py               # PasswordHasher implementation (bcrypt)
-        │   └── ...
+        │   ├── password_hasher_bcrypt.py         # BcryptPasswordHasher (HMAC pepper + bcrypt)
+        │   ├── access_token_processor_jwt.py     # JwtAccessTokenProcessor (JWT encode/decode)
+        │   ├── refresh_token_service.py          # RefreshTokenService (TokenPairIssuer + Refresher)
+        │   ├── refresh_token.py                  # RefreshToken dataclass
+        │   ├── refresh_token_repository.py       # RefreshTokenRepository protocol
+        │   ├── refresh_token_id_generator.py     # StrRefreshTokenIdGenerator (secrets.token_urlsafe)
+        │   ├── identity_provider.py              # JwtBearerIdentityProvider (Bearer auth)
+        │   ├── access_revoker.py                 # RefreshTokenAccessRevoker
+        │   └── user_id_generator_uuid.py         # UuidUserIdGenerator
         │
         ├── events/                              # Event handling infrastructure
-        │   └── dispatcher.py                    # Event dispatcher implementation
+        │   └── in_process_dispatcher.py         # InProcessEventDispatcher
         │
         └── config/                              # Application configuration
+            ├── app_factory.py                   # FastAPI app factory
             ├── di/                              # Dependency injection (Dishka)
-            │   ├── container.py                 # DI container setup
+            │   ├── provider_registry.py         # Provider registry
             │   ├── domain.py                    # Domain service providers
             │   ├── application.py               # Application service providers
-            │   └── infrastructure.py            # Infrastructure providers
+            │   ├── infrastructure.py            # Infrastructure providers
+            │   └── settings.py                  # Settings providers
             └── settings/                        # Settings management
-                ├── settings.py                  # Environment-based configuration
+                ├── app_settings.py              # AppSettings
                 ├── loader.py                    # Config file loader
                 ├── database.py                  # Database settings
-                ├── security.py                  # JWT/auth settings
+                ├── security.py                  # AuthSettings + PasswordSettings
                 └── logs.py                      # Logging configuration
 ```
 
 ### Key Architecture Patterns
 
 **Layer-Based DDD:**
-- Business logic organized into **aggregates** (user, auth_session) representing bounded contexts
+- Business logic organized into **aggregates** (User) representing bounded contexts
 - Each aggregate defines a **consistency boundary** for transactions
+- Authentication (JWT + refresh tokens) is an infrastructure concern, not a domain aggregate
 - Clear separation: Domain → Application → Infrastructure
 - Dependencies flow inward: Infrastructure depends on Application depends on Domain
 
 **Aggregate Structure:**
-- **Aggregate Root**: Entry point for all operations (User, AuthSession entities)
+- **Aggregate Root**: Entry point for all operations (User entity)
 - **Domain Events**: Record state changes (UserCreated, UserActivated)
 - **Value Objects**: Immutable business types (UserId, Username)
 - **Repository Interfaces**: Persistence abstractions defined in domain
@@ -1797,23 +1737,21 @@ The project includes a comprehensive Makefile for automating common development 
 
 - `/signup` (POST): Open to **everyone**.
   - Registers a new user with validation and uniqueness checks.
-  - Passwords are peppered, salted, and stored as hashes.
-  - A logged-in user cannot sign up until the session expires or is terminated.
+  - Passwords are peppered (HMAC-SHA384), salted, and stored as bcrypt hashes.
+  - Returns a JWT access token and refresh token upon successful registration.
 - `/login` (POST): Open to **everyone**.
-  - Authenticates registered user, sets a JWT access token with a session ID in
-    cookies, and creates a session.
-  - A logged-in user cannot log in again until the session expires or is
-    terminated.
-  - Authentication renews automatically when accessing protected routes before
-    expiration.
-  - If the JWT is invalid, expired, or the session is terminated, the user loses
-    authentication. [^1]
+  - Authenticates a registered user by verifying credentials.
+  - Returns a JWT access token (short-lived) and a refresh token (long-lived,
+    stored server-side).
+  - Access tokens are stateless and verified cryptographically.
+  - Protected endpoints require `Authorization: Bearer <access_token>` header.
+- `/refresh` (POST): Open to **everyone** (with valid refresh token).
+  - Accepts a refresh token and rotates it: the old token is deleted and a new
+    token pair (access + refresh) is issued.
+  - Returns `401` if the refresh token is not found or expired.
 - `/password` (PUT): Open to **authenticated users**.
   - The current user can change their password.
   - New password must differ from current password.
-- `/logout` (DELETE): Open to **authenticated users**.
-  - Logs the user out by deleting the JWT access token from cookies and removing
-    the session from the database.
 
 ### Users (`/api/v1/users`)
 
@@ -1835,7 +1773,7 @@ The project includes a comprehensive Makefile for automating common development 
   - Only super admins can activate other admins.
 - `/{user_id}/activation` (DELETE): Open to **admins**.
   - Soft-deletes an existing user, making that user inactive.
-  - Also deletes the user's sessions.
+  - Also revokes all of the user's refresh tokens.
   - Only super admins can deactivate other admins.
   - Super admins cannot be soft-deleted.
 
@@ -1867,6 +1805,24 @@ The project includes a comprehensive Makefile for automating common development 
 >   are not tracked by version control system to prevent exposing sensitive
 >   information. See this project's `.gitignore` for an example of how to
 >   properly exclude these sensitive files from Git.
+
+**Security settings** (`config.toml` → `[security.auth]` and `[security.password]`):
+
+| Setting | Section | Description |
+|---------|---------|-------------|
+| `JWT_ALGORITHM` | `security.auth` | JWT signing algorithm (`HS256`, `HS384`, `HS512`, `RS256`, `RS384`, `RS512`) |
+| `ACCESS_TOKEN_EXPIRY_MIN` | `security.auth` | Access token lifetime in minutes (default: 15) |
+| `REFRESH_TOKEN_EXPIRY_DAYS` | `security.auth` | Refresh token lifetime in days (default: 7) |
+| `HASHER_WORK_FACTOR` | `security.password` | Bcrypt work factor (minimum: 10) |
+| `HASHER_MAX_THREADS` | `security.password` | Max threads for password hashing |
+| `HASHER_SEMAPHORE_WAIT_TIMEOUT_S` | `security.password` | Fail-fast timeout for password hashing |
+
+**Secrets** (`.secrets.toml`):
+
+| Secret | Section | Description |
+|--------|---------|-------------|
+| `JWT_SECRET` | `security.auth` | JWT signing key (min 32 characters) |
+| `PEPPER` | `security.password` | HMAC pepper for password hashing (min 32 characters) |
 
 ### Flow
 
@@ -2078,6 +2034,6 @@ generous knowledge exchange.
 - [ ] add integration tests
 - [ ] explain design choices
 
-[^1]: Session and token share the same expiry time, avoiding database reads if
-    the token is expired. This scheme of using JWT **is not** related to OAuth
-    2.0 and is a custom micro-optimization.
+[^1]: This JWT authentication scheme is **not** related to OAuth 2.0. Access
+    tokens are short-lived and stateless (no database lookup on each request).
+    Refresh tokens are stored server-side to enable revocation.
