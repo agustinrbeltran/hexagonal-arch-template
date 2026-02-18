@@ -9,6 +9,7 @@ from account.domain.account.errors import EmailAlreadyExistsError
 from account.domain.account.repository import AccountRepository
 from account.domain.account.services import AccountService
 from account.domain.account.value_objects import Email, RawPassword
+from shared.application.event_dispatcher import EventDispatcher
 from shared.domain.errors import AuthorizationError
 
 log = logging.getLogger(__name__)
@@ -29,11 +30,13 @@ class SignUpHandler(SignUpUseCase):
         account_service: AccountService,
         account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,
+        event_dispatcher: EventDispatcher,
     ) -> None:
         self._current_account_handler = current_account_handler
         self._account_service = account_service
         self._account_repository = account_repository
         self._account_unit_of_work = account_unit_of_work
+        self._event_dispatcher = event_dispatcher
 
     async def execute(self, command: SignUpCommand) -> SignUpResponse:
         log.info("Sign up: started. Email: '%s'.", command.email)
@@ -58,6 +61,8 @@ class SignUpHandler(SignUpUseCase):
             await self._account_unit_of_work.commit()
         except EmailAlreadyExistsError:
             raise
+
+        await self._event_dispatcher.dispatch(account.collect_events())
 
         log.info("Sign up: done. Email: '%s'.", account.email.value)
         return SignUpResponse(id=account.id_.value)
