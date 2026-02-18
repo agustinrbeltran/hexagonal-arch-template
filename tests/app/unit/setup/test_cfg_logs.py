@@ -3,7 +3,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from infrastructure.config.settings.logs import LoggingLevel, configure_logging
+from shared.infrastructure.config.settings.logs import LoggingLevel, configure_logging
 
 
 @pytest.fixture

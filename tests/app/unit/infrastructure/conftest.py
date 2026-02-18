@@ -5,8 +5,11 @@ from functools import partial
 
 import pytest
 
-from infrastructure.persistence.types_ import HasherSemaphore, HasherThreadPoolExecutor
-from infrastructure.security.password_hasher_bcrypt import BcryptPasswordHasher
+from account.infrastructure.security.password_hasher_bcrypt import BcryptPasswordHasher
+from shared.infrastructure.persistence.types_ import (
+    HasherSemaphore,
+    HasherThreadPoolExecutor,
+)
 
 
 @pytest.fixture(scope="session")

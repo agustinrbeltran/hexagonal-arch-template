@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from infrastructure.config.settings.security import AuthSettings
+from shared.infrastructure.config.settings.security import AuthSettings
 from tests.app.unit.factories.settings_data import create_auth_settings_data
 
 

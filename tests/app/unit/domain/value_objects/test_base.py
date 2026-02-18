@@ -3,7 +3,7 @@ from typing import ClassVar, Final
 
 import pytest
 
-from domain.shared.value_object import ValueObject
+from shared.domain.value_object import ValueObject
 from tests.app.unit.factories.value_objects import (
     create_multi_field_vo,
     create_single_field_vo,

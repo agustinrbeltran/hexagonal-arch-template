@@ -1,4 +1,4 @@
-from domain.user.services import Permission, PermissionContext
+from shared.domain.authorization import Permission, PermissionContext
 
 
 class DummyContext(PermissionContext):

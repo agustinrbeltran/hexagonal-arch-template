@@ -1,7 +1,7 @@
 import pytest
 
-from domain.shared.errors import DomainTypeError
-from domain.user.value_objects import RawPassword
+from account.domain.account.value_objects import RawPassword
+from shared.domain.errors import DomainTypeError
 
 
 def test_accepts_boundary_length() -> None:

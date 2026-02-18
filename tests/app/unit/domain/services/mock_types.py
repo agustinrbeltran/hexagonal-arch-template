@@ -2,7 +2,7 @@ from typing import Protocol
 from unittest.mock import AsyncMock, Mock
 
 
-class UserIdGeneratorMock(Protocol):
+class AccountIdGeneratorMock(Protocol):
     generate: Mock
 
 

@@ -1,67 +1,30 @@
 import pytest
 
-from domain.shared.errors import DomainTypeError
-from domain.user.value_objects import Username
+from account.domain.account.value_objects import Email
+from shared.domain.errors import DomainTypeError
 
 
 @pytest.mark.parametrize(
-    "username",
+    "email",
     [
-        pytest.param("a" * Username.MIN_LEN, id="min_len"),
-        pytest.param("a" * Username.MAX_LEN, id="max_len"),
+        pytest.param("a@example.com", id="simple"),
+        pytest.param("a" * 243 + "@example.com", id="max_len"),
     ],
 )
-def test_accepts_boundary_length(username: str) -> None:
-    Username(username)
+def test_accepts_valid_emails(email: str) -> None:
+    Email(email)
 
 
 @pytest.mark.parametrize(
-    "username",
+    "email",
     [
-        pytest.param("a" * (Username.MIN_LEN - 1), id="too_small_len"),
-        pytest.param("a" * (Username.MAX_LEN + 1), id="too_big_len"),
+        pytest.param("a" * 244 + "@example.com", id="too_long"),
+        pytest.param("invalid", id="no_at_sign"),
+        pytest.param("@example.com", id="no_local_part"),
+        pytest.param("user@", id="no_domain"),
+        pytest.param("user@.com", id="dot_start_domain"),
     ],
 )
-def test_rejects_out_of_bounds_length(username: str) -> None:
+def test_rejects_invalid_emails(email: str) -> None:
     with pytest.raises(DomainTypeError):
-        Username(username)
-
-
-@pytest.mark.parametrize(
-    "username",
-    [
-        "username",
-        "user.name",
-        "user-name",
-        "user_name",
-        "user123",
-        "user.name123",
-        "u.ser-name123",
-        "u-ser_name",
-        "u-ser.name",
-    ],
-)
-def test_accepts_correct_names(username: str) -> None:
-    Username(username)
-
-
-@pytest.mark.parametrize(
-    "username",
-    [
-        ".username",
-        "-username",
-        "_username",
-        "username.",
-        "username-",
-        "username_",
-        "user..name",
-        "user--name",
-        "user__name",
-        "user!name",
-        "user@name",
-        "user#name",
-    ],
-)
-def test_rejects_incorrect_names(username: str) -> None:
-    with pytest.raises(DomainTypeError):
-        Username(username)
+        Email(email)

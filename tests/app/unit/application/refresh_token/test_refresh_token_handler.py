@@ -3,10 +3,10 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from application.refresh_token.command import RefreshTokenCommand
-from application.refresh_token.handler import RefreshTokenHandler
-from application.shared.auth_unit_of_work import AuthUnitOfWork
-from application.shared.token_pair_refresher import TokenPairRefresher
+from account.application.refresh_token.command import RefreshTokenCommand
+from account.application.refresh_token.handler import RefreshTokenHandler
+from account.application.shared.auth_unit_of_work import AuthUnitOfWork
+from account.application.shared.token_pair_refresher import TokenPairRefresher
 
 
 @pytest.mark.asyncio

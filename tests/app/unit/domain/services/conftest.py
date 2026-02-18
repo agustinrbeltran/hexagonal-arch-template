@@ -3,16 +3,18 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from domain.user.ports import PasswordHasher, UserIdGenerator
+from account.domain.account.ports import AccountIdGenerator, PasswordHasher
 from tests.app.unit.domain.services.mock_types import (
+    AccountIdGeneratorMock,
     PasswordHasherMock,
-    UserIdGeneratorMock,
 )
 
 
 @pytest.fixture
-def user_id_generator() -> UserIdGeneratorMock:
-    return cast(UserIdGeneratorMock, create_autospec(UserIdGenerator, instance=True))
+def account_id_generator() -> AccountIdGeneratorMock:
+    return cast(
+        AccountIdGeneratorMock, create_autospec(AccountIdGenerator, instance=True)
+    )
 
 
 @pytest.fixture

@@ -1,87 +1,87 @@
 import pytest
-from domain.user.entity import User
-from domain.user.enums import UserRole
-from domain.user.errors import (
+
+from account.domain.account.entity import Account
+from account.domain.account.enums import AccountRole
+from account.domain.account.errors import (
     ActivationChangeNotPermittedError,
     RoleAssignmentNotPermittedError,
     RoleChangeNotPermittedError,
 )
-from domain.user.services import UserService
-
+from account.domain.account.services import AccountService
 from tests.app.unit.domain.services.mock_types import (
+    AccountIdGeneratorMock,
     PasswordHasherMock,
-    UserIdGeneratorMock,
 )
-from tests.app.unit.factories.user_entity import create_user
+from tests.app.unit.factories.user_entity import create_account
 from tests.app.unit.factories.value_objects import (
+    create_account_id,
+    create_email,
     create_password_hash,
     create_raw_password,
-    create_user_id,
-    create_username,
 )
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [UserRole.USER, UserRole.ADMIN],
+    [AccountRole.USER, AccountRole.ADMIN],
 )
-async def test_creates_active_user_with_hashed_password(
-    role: UserRole,
-    user_id_generator: UserIdGeneratorMock,
+async def test_creates_active_account_with_hashed_password(
+    role: AccountRole,
+    account_id_generator: AccountIdGeneratorMock,
     password_hasher: PasswordHasherMock,
 ) -> None:
     # Arrange
-    username = create_username()
+    email = create_email()
     raw_password = create_raw_password()
 
-    expected_id = create_user_id()
+    expected_id = create_account_id()
     expected_hash = create_password_hash()
 
-    user_id_generator.generate.return_value = expected_id
+    account_id_generator.generate.return_value = expected_id
     password_hasher.hash.return_value = expected_hash
-    sut = UserService(user_id_generator, password_hasher)
+    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
 
     # Act
-    result = await sut.create(username, raw_password, role)
+    result = await sut.create(email, raw_password, role)
 
     # Assert
-    assert isinstance(result, User)
+    assert isinstance(result, Account)
     assert result.id_ == expected_id
-    assert result.username == username
+    assert result.email == email
     assert result.password_hash == expected_hash
     assert result.role == role
     assert result.is_active is True
 
 
 @pytest.mark.asyncio
-async def test_creates_inactive_user_if_specified(
-    user_id_generator: UserIdGeneratorMock,
+async def test_creates_inactive_account_if_specified(
+    account_id_generator: AccountIdGeneratorMock,
     password_hasher: PasswordHasherMock,
 ) -> None:
-    username = create_username()
+    email = create_email()
     raw_password = create_raw_password()
-    sut = UserService(user_id_generator, password_hasher)
+    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
 
-    result = await sut.create(username, raw_password, is_active=False)
+    result = await sut.create(email, raw_password, is_active=False)
 
     assert not result.is_active
 
 
 @pytest.mark.asyncio
-async def test_fails_to_create_user_with_unassignable_role(
-    user_id_generator: UserIdGeneratorMock,
+async def test_fails_to_create_account_with_unassignable_role(
+    account_id_generator: AccountIdGeneratorMock,
     password_hasher: PasswordHasherMock,
 ) -> None:
-    username = create_username()
+    email = create_email()
     raw_password = create_raw_password()
-    sut = UserService(user_id_generator, password_hasher)
+    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
 
     with pytest.raises(RoleAssignmentNotPermittedError):
         await sut.create(
-            username=username,
+            email=email,
             raw_password=raw_password,
-            role=UserRole.SUPER_ADMIN,
+            role=AccountRole.SUPER_ADMIN,
         )
 
 
@@ -92,18 +92,18 @@ async def test_fails_to_create_user_with_unassignable_role(
 )
 async def test_checks_password_authenticity(
     is_valid: bool,
-    user_id_generator: UserIdGeneratorMock,
+    account_id_generator: AccountIdGeneratorMock,
     password_hasher: PasswordHasherMock,
 ) -> None:
     # Arrange
-    user = create_user()
+    account = create_account()
     raw_password = create_raw_password()
 
     password_hasher.verify.return_value = is_valid
-    sut = UserService(user_id_generator, password_hasher)
+    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
 
     # Act
-    result = await sut.is_password_valid(user, raw_password)
+    result = await sut.is_password_valid(account, raw_password)
 
     # Assert
     assert result is is_valid
@@ -111,23 +111,23 @@ async def test_checks_password_authenticity(
 
 @pytest.mark.asyncio
 async def test_changes_password(
-    user_id_generator: UserIdGeneratorMock,
+    account_id_generator: AccountIdGeneratorMock,
     password_hasher: PasswordHasherMock,
 ) -> None:
     # Arrange
     initial_hash = create_password_hash(b"old")
-    user = create_user(password_hash=initial_hash)
+    account = create_account(password_hash=initial_hash)
     raw_password = create_raw_password()
 
     expected_hash = create_password_hash(b"new")
     password_hasher.hash.return_value = expected_hash
-    sut = UserService(user_id_generator, password_hasher)
+    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
 
     # Act
-    await sut.change_password(user, raw_password)
+    await sut.change_password(account, raw_password)
 
     # Assert
-    assert user.password_hash == expected_hash
+    assert account.password_hash == expected_hash
 
 
 @pytest.mark.parametrize(
@@ -144,9 +144,9 @@ def test_toggles_activation_state(
     method: str,
     expected_result: bool,
 ) -> None:
-    user = create_user(is_active=initial_state)
+    account = create_account(is_active=initial_state)
 
-    result = getattr(user, method)()
+    result = getattr(account, method)()
 
     assert result is expected_result
 
@@ -158,44 +158,44 @@ def test_toggles_activation_state(
 def test_preserves_super_admin_activation_state(
     method: str,
 ) -> None:
-    user = create_user(role=UserRole.SUPER_ADMIN, is_active=True)
+    account = create_account(role=AccountRole.SUPER_ADMIN, is_active=True)
 
     with pytest.raises(ActivationChangeNotPermittedError):
-        getattr(user, method)()
+        getattr(account, method)()
 
 
 @pytest.mark.parametrize(
     ("initial_role", "target_role", "expected_result"),
     [
-        pytest.param(UserRole.USER, UserRole.ADMIN, True, id="user_to_admin"),
-        pytest.param(UserRole.ADMIN, UserRole.USER, True, id="admin_to_user"),
-        pytest.param(UserRole.USER, UserRole.USER, False, id="already_user"),
-        pytest.param(UserRole.ADMIN, UserRole.ADMIN, False, id="already_admin"),
+        pytest.param(AccountRole.USER, AccountRole.ADMIN, True, id="user_to_admin"),
+        pytest.param(AccountRole.ADMIN, AccountRole.USER, True, id="admin_to_user"),
+        pytest.param(AccountRole.USER, AccountRole.USER, False, id="already_user"),
+        pytest.param(AccountRole.ADMIN, AccountRole.ADMIN, False, id="already_admin"),
     ],
 )
 def test_toggles_role(
-    initial_role: UserRole,
-    target_role: UserRole,
+    initial_role: AccountRole,
+    target_role: AccountRole,
     expected_result: bool,
 ) -> None:
-    user = create_user(role=initial_role)
+    account = create_account(role=initial_role)
 
-    result = user.change_role(target_role)
+    result = account.change_role(target_role)
 
     assert result is expected_result
-    assert user.role == target_role
+    assert account.role == target_role
 
 
 @pytest.mark.parametrize(
     "target_role",
-    [UserRole.USER, UserRole.ADMIN],
+    [AccountRole.USER, AccountRole.ADMIN],
 )
 def test_preserves_super_admin_role(
-    target_role: UserRole,
+    target_role: AccountRole,
 ) -> None:
-    user = create_user(role=UserRole.SUPER_ADMIN)
+    account = create_account(role=AccountRole.SUPER_ADMIN)
 
     with pytest.raises(RoleChangeNotPermittedError):
-        user.change_role(target_role)
+        account.change_role(target_role)
 
-    assert user.role == UserRole.SUPER_ADMIN
+    assert account.role == AccountRole.SUPER_ADMIN
