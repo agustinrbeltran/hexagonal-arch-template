@@ -1,5 +1,4 @@
 import pytest
-
 from domain.user.entity import User
 from domain.user.enums import UserRole
 from domain.user.errors import (
@@ -8,6 +7,7 @@ from domain.user.errors import (
     RoleChangeNotPermittedError,
 )
 from domain.user.services import UserService
+
 from tests.app.unit.domain.services.mock_types import (
     PasswordHasherMock,
     UserIdGeneratorMock,
@@ -40,7 +40,7 @@ async def test_creates_active_user_with_hashed_password(
 
     user_id_generator.generate.return_value = expected_id
     password_hasher.hash.return_value = expected_hash
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    sut = UserService(user_id_generator, password_hasher)
 
     # Act
     result = await sut.create(username, raw_password, role)
@@ -61,7 +61,7 @@ async def test_creates_inactive_user_if_specified(
 ) -> None:
     username = create_username()
     raw_password = create_raw_password()
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    sut = UserService(user_id_generator, password_hasher)
 
     result = await sut.create(username, raw_password, is_active=False)
 
@@ -75,7 +75,7 @@ async def test_fails_to_create_user_with_unassignable_role(
 ) -> None:
     username = create_username()
     raw_password = create_raw_password()
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    sut = UserService(user_id_generator, password_hasher)
 
     with pytest.raises(RoleAssignmentNotPermittedError):
         await sut.create(
@@ -100,7 +100,7 @@ async def test_checks_password_authenticity(
     raw_password = create_raw_password()
 
     password_hasher.verify.return_value = is_valid
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    sut = UserService(user_id_generator, password_hasher)
 
     # Act
     result = await sut.is_password_valid(user, raw_password)
@@ -121,7 +121,7 @@ async def test_changes_password(
 
     expected_hash = create_password_hash(b"new")
     password_hasher.hash.return_value = expected_hash
-    sut = UserService(user_id_generator, password_hasher)  # type: ignore[arg-type]
+    sut = UserService(user_id_generator, password_hasher)
 
     # Act
     await sut.change_password(user, raw_password)

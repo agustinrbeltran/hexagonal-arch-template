@@ -1,8 +1,7 @@
-from shared.domain.account_id import AccountId
-from shared.domain.aggregate_root import AggregateRoot
-
 from core.domain.profile.events import ProfileCreated, UsernameChanged
 from core.domain.profile.value_objects import ProfileId, Username
+from shared.domain.account_id import AccountId
+from shared.domain.aggregate_root import AggregateRoot
 
 
 class Profile(AggregateRoot[ProfileId]):

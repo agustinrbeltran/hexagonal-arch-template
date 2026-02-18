@@ -2,11 +2,10 @@ from abc import abstractmethod
 from typing import Protocol, TypedDict
 from uuid import UUID
 
-from shared.domain.account_id import AccountId
-from shared.domain.queries import OffsetPaginationParams, SortingParams
-
 from account.domain.account.enums import AccountRole
 from account.domain.account.value_objects import Email
+from shared.domain.account_id import AccountId
+from shared.domain.queries import OffsetPaginationParams, SortingParams
 
 
 class AccountQueryModel(TypedDict):
@@ -54,4 +53,4 @@ class AccountRepository(Protocol):
         """
 
 
-from account.domain.account.entity import Account  # noqa: E402, F401
+from account.domain.account.entity import Account  # noqa: E402

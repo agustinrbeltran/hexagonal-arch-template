@@ -28,10 +28,10 @@ class ListProfilesHandler(ListProfilesUseCase):
 
         account_id = await self._identity_provider.get_current_account_id()
         account = await self._account_repository.get_by_id(account_id)
-        if account is None or account.role not in (
+        if account is None or account.role not in {
             AccountRole.SUPER_ADMIN,
             AccountRole.ADMIN,
-        ):
+        }:
             raise AuthorizationError("Insufficient permissions to list profiles.")
 
         pagination = OffsetPaginationParams(

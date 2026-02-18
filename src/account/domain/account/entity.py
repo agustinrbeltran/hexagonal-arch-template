@@ -1,6 +1,3 @@
-from shared.domain.account_id import AccountId
-from shared.domain.aggregate_root import AggregateRoot
-
 from account.domain.account.enums import AccountRole
 from account.domain.account.errors import (
     ActivationChangeNotPermittedError,
@@ -15,6 +12,8 @@ from account.domain.account.events import (
     AccountRoleChanged,
 )
 from account.domain.account.value_objects import AccountPasswordHash, Email
+from shared.domain.account_id import AccountId
+from shared.domain.aggregate_root import AggregateRoot
 
 
 class Account(AggregateRoot[AccountId]):

@@ -17,14 +17,14 @@ from account.domain.account.errors import (
     RoleAssignmentNotPermittedError,
 )
 from account.infrastructure.security.errors import PasswordHasherBusyError
-from shared.infrastructure.http.errors.callbacks import log_error, log_info
-from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
-from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
 from shared.domain.errors import (
     AuthenticationError,
     AuthorizationError,
     DomainTypeError,
 )
+from shared.infrastructure.http.errors.callbacks import log_error, log_info
+from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
+from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
 from shared.infrastructure.persistence.errors import DataMapperError
 
 

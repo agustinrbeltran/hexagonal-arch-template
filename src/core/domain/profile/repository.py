@@ -2,10 +2,9 @@ from abc import abstractmethod
 from typing import Protocol, TypedDict
 from uuid import UUID
 
+from core.domain.profile.value_objects import ProfileId
 from shared.domain.account_id import AccountId
 from shared.domain.queries import OffsetPaginationParams, SortingParams
-
-from core.domain.profile.value_objects import ProfileId
 
 
 class ProfileQueryModel(TypedDict):
@@ -52,4 +51,4 @@ class ProfileRepository(Protocol):
         """
 
 
-from core.domain.profile.entity import Profile  # noqa: E402, F401
+from core.domain.profile.entity import Profile  # noqa: E402

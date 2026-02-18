@@ -1,9 +1,8 @@
 from typing import Any
 
+from core.domain.profile.value_objects import ProfileId
 from shared.domain.account_id import AccountId
 from shared.domain.errors import DomainError
-
-from core.domain.profile.value_objects import ProfileId
 
 
 class ProfileNotFoundByIdError(DomainError):

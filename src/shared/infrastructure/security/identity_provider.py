@@ -1,17 +1,14 @@
 import logging
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from starlette.requests import Request
 
+from account.infrastructure.security.access_token_processor_jwt import (
+    JwtAccessTokenProcessor,
+)
 from shared.domain.account_id import AccountId
 from shared.domain.errors import AuthenticationError
 from shared.domain.ports.identity_provider import IdentityProvider
-
-if TYPE_CHECKING:
-    from account.infrastructure.security.access_token_processor_jwt import (
-        JwtAccessTokenProcessor,
-    )
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +20,7 @@ class JwtBearerIdentityProvider(IdentityProvider):
     def __init__(
         self,
         request: Request,
-        access_token_processor: "JwtAccessTokenProcessor",
+        access_token_processor: JwtAccessTokenProcessor,
     ) -> None:
         self._request = request
         self._access_token_processor = access_token_processor

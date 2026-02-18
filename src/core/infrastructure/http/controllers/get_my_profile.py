@@ -10,10 +10,10 @@ from core.application.get_my_profile.port import (
     GetMyProfileUseCase,
 )
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
+from shared.domain.errors import AuthenticationError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
-from shared.domain.errors import AuthenticationError
 from shared.infrastructure.persistence.errors import DataMapperError
 
 

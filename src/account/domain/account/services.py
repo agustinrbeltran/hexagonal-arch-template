@@ -1,13 +1,11 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from shared.domain.authorization import AnyOf, Permission, PermissionContext, authorize
-
 from account.domain.account.entity import Account
 from account.domain.account.enums import SUBORDINATE_ROLES, AccountRole
 from account.domain.account.ports import AccountIdGenerator, PasswordHasher
 from account.domain.account.value_objects import AccountPasswordHash, Email, RawPassword
-
+from shared.domain.authorization import AnyOf, Permission, PermissionContext, authorize
 
 # --- Account-specific permissions ---
 

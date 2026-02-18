@@ -1,9 +1,8 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from shared.domain.account_id import AccountId
-
 from account.domain.account.value_objects import AccountPasswordHash, RawPassword
+from shared.domain.account_id import AccountId
 
 
 class PasswordHasher(Protocol):

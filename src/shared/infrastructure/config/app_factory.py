@@ -7,16 +7,20 @@ from fastapi.responses import ORJSONResponse
 
 from shared.infrastructure.config.di.provider_registry import get_providers
 from shared.infrastructure.config.settings.app_settings import AppSettings
-from shared.infrastructure.http.routers.root_router import create_root_router
 from shared.infrastructure.events.registry import auto_discover_handlers
+from shared.infrastructure.http.routers.root_router import create_root_router
 
 
 def _map_tables() -> None:
-    from account.infrastructure.persistence.mappers.account import map_accounts_table
-    from account.infrastructure.persistence.mappers.refresh_token import (
+    from account.infrastructure.persistence.mappers.account import (  # noqa: PLC0415
+        map_accounts_table,
+    )
+    from account.infrastructure.persistence.mappers.refresh_token import (  # noqa: PLC0415
         map_refresh_tokens_table,
     )
-    from core.infrastructure.persistence.mappers.profile import map_profiles_table
+    from core.infrastructure.persistence.mappers.profile import (  # noqa: PLC0415
+        map_profiles_table,
+    )
 
     map_accounts_table()
     map_refresh_tokens_table()

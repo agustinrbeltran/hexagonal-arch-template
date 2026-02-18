@@ -11,9 +11,9 @@ from account.application.log_in.port import LogInUseCase
 from account.domain.account.errors import AccountNotFoundByEmailError
 from account.infrastructure.http.schemas.token_response import TokenResponse
 from account.infrastructure.security.errors import PasswordHasherBusyError
+from shared.domain.errors import DomainTypeError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
-from shared.domain.errors import DomainTypeError
 from shared.infrastructure.persistence.errors import DataMapperError
 
 

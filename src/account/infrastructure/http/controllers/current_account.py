@@ -7,10 +7,10 @@ from fastapi_error_map import ErrorAwareRouter, rule
 
 from account.application.current_account.port import CurrentAccountUseCase
 from account.domain.account.entity import Account
+from shared.domain.errors import AuthenticationError, AuthorizationError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
-from shared.domain.errors import AuthenticationError, AuthorizationError
 from shared.infrastructure.persistence.errors import DataMapperError
 
 
@@ -36,7 +36,7 @@ def create_current_account_router() -> APIRouter:
     @inject
     async def current_account(
         use_case: FromDishka[CurrentAccountUseCase],
-    ) -> dict:
+    ) -> dict[str, object]:
         account: Account = await use_case.get_current_account()
         return {
             "id": account.id_.value,

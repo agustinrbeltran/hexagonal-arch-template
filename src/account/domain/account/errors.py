@@ -1,10 +1,9 @@
 from typing import Any
 
-from shared.domain.account_id import AccountId
-from shared.domain.errors import DomainError
-
 from account.domain.account.enums import AccountRole
 from account.domain.account.value_objects import Email
+from shared.domain.account_id import AccountId
+from shared.domain.errors import DomainError
 
 
 class EmailAlreadyExistsError(DomainError):

@@ -10,11 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from core.application.list_profiles.port import ListProfilesUseCase
 from core.application.list_profiles.query import ListProfilesQuery
 from core.domain.profile.repository import ListProfilesQM
+from shared.domain.errors import AuthenticationError, AuthorizationError
+from shared.domain.queries import PaginationError, SortingError, SortingOrder
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
-from shared.domain.errors import AuthenticationError, AuthorizationError
-from shared.domain.queries import PaginationError, SortingError, SortingOrder
 from shared.infrastructure.persistence.errors import DataMapperError, ReaderError
 
 

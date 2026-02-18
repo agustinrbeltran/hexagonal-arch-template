@@ -13,10 +13,10 @@ from account.domain.account.errors import (
     AccountNotFoundByIdError,
     ActivationChangeNotPermittedError,
 )
+from shared.domain.errors import AuthenticationError, AuthorizationError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
 from shared.infrastructure.http.middleware.openapi_marker import bearer_scheme
-from shared.domain.errors import AuthenticationError, AuthorizationError
 from shared.infrastructure.persistence.errors import DataMapperError
 
 
