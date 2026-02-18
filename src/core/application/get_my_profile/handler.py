@@ -1,6 +1,9 @@
 import logging
 
-from core.application.get_my_profile.port import GetMyProfileResponse, GetMyProfileUseCase
+from core.application.get_my_profile.port import (
+    GetMyProfileResponse,
+    GetMyProfileUseCase,
+)
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
 from core.domain.profile.repository import ProfileRepository
 from shared.domain.ports.identity_provider import IdentityProvider

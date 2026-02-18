@@ -24,9 +24,7 @@ class CreateProfileOnAccountCreated:
         self._core_unit_of_work = core_unit_of_work
 
     async def handle(self, event: AccountCreated) -> None:
-        log.info(
-            "Creating profile for new account: account_id=%s.", event.account_id
-        )
+        log.info("Creating profile for new account: account_id=%s.", event.account_id)
 
         profile_id = self._profile_id_generator.generate()
         account_id = AccountId(event.account_id)

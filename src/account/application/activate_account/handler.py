@@ -71,6 +71,4 @@ class ActivateAccountHandler(ActivateAccountUseCase):
 
         await self._event_dispatcher.dispatch(account.collect_events())
 
-        log.info(
-            "Activate account: done. Target account ID: '%s'.", account.id_.value
-        )
+        log.info("Activate account: done. Target account ID: '%s'.", account.id_.value)

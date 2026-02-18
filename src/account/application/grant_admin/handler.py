@@ -33,9 +33,7 @@ class GrantAdminHandler(GrantAdminUseCase):
         self._event_dispatcher = event_dispatcher
 
     async def execute(self, command: GrantAdminCommand) -> None:
-        log.info(
-            "Grant admin: started. Target account ID: '%s'.", command.account_id
-        )
+        log.info("Grant admin: started. Target account ID: '%s'.", command.account_id)
 
         current_account = await self._current_account_handler.get_current_account()
 

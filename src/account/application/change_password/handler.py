@@ -56,6 +56,4 @@ class ChangePasswordHandler(ChangePasswordUseCase):
         await self._account_service.change_password(current_account, new_password)
         await self._account_unit_of_work.commit()
 
-        log.info(
-            "Change password: done. Account ID: '%s'.", current_account.id_.value
-        )
+        log.info("Change password: done. Account ID: '%s'.", current_account.id_.value)

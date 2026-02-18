@@ -1,7 +1,10 @@
 from sqlalchemy.exc import SQLAlchemyError
 
 from account.application.shared.auth_unit_of_work import AuthUnitOfWork
-from shared.infrastructure.persistence.constants import DB_COMMIT_FAILED, DB_QUERY_FAILED
+from shared.infrastructure.persistence.constants import (
+    DB_COMMIT_FAILED,
+    DB_QUERY_FAILED,
+)
 from shared.infrastructure.persistence.errors import DataMapperError
 from shared.infrastructure.persistence.types_ import AuthAsyncSession
 

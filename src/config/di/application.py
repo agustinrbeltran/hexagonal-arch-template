@@ -105,8 +105,6 @@ class CoreApplicationProvider(Provider):
     profile_repository = provide(SqlaProfileRepository, provides=ProfileRepository)
 
     # Core Use Cases
-    get_my_profile_use_case = provide(
-        GetMyProfileHandler, provides=GetMyProfileUseCase
-    )
+    get_my_profile_use_case = provide(GetMyProfileHandler, provides=GetMyProfileUseCase)
     set_username_use_case = provide(SetUsernameHandler, provides=SetUsernameUseCase)
     list_profiles_use_case = provide(ListProfilesHandler, provides=ListProfilesUseCase)

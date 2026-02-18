@@ -32,10 +32,7 @@ class SqlaCoreUnitOfWork(CoreUnitOfWork):
         except IntegrityError as err:
             log.error("IntegrityError during flush: %s", err)
             err_str = str(err)
-            if (
-                "uq_profiles_username" in err_str
-                or "profiles_username_key" in err_str
-            ):
+            if "uq_profiles_username" in err_str or "profiles_username_key" in err_str:
                 params: Mapping[str, Any] = cast(Mapping[str, Any], err.params)
                 username = str(params.get("username", "unknown"))
                 raise UsernameAlreadyExistsError(username) from err

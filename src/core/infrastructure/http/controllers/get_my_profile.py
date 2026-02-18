@@ -5,7 +5,10 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
 
-from core.application.get_my_profile.port import GetMyProfileResponse, GetMyProfileUseCase
+from core.application.get_my_profile.port import (
+    GetMyProfileResponse,
+    GetMyProfileUseCase,
+)
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator

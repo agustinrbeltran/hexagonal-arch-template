@@ -1,6 +1,8 @@
 import secrets
 
-from account.infrastructure.security.refresh_token_service import RefreshTokenIdGenerator
+from account.infrastructure.security.refresh_token_service import (
+    RefreshTokenIdGenerator,
+)
 
 
 class StrRefreshTokenIdGenerator(RefreshTokenIdGenerator):
