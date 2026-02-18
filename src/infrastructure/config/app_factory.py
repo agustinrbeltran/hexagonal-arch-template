@@ -7,6 +7,7 @@ from fastapi.responses import ORJSONResponse
 
 from infrastructure.config.di.provider_registry import get_providers
 from infrastructure.config.settings.app_settings import AppSettings
+from infrastructure.events.registry import auto_discover_handlers
 from infrastructure.http.routers.root_router import create_root_router
 from infrastructure.persistence.mappers.all import map_tables
 
@@ -34,6 +35,7 @@ def create_web_app() -> FastAPI:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     map_tables()
+    auto_discover_handlers()
     yield
     # https://dishka.readthedocs.io/en/stable/integrations/fastapi.html
     await app.state.dishka_container.close()

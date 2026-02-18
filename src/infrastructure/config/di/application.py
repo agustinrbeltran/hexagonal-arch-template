@@ -1,4 +1,4 @@
-from dishka import Provider, Scope, provide, provide_all
+from dishka import AsyncContainer, Provider, Scope, provide, provide_all
 
 from application.activate_user.handler import ActivateUserHandler
 from application.activate_user.port import ActivateUserUseCase
@@ -44,7 +44,9 @@ class ApplicationProvider(Provider):
     # Ports Persistence
     unit_of_work = provide(SqlaUnitOfWork, provides=UnitOfWork)
     user_repository = provide(SqlaUserRepository, provides=UserRepository)
-    event_dispatcher = provide(InProcessEventDispatcher, provides=EventDispatcher)
+    @provide
+    def event_dispatcher(self, container: AsyncContainer) -> EventDispatcher:
+        return InProcessEventDispatcher(container)
 
     # Ports Auth
     access_revoker = provide(RefreshTokenAccessRevoker, provides=AccessRevoker)
