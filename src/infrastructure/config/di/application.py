@@ -44,6 +44,7 @@ class ApplicationProvider(Provider):
     # Ports Persistence
     unit_of_work = provide(SqlaUnitOfWork, provides=UnitOfWork)
     user_repository = provide(SqlaUserRepository, provides=UserRepository)
+
     @provide
     def event_dispatcher(self, container: AsyncContainer) -> EventDispatcher:
         return InProcessEventDispatcher(container)
