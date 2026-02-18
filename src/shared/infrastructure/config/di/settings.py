@@ -1,9 +1,12 @@
 from dishka import Provider, Scope, from_context, provide
 
-from config.settings.app_settings import AppSettings
-from config.settings.database import PostgresSettings, SqlaEngineSettings
-from config.settings.logs import LoggingSettings
-from config.settings.security import SecuritySettings
+from shared.infrastructure.config.settings.app_settings import AppSettings
+from shared.infrastructure.config.settings.database import (
+    PostgresSettings,
+    SqlaEngineSettings,
+)
+from shared.infrastructure.config.settings.logs import LoggingSettings
+from shared.infrastructure.config.settings.security import SecuritySettings
 
 
 class SettingsProvider(Provider):

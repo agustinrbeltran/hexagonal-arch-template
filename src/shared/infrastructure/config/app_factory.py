@@ -5,8 +5,8 @@ from dishka import AsyncContainer, Provider, make_async_container
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from config.di.provider_registry import get_providers
-from config.settings.app_settings import AppSettings
+from shared.infrastructure.config.di.provider_registry import get_providers
+from shared.infrastructure.config.settings.app_settings import AppSettings
 from shared.infrastructure.http.routers.root_router import create_root_router
 from shared.infrastructure.events.registry import auto_discover_handlers
 

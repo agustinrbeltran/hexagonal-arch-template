@@ -6,7 +6,7 @@ from account.infrastructure.security.account_id_generator import UuidAccountIdGe
 from account.infrastructure.security.password_hasher_bcrypt import BcryptPasswordHasher
 from core.domain.profile.ports import ProfileIdGenerator
 from core.infrastructure.security.profile_id_generator import UuidProfileIdGenerator
-from config.settings.security import SecuritySettings
+from shared.infrastructure.config.settings.security import SecuritySettings
 from shared.infrastructure.persistence.types_ import (
     HasherSemaphore,
     HasherThreadPoolExecutor,

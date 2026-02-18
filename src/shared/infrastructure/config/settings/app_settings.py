@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 
-from config.settings.database import PostgresSettings, SqlaEngineSettings
-from config.settings.loader import (
+from shared.infrastructure.config.settings.database import (
+    PostgresSettings,
+    SqlaEngineSettings,
+)
+from shared.infrastructure.config.settings.loader import (
     ValidEnvs,
     get_current_env,
     load_full_config,
 )
-from config.settings.logs import LoggingSettings
-from config.settings.security import SecuritySettings
+from shared.infrastructure.config.settings.logs import LoggingSettings
+from shared.infrastructure.config.settings.security import SecuritySettings
 
 
 class AppSettings(BaseModel):

@@ -34,8 +34,11 @@ from account.infrastructure.security.refresh_token_service import (
     RefreshTokenIdGenerator,
     RefreshTokenService,
 )
-from config.settings.database import PostgresSettings, SqlaEngineSettings
-from config.settings.security import SecuritySettings
+from shared.infrastructure.config.settings.database import (
+    PostgresSettings,
+    SqlaEngineSettings,
+)
+from shared.infrastructure.config.settings.security import SecuritySettings
 from shared.infrastructure.persistence.types_ import (
     AuthAsyncSession,
     HasherSemaphore,
