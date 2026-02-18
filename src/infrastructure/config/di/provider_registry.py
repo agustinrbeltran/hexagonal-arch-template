@@ -4,6 +4,7 @@ from dishka import Provider
 
 from infrastructure.config.di.application import ApplicationProvider
 from infrastructure.config.di.domain import DomainProvider
+from infrastructure.config.di.events import EventHandlerProvider
 from infrastructure.config.di.infrastructure import infrastructure_providers
 from infrastructure.config.di.settings import SettingsProvider
 
@@ -12,6 +13,7 @@ def get_providers() -> Iterable[Provider]:
     return (
         DomainProvider(),
         ApplicationProvider(),
+        EventHandlerProvider(),
         *infrastructure_providers(),
         SettingsProvider(),
     )
