@@ -1,162 +1,153 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: Persistence adapters under infrastructure/persistence/
-The system SHALL place all SQLAlchemy repository implementations and table mappers under `infrastructure/persistence/`. This includes `SqlaUserRepository`, `SqlaRefreshTokenRepository`, imperative table mappings, and session factories.
+### Requirement: Persistence adapters organized by bounded context
+The system SHALL place SQLAlchemy repository implementations and table mappers under each bounded context's `infrastructure/persistence/` directory.
+
+Account BC: `account/infrastructure/persistence/` with `SqlaAccountRepository`, account table mapper.
+Core BC: `core/infrastructure/persistence/` with `SqlaProfileRepository`, profile table mapper.
+Shared: Refresh token persistence stays under `account/infrastructure/` since it's Account BC infrastructure.
 
 #### Scenario: SQLAlchemy repository implements domain port
-- **WHEN** `SqlaUserRepository` is defined in `infrastructure/persistence/`
-- **THEN** it implements the `UserRepository` protocol from `domain/user/repository.py`
+- **WHEN** `SqlaAccountRepository` is defined in `account/infrastructure/persistence/`
+- **THEN** it implements the `AccountRepository` protocol from `account/domain/account/repository.py`
 
-#### Scenario: Imperative table mappings live in persistence
-- **WHEN** inspecting `infrastructure/persistence/mappers/`
-- **THEN** it contains the SQLAlchemy `Table` definitions and `map_imperatively()` calls for User and RefreshToken
+#### Scenario: SqlaProfileRepository implements domain port
+- **WHEN** `SqlaProfileRepository` is defined in `core/infrastructure/persistence/`
+- **THEN** it implements the `ProfileRepository` protocol from `core/domain/profile/repository.py`
 
-### Requirement: HTTP driver adapters under infrastructure/http/
-The system SHALL place all FastAPI controllers, routers, request/response DTOs, and error handlers under `infrastructure/http/`. Controllers are driver adapters that convert HTTP requests into application-layer port calls.
+#### Scenario: Imperative table mappings per context
+- **WHEN** inspecting `account/infrastructure/persistence/mappers/`
+- **THEN** it contains the SQLAlchemy `Table` definition for `accounts` and `map_imperatively()` for Account
+- **WHEN** inspecting `core/infrastructure/persistence/mappers/`
+- **THEN** it contains the SQLAlchemy `Table` definition for `profiles` and `map_imperatively()` for Profile
 
-#### Scenario: REST controller calls application port
-- **WHEN** the create-user REST controller handles a POST request
-- **THEN** it converts the request body into a `CreateUserCommand`, calls the `CreateUserUseCase` port, and returns an HTTP response
+### Requirement: HTTP driver adapters organized by bounded context
+The system SHALL place FastAPI controllers and routers under each bounded context's `infrastructure/http/` directory.
 
-#### Scenario: Controllers do not import domain layer directly
-- **WHEN** inspecting imports in `infrastructure/http/controllers/`
-- **THEN** controllers import application ports (use case interfaces) — not domain entities or repositories
+Account BC: `account/infrastructure/http/` with controllers for all `/accounts/` endpoints.
+Core BC: `core/infrastructure/http/` with controllers for all `/profiles/` endpoints.
 
-### Requirement: Security adapters under infrastructure/security/
-The system SHALL place bcrypt password hashing, JWT token processing, refresh token management (RefreshToken dataclass, RefreshTokenRepository protocol, RefreshTokenService, RefreshTokenIdGenerator, AccessTokenEncoder), and identity provision under `infrastructure/security/`.
+#### Scenario: Account REST controller calls application port
+- **WHEN** the create-account REST controller handles a POST request
+- **THEN** it converts the request body into a `CreateAccountCommand`, calls the `CreateAccountUseCase` port, and returns an HTTP response
+
+#### Scenario: Profile REST controller calls application port
+- **WHEN** the set-username REST controller handles a PUT request
+- **THEN** it converts the request body into a `SetUsernameCommand`, calls the `SetUsernameUseCase` port, and returns an HTTP response
+
+### Requirement: Security adapters under account infrastructure
+The system SHALL place bcrypt password hashing, JWT token processing, refresh token management, and access revocation under `account/infrastructure/security/`. The `IdentityProvider` implementation (`JwtBearerIdentityProvider`) SHALL move to `shared/infrastructure/security/` since it's used by both contexts.
 
 #### Scenario: Password hasher implements domain port
-- **WHEN** `BcryptPasswordHasher` is defined in `infrastructure/security/`
-- **THEN** it implements the `PasswordHasher` protocol defined in the domain or application layer
+- **WHEN** `BcryptPasswordHasher` is defined in `account/infrastructure/security/`
+- **THEN** it implements the `PasswordHasher` protocol defined in Account domain
 
-#### Scenario: RefreshTokenService lives in infrastructure/security/
-- **WHEN** inspecting `infrastructure/security/refresh_token_service.py`
-- **THEN** it contains the full refresh token lifecycle logic (issue, rotate, revoke)
+#### Scenario: Identity provider in shared infrastructure
+- **WHEN** `JwtBearerIdentityProvider` is defined in `shared/infrastructure/security/`
+- **THEN** it implements the `IdentityProvider` protocol from shared kernel and returns `AccountId`
 
-#### Scenario: All token-related protocols are defined in infrastructure/security/
-- **WHEN** searching for `RefreshTokenIdGenerator` and `AccessTokenEncoder` protocol definitions
-- **THEN** they are defined in `infrastructure/security/` (not in domain)
+### Requirement: JwtBearerIdentityProvider returns AccountId
+The `JwtBearerIdentityProvider` SHALL extract the `sub` claim from the JWT and return it as an `AccountId` (from shared kernel) instead of `UserId`.
 
-### Requirement: JwtBearerIdentityProvider at infrastructure/security/identity_provider.py
-The system SHALL implement `IdentityProvider` with a `JwtBearerIdentityProvider` that reads the `Authorization: Bearer <token>` header from the current request, decodes the JWT using `JwtAccessTokenProcessor`, extracts the `sub` claim, and returns it as a `UserId`. This provider MUST NOT perform any database queries.
-
-#### Scenario: Extracts user_id from Bearer token
+#### Scenario: Extracts account_id from Bearer token
 - **WHEN** a request has `Authorization: Bearer <valid-jwt>` header
-- **THEN** `get_current_user_id()` returns the `UserId` from the JWT's `sub` claim
+- **THEN** `get_current_account_id()` returns the `AccountId` from the JWT's `sub` claim
 
 #### Scenario: Raises authentication error for missing header
 - **WHEN** a request has no `Authorization` header
-- **THEN** `get_current_user_id()` raises an authentication error
+- **THEN** `get_current_account_id()` raises an authentication error
 
-#### Scenario: Raises authentication error for invalid token
-- **WHEN** a request has an invalid or expired Bearer token
-- **THEN** `get_current_user_id()` raises an authentication error
+### Requirement: RefreshTokenAccessRevoker uses AccountId
+The `RefreshTokenAccessRevoker` SHALL accept `AccountId` instead of `UserId` in its `remove_all_user_access()` method.
 
-### Requirement: RefreshTokenAccessRevoker at infrastructure/security/access_revoker.py
-The system SHALL implement `AccessRevoker` with a `RefreshTokenAccessRevoker` that calls `RefreshTokenService.revoke_all_for_user(user_id)` to delete all refresh tokens for a user.
+#### Scenario: Revokes all refresh tokens for an account
+- **WHEN** `remove_all_account_access(account_id)` is called
+- **THEN** all refresh tokens for that account are deleted from the database
 
-#### Scenario: Revokes all refresh tokens for a user
-- **WHEN** `remove_all_user_access(user_id)` is called
-- **THEN** all refresh tokens for that user are deleted from the database
+### Requirement: Login controller uses email
+The login controller SHALL accept `{email, password}` in the request body instead of `{username, password}`. The endpoint path SHALL be `POST /api/v1/accounts/login`.
 
-### Requirement: JwtAccessTokenProcessor encodes/decodes standard claims
-The `JwtAccessTokenProcessor` at `infrastructure/security/access_token_processor_jwt.py` SHALL encode JWTs with `{sub: str(user_id), exp: int, iat: int}` and decode them by extracting the `sub` claim as a user ID string. The processor MUST replace the previous `auth_session_id`-based payload.
-
-#### Scenario: Encode produces JWT with sub, exp, iat
-- **WHEN** `encode(user_id, expiration)` is called
-- **THEN** the resulting JWT contains `sub`, `exp`, and `iat` claims only
-
-#### Scenario: Decode extracts user_id from sub claim
-- **WHEN** `decode_user_id(token)` is called with a valid JWT
-- **THEN** it returns the string from the `sub` claim
-
-#### Scenario: Decode returns None for invalid token
-- **WHEN** `decode_user_id(token)` is called with an expired or tampered JWT
-- **THEN** it returns `None`
-
-### Requirement: RefreshToken persistence adapter at infrastructure/persistence/
-The system SHALL provide `SqlaRefreshTokenRepository` implementing `RefreshTokenRepository`, plus an imperative SQLAlchemy mapper for the `refresh_tokens` table. The table schema MUST have columns: `id` (String PK), `user_id` (UUID FK to users), `expiration` (DateTime with timezone).
-
-#### Scenario: SqlaRefreshTokenRepository implements the port
-- **WHEN** `SqlaRefreshTokenRepository` is inspected
-- **THEN** it satisfies the `RefreshTokenRepository` protocol with `add`, `get_by_id`, `delete`, `delete_all_for_user`
-
-#### Scenario: Imperative mapper maps RefreshToken to refresh_tokens table
-- **WHEN** the SQLAlchemy mapper registry is initialized
-- **THEN** `RefreshToken` is mapped to the `refresh_tokens` table
-
-### Requirement: ASGI cookie middleware removed
-The system SHALL NOT include the `ASGIAuthMiddleware`. The app factory MUST NOT register any cookie-handling middleware. The `infrastructure/http/middleware/` cookie-related modules (`asgi_middleware.py`, `constants.py`, `cookie_params.py`) MUST be deleted.
-
-#### Scenario: App factory does not add cookie middleware
-- **WHEN** `create_web_app()` is called
-- **THEN** no `ASGIAuthMiddleware` is added to the application
-
-### Requirement: Login controller returns 200 with token pair
-The login controller at `infrastructure/http/controllers/account/log_in.py` SHALL return HTTP 200 with a JSON response model containing `access_token`, `refresh_token`, `token_type`, and `expires_in`. It MUST NOT return 204 or set any cookies.
-
-#### Scenario: Login endpoint returns JSON token response
-- **WHEN** `POST /api/v1/account/login` succeeds
+#### Scenario: Login endpoint accepts email
+- **WHEN** `POST /api/v1/accounts/login` is called with `{email, password}`
 - **THEN** response is `200 OK` with JSON body `{access_token, refresh_token, token_type, expires_in}`
 
-### Requirement: Refresh controller at infrastructure/http/controllers/account/
-The system SHALL provide a refresh controller handling `POST /api/v1/account/refresh`. It MUST accept JSON body with `refresh_token` field, call the `RefreshTokenUseCase`, and return the same token pair response model as login.
+### Requirement: Signup controller uses email
+The signup controller SHALL accept `{email, password}` in the request body instead of `{username, password}`. The endpoint path SHALL be `POST /api/v1/accounts/signup`.
 
-#### Scenario: Refresh endpoint returns new token pair
-- **WHEN** `POST /api/v1/account/refresh` is called with a valid refresh token
-- **THEN** response is `200 OK` with JSON body `{access_token, refresh_token, token_type, expires_in}`
+#### Scenario: Signup endpoint accepts email
+- **WHEN** `POST /api/v1/accounts/signup` is called with `{email, password}`
+- **THEN** response is `201 Created` with `{id: account_uuid}`
 
-#### Scenario: Refresh endpoint returns 401 for invalid token
-- **WHEN** `POST /api/v1/account/refresh` is called with an invalid token
-- **THEN** response is `401 Unauthorized`
+### Requirement: Account router replaces user and account routers
+A single `account_router` SHALL serve all `/api/v1/accounts/` endpoints, replacing both the old `account_router` and `user_router`. It SHALL include self-service endpoints (`/me`, `/signup`, `/login`, `/refresh`) and admin endpoints (`/`, `/{id}/...`).
 
-### Requirement: Logout controller and route removed
-The system SHALL NOT provide a logout endpoint. The `DELETE /api/v1/account/logout` route MUST be removed from the account router.
-
-#### Scenario: Logout route does not exist
+#### Scenario: Unified accounts router
 - **WHEN** the API route table is inspected
-- **THEN** there is no `DELETE /api/v1/account/logout` route
+- **THEN** all account-related endpoints are under `/api/v1/accounts/`
 
-### Requirement: DI composition root under infrastructure/config/di/
-The system SHALL place all Dishka provider modules under `infrastructure/config/di/`. Provider modules MUST be organized by layer: `domain.py`, `application.py`, `infrastructure.py`, `settings.py`.
+### Requirement: Profile router for Core BC
+A `profile_router` SHALL serve all `/api/v1/profiles/` endpoints.
 
-#### Scenario: DI providers wire ports to adapters
-- **WHEN** the Dishka container is initialized
-- **THEN** each domain port (e.g., `UserRepository`) is bound to its infrastructure adapter (e.g., `SqlaUserRepository`)
+#### Scenario: Profile endpoints registered
+- **WHEN** the API route table is inspected
+- **THEN** profile endpoints are under `/api/v1/profiles/`
 
-#### Scenario: Composition root is the only place that knows all concrete types
-- **WHEN** inspecting `infrastructure/config/di/`
-- **THEN** it is the only module that imports both domain ports AND infrastructure adapters
+### Requirement: DI composition root restructured
+The DI composition root SHALL be organized with providers per bounded context: `AccountDomainProvider`, `AccountApplicationProvider`, `AccountInfrastructureProvider`, `CoreDomainProvider`, `CoreApplicationProvider`, `CoreInfrastructureProvider`, `SharedProvider`.
 
-### Requirement: DI providers updated for JWT auth architecture
-The Dishka DI providers MUST be updated to: remove all `AuthSession*` provider bindings, add `RefreshTokenService`, `RefreshTokenRepository`, `RefreshTokenIdGenerator` bindings, replace `AuthSessionIdentityProvider` with `JwtBearerIdentityProvider`, replace `AuthSessionAccessRevoker` with `RefreshTokenAccessRevoker`, register `TokenPairIssuer` and `TokenPairRefresher` ports bound to `RefreshTokenService`.
+#### Scenario: DI container provides Account BC dependencies
+- **WHEN** the Dishka container resolves `AccountRepository`
+- **THEN** it returns a `SqlaAccountRepository` instance
 
-#### Scenario: DI container provides RefreshTokenService
-- **WHEN** the Dishka container resolves `RefreshTokenService`
-- **THEN** it returns a fully wired instance
+#### Scenario: DI container provides Core BC dependencies
+- **WHEN** the Dishka container resolves `ProfileRepository`
+- **THEN** it returns a `SqlaProfileRepository` instance
 
-#### Scenario: DI container provides JwtBearerIdentityProvider as IdentityProvider
-- **WHEN** the Dishka container resolves `IdentityProvider`
-- **THEN** it returns a `JwtBearerIdentityProvider` instance
+### Requirement: Database migration for aggregate split
+The system SHALL provide a migration that:
+1. Renames `users` table to `accounts`
+2. Renames `username` column to `email` and changes type to `VARCHAR(255)`
+3. Renames `userrole` enum to `accountrole`
+4. Creates `profiles` table with columns: `id` (UUID PK), `account_id` (UUID, NOT NULL, UNIQUE, FK to accounts.id), `username` (VARCHAR(20), UNIQUE, nullable)
 
-#### Scenario: DI container provides TokenPairIssuer and TokenPairRefresher
-- **WHEN** the Dishka container resolves `TokenPairIssuer` or `TokenPairRefresher`
-- **THEN** it returns a `RefreshTokenService` instance implementing both ports
+#### Scenario: Accounts table exists after migration
+- **WHEN** the migration is applied
+- **THEN** the `accounts` table exists with columns `id`, `email`, `password_hash`, `role`, `is_active`
 
-### Requirement: App factory under infrastructure/config/
-The system SHALL place the FastAPI app factory (`create_web_app`, `create_ioc_container`) and settings models under `infrastructure/config/`.
+#### Scenario: Profiles table exists after migration
+- **WHEN** the migration is applied
+- **THEN** the `profiles` table exists with columns `id`, `account_id`, `username`
 
-#### Scenario: App factory bootstraps the application
-- **WHEN** `create_web_app()` is called
-- **THEN** it configures FastAPI, registers routers from `infrastructure/http/`, and attaches the DI container
+#### Scenario: Users table no longer exists
+- **WHEN** the migration is applied
+- **THEN** the `users` table does not exist
 
-### Requirement: Security settings updated
-The `AuthSettings` model MUST include `ACCESS_TOKEN_EXPIRY_MIN` (int, default 15) and `REFRESH_TOKEN_EXPIRY_DAYS` (int, default 7) replacing `SESSION_TTL_MIN` and `SESSION_REFRESH_THRESHOLD`. The `CookiesSettings` model MUST be removed.
+## ADDED Requirements
 
-#### Scenario: AuthSettings contains token expiry fields
-- **WHEN** `AuthSettings` is inspected
-- **THEN** it has `JWT_SECRET`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRY_MIN`, and `REFRESH_TOKEN_EXPIRY_DAYS` fields
+### Requirement: Accounts table mapper
+The system SHALL provide an imperative SQLAlchemy mapper at `account/infrastructure/persistence/mappers/account.py` mapping the `Account` entity to the `accounts` table. It SHALL use `composite()` for value objects (`AccountId`, `Email`, `AccountPasswordHash`) and exclude `_events`.
 
-#### Scenario: CookiesSettings is removed
-- **WHEN** the settings modules are inspected
-- **THEN** there is no `CookiesSettings` class
+#### Scenario: Account mapper maps value objects
+- **WHEN** the mapper registry is initialized
+- **THEN** `Account.id_` maps to `AccountId(accounts.id)`, `Account.email` maps to `Email(accounts.email)`
+
+### Requirement: Profiles table mapper
+The system SHALL provide an imperative SQLAlchemy mapper at `core/infrastructure/persistence/mappers/profile.py` mapping the `Profile` entity to the `profiles` table. It SHALL use `composite()` for `ProfileId` and `AccountId`, and handle nullable `Username`.
+
+#### Scenario: Profile mapper maps nullable username
+- **WHEN** the mapper registry is initialized
+- **THEN** `Profile.username` maps to `Username(profiles.username)` and supports None values
+
+### Requirement: SqlaAccountUnitOfWork implementation
+The `SqlaAccountUnitOfWork` SHALL implement `AccountUnitOfWork` using the SQLAlchemy async session. It SHALL catch `IntegrityError` on commit and convert username uniqueness violations to `EmailAlreadyExistsError`.
+
+#### Scenario: Email uniqueness violation
+- **WHEN** `SqlaAccountUnitOfWork.commit()` encounters an IntegrityError on the email column
+- **THEN** `EmailAlreadyExistsError` is raised
+
+### Requirement: SqlaCoreUnitOfWork implementation
+The `SqlaCoreUnitOfWork` SHALL implement `CoreUnitOfWork` using the SQLAlchemy async session. It SHALL catch `IntegrityError` on commit and convert username uniqueness violations to `UsernameAlreadyExistsError`.
+
+#### Scenario: Username uniqueness violation
+- **WHEN** `SqlaCoreUnitOfWork.commit()` encounters an IntegrityError on the username column
+- **THEN** `UsernameAlreadyExistsError` is raised
