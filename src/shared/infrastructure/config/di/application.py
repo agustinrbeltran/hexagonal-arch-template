@@ -34,6 +34,8 @@ from account.infrastructure.persistence.sqla_account_unit_of_work import (
     SqlaAccountUnitOfWork,
 )
 from account.infrastructure.security.access_revoker import RefreshTokenAccessRevoker
+from core.application.create_profile.handler import CreateProfileHandler
+from core.application.create_profile.port import CreateProfileUseCase
 from core.application.get_my_profile.handler import GetMyProfileHandler
 from core.application.get_my_profile.port import GetMyProfileUseCase
 from core.application.list_profiles.handler import ListProfilesHandler
@@ -105,6 +107,9 @@ class CoreApplicationProvider(Provider):
     profile_repository = provide(SqlaProfileRepository, provides=ProfileRepository)
 
     # Core Use Cases
+    create_profile_use_case = provide(
+        CreateProfileHandler, provides=CreateProfileUseCase
+    )
     get_my_profile_use_case = provide(GetMyProfileHandler, provides=GetMyProfileUseCase)
     set_username_use_case = provide(SetUsernameHandler, provides=SetUsernameUseCase)
     list_profiles_use_case = provide(ListProfilesHandler, provides=ListProfilesUseCase)

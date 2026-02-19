@@ -210,22 +210,26 @@ Aggregates define transactional consistency boundaries. Changes within an aggreg
 │  • Email uniqueness                     │         Cross-Context Communication:
 └─────────────────────────────────────────┘         AccountCreated event ──────▶
                                                     CreateProfileOnAccountCreated handler
+                                                       └─▶ CreateProfile use case
 ```
 
 Aggregates reference each other **by ID only** (`AccountId` is shared), never by embedding. This maintains clear boundaries and supports eventual consistency.
 
 ### Cross-Context Integration via Domain Events
 
-Bounded contexts communicate through **domain events** rather than direct imports. When an Account is created, the Account BC emits an `AccountCreated` event, and the Core BC handles it via `CreateProfileOnAccountCreated` to automatically create a Profile:
+Bounded contexts communicate through **domain events** rather than direct imports. When an Account is created, the Account BC emits an `AccountCreated` event. The Core BC's infrastructure layer subscribes to it via `CreateProfileOnAccountCreated` (a thin adapter) which delegates to the `CreateProfile` application use case:
 
 ```
 Account BC                                     Core BC
 ┌────────────────────┐                         ┌────────────────────────────────────────┐
 │ Account.create()   │                         │ CreateProfileOnAccountCreated          │
-│   ↓                │                         │   (event handler)                      │
+│   ↓                │                         │   (infrastructure event handler)       │
 │ _register_event(   │  AccountCreated event   │   ↓                                   │
-│   AccountCreated)  │ ────────────────────▶   │ Profile.create(account_id=event.id)   │
-│                    │  (via EventDispatcher)   │   ↓                                   │
+│   AccountCreated)  │ ────────────────────▶   │ CreateProfileHandler.execute()         │
+│                    │  (via EventDispatcher)   │   (application use case)               │
+│                    │                         │   ↓                                   │
+│                    │                         │ Profile.create(account_id=event.id)   │
+│                    │                         │   ↓                                   │
 │                    │                         │ profile_repository.save(profile)       │
 └────────────────────┘                         └────────────────────────────────────────┘
 ```
@@ -345,9 +349,10 @@ The **infrastructure layer** provides concrete implementations of domain and app
   - `RefreshTokenService` — Implements `TokenPairIssuer` and `TokenPairRefresher` ports
   - `JwtIdentityProvider` — Extracts user identity from Bearer tokens
 
-✓ **Event Handlers** — React to domain events from other bounded contexts.
+✓ **Event Handlers** — Thin adapters that subscribe to domain events and delegate to application use cases.
   - Example: `CreateProfileOnAccountCreated` in `core/infrastructure/events/handlers/`
-  - Handles `AccountCreated` event to create a Profile in the Core BC
+  - Subscribes to `AccountCreated` and delegates to the `CreateProfile` use case
+  - Event handlers should NOT contain orchestration logic — they translate events into commands and call use cases
 
 ✓ **Configuration** — Settings and dependency injection.
   - Found in `shared/infrastructure/config/`
@@ -565,7 +570,8 @@ class UsernameChanged(DomainEvent):
 
 5. Cross-context event handlers react
    └─> CreateProfileOnAccountCreated.handle(event)
-       └─> Profile.create(account_id=AccountId(event.account_id))
+       └─> CreateProfileHandler.execute(command)
+           └─> Profile.create(account_id=AccountId(event.account_id))
 ```
 
 **Use cases for domain events:**
@@ -1555,6 +1561,7 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     │   │   └── errors.py                             # Domain exceptions
     │   │
     │   ├── application/                              # Application layer (use cases)
+    │   │   ├── create_profile/                       # Create profile for new account
     │   │   ├── get_my_profile/                       # Get authenticated user's profile
     │   │   ├── set_username/                         # Set/update username
     │   │   ├── list_profiles/                        # List all profiles
