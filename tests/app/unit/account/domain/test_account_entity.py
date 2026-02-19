@@ -8,11 +8,11 @@ from account.domain.account.errors import (
     RoleChangeNotPermittedError,
 )
 from account.domain.account.services import AccountService
-from tests.app.unit.domain.services.mock_types import (
+from tests.app.unit.account.domain.mock_types import (
     AccountIdGeneratorMock,
     PasswordHasherMock,
 )
-from tests.app.unit.factories.user_entity import create_account
+from tests.app.unit.factories.account_entity import create_account
 from tests.app.unit.factories.value_objects import (
     create_account_id,
     create_email,

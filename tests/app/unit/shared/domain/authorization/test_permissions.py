@@ -8,7 +8,7 @@ from account.domain.account.services import (
     CanManageSubordinate,
     RoleManagementContext,
 )
-from tests.app.unit.factories.user_entity import create_account
+from tests.app.unit.factories.account_entity import create_account
 from tests.app.unit.factories.value_objects import create_account_id
 
 

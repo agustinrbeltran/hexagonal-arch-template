@@ -2,7 +2,7 @@ import pytest
 
 from shared.domain.authorization import authorize
 from shared.domain.errors import AuthorizationError
-from tests.app.unit.application.authz_service.permission_stubs import (
+from tests.app.unit.shared.domain.authorization.permission_stubs import (
     AlwaysAllow,
     AlwaysDeny,
     DummyContext,

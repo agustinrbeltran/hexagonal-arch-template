@@ -4,7 +4,7 @@ from unittest.mock import create_autospec
 import pytest
 
 from account.domain.account.ports import AccountIdGenerator, PasswordHasher
-from tests.app.unit.domain.services.mock_types import (
+from tests.app.unit.account.domain.mock_types import (
     AccountIdGeneratorMock,
     PasswordHasherMock,
 )
