@@ -8,7 +8,13 @@ from account.domain.account.repository import (
     ListAccountsQM,
 )
 from account.domain.account.value_objects import Email
-from account.infrastructure.persistence.mappers.account import accounts_table
+from account.infrastructure.persistence.converters.account_converter import (
+    AccountConverter,
+)
+from account.infrastructure.persistence.mappers.account import (
+    AccountRecord,
+    accounts_table,
+)
 from shared.domain.account_id import AccountId
 from shared.domain.queries import (
     OffsetPaginationParams,
@@ -28,7 +34,8 @@ class SqlaAccountRepository(AccountRepository):
     def save(self, account: Account) -> None:
         """:raises DataMapperError:"""
         try:
-            self._session.add(account)
+            record = AccountConverter.to_record(account)
+            self._session.add(record)
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
@@ -38,15 +45,19 @@ class SqlaAccountRepository(AccountRepository):
         for_update: bool = False,
     ) -> Account | None:
         """:raises DataMapperError:"""
-        stmt = select(Account).where(Account.id_ == account_id)  # type: ignore
+        stmt = select(AccountRecord).where(
+            AccountRecord.id == account_id.value  # type: ignore[arg-type]
+        )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            return (await self._session.execute(stmt)).scalar_one_or_none()
+            record = (await self._session.execute(stmt)).scalar_one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
+
+        return AccountConverter.to_entity(record) if record else None
 
     async def get_by_email(
         self,
@@ -54,15 +65,19 @@ class SqlaAccountRepository(AccountRepository):
         for_update: bool = False,
     ) -> Account | None:
         """:raises DataMapperError:"""
-        stmt = select(Account).where(Account.email == email)  # type: ignore
+        stmt = select(AccountRecord).where(
+            AccountRecord.email == email.value  # type: ignore[arg-type]
+        )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            return (await self._session.execute(stmt)).scalar_one_or_none()
+            record = (await self._session.execute(stmt)).scalar_one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
+
+        return AccountConverter.to_entity(record) if record else None
 
     async def get_all(
         self,

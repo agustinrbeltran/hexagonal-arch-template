@@ -8,7 +8,13 @@ from core.domain.profile.repository import (
     ProfileRepository,
 )
 from core.domain.profile.value_objects import ProfileId
-from core.infrastructure.persistence.mappers.profile import profiles_table
+from core.infrastructure.persistence.converters.profile_converter import (
+    ProfileConverter,
+)
+from core.infrastructure.persistence.mappers.profile import (
+    ProfileRecord,
+    profiles_table,
+)
 from shared.domain.account_id import AccountId
 from shared.domain.queries import (
     OffsetPaginationParams,
@@ -28,7 +34,8 @@ class SqlaProfileRepository(ProfileRepository):
     def save(self, profile: Profile) -> None:
         """:raises DataMapperError:"""
         try:
-            self._session.add(profile)
+            record = ProfileConverter.to_record(profile)
+            self._session.add(record)
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
@@ -38,15 +45,19 @@ class SqlaProfileRepository(ProfileRepository):
         for_update: bool = False,
     ) -> Profile | None:
         """:raises DataMapperError:"""
-        stmt = select(Profile).where(Profile.id_ == profile_id)  # type: ignore
+        stmt = select(ProfileRecord).where(
+            ProfileRecord.id == profile_id.value  # type: ignore[arg-type]
+        )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            return (await self._session.execute(stmt)).scalar_one_or_none()
+            record = (await self._session.execute(stmt)).scalar_one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
+
+        return ProfileConverter.to_entity(record) if record else None
 
     async def get_by_account_id(
         self,
@@ -54,15 +65,19 @@ class SqlaProfileRepository(ProfileRepository):
         for_update: bool = False,
     ) -> Profile | None:
         """:raises DataMapperError:"""
-        stmt = select(Profile).where(Profile.account_id == account_id)  # type: ignore
+        stmt = select(ProfileRecord).where(
+            ProfileRecord.account_id == account_id.value  # type: ignore[arg-type]
+        )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            return (await self._session.execute(stmt)).scalar_one_or_none()
+            record = (await self._session.execute(stmt)).scalar_one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
+
+        return ProfileConverter.to_entity(record) if record else None
 
     async def get_all(
         self,
