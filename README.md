@@ -1,15 +1,17 @@
 # Overview
 
-📘 This FastAPI-based project demonstrates a practical implementation of **Domain-Driven Design (DDD)** with **Clean Architecture** using a **layer-based organization**. It showcases DDD tactical patterns including aggregates, domain events, value objects, and the repository pattern, combined with Clean Architecture's dependency rule and CQRS principles. While not meant to serve as a comprehensive reference or a strict application of these methodologies, the project shows how their core ideas can be effectively applied in Python for building maintainable, testable systems with complex business logic. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
+📘 This FastAPI-based project demonstrates a practical implementation of **Domain-Driven Design (DDD)** with **Clean Architecture** using a **bounded-context-first organization**. It showcases DDD tactical patterns including aggregates, domain events, value objects, and the repository pattern, combined with Clean Architecture's dependency rule and CQRS principles. The codebase is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
 
-This template demonstrates how to organize code around domain aggregates and use cases rather than technical layers, while maintaining clear separation of concerns through the domain, application, and infrastructure layers. See [About This Template](#about-this-template) for the relationship to the original work.
+This template demonstrates how to organize code around **bounded contexts** and **domain aggregates** rather than flat technical layers, while maintaining clear separation of concerns through the domain, application, and infrastructure layers within each context. See [About This Template](#about-this-template) for the relationship to the original work.
 
 ## About This Template
 
-This project demonstrates how to apply Domain-Driven Design tactical patterns in a FastAPI application using Clean Architecture principles. The codebase is organized into three distinct layers (domain, application, infrastructure) with clear boundaries and dependency rules.
+This project demonstrates how to apply Domain-Driven Design tactical patterns in a FastAPI application using Clean Architecture principles. The codebase is organized into **bounded contexts** — `account/` (Account aggregate for identity, auth, roles) and `core/` (Profile aggregate for user profiles) — with a `shared/` kernel for cross-cutting concerns. Each bounded context contains its own domain, application, and infrastructure layers with clear boundaries and dependency rules.
 
 **What This Template Provides:**
-- Layer-based DDD architecture with explicit aggregate boundaries
+- Bounded-context-first DDD architecture with explicit aggregate boundaries
+- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username, display data)
+- Cross-context integration via domain events (`AccountCreated` → auto-creates Profile)
 - Domain events for recording state changes and enabling eventual consistency
 - Rich value objects with embedded validation logic
 - Application layer use cases following the Command/Handler pattern
@@ -39,8 +41,8 @@ This project demonstrates how to apply Domain-Driven Design tactical patterns in
    4. [Technology Stack](#technology-stack)
    5. [API](#api)
       1. [General](#general)
-      2. [Account](#account-apiv1account)
-      3. [Users](#users-apiv1users)
+      2. [Accounts](#accounts-apiv1accounts)
+      3. [Profiles](#profiles-apiv1profiles)
    6. [Configuration](#configuration)
       1. [Files](#files)
       2. [Flow](#flow)
@@ -64,7 +66,7 @@ patterned after the one proposed by Robert Martin, which we'll explore further.
 The original explanation of Clean Architecture concepts can be found
 [here](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html).
 If you're still wondering why Clean Architecture matters, read the article — it
-only takes about 5 minutes. In essence, it’s about making your application
+only takes about 5 minutes. In essence, it's about making your application
 independent of external systems and highly testable.
 
 <p align="center">
@@ -86,11 +88,11 @@ Concentric circles represent boundaries between different layers. The meaning of
 arrows in the diagram will be discussed [later](#dependency-rule). For now, we
 will focus on the purpose of the layers.
 
-## Layer-Based DDD Architecture
+## Bounded-Context DDD Architecture
 
-This project implements **Domain-Driven Design** tactical patterns using **Clean Architecture's** layered approach. Code is organized into three distinct layers (domain, application, infrastructure), with business logic concentrated in domain **aggregates** that represent bounded contexts.
+This project implements **Domain-Driven Design** tactical patterns using **Clean Architecture's** layered approach. Code is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers. Business logic is concentrated in domain **aggregates** within their respective bounded contexts.
 
-### The Three Layers
+### The Three Layers (Within Each Bounded Context)
 
 The architecture follows a strict layering principle where dependencies flow inward:
 
@@ -101,46 +103,49 @@ Infrastructure → Application → Domain
 
 Each layer has specific responsibilities and constraints:
 
-![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer** (`src/domain/`)
+![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer** (`{context}/domain/`)
 
-The **domain layer** contains pure business logic with **zero external dependencies**. It is organized into **aggregates**, each representing a bounded context with its own model and rules.
+The **domain layer** contains pure business logic with **zero external dependencies**. It is organized into **aggregates**, each within its own bounded context.
 
 **Aggregates in this project:**
-- `domain/user/` — User identity, roles, and lifecycle management
-- `domain/shared/` — Common domain building blocks (base classes, shared exceptions)
+- `account/domain/account/` — Account identity, roles, and lifecycle management (Account BC)
+- `core/domain/profile/` — User profile and username management (Core BC)
+- `shared/domain/` — Common domain building blocks (base classes, shared value objects, authorization framework)
 
-> **Note:** Authentication (JWT access tokens and refresh tokens) is handled entirely in the infrastructure layer — it is not a domain concern. The domain layer contains only the `User` aggregate.
+> **Note:** Authentication (JWT access tokens and refresh tokens) is handled entirely in the infrastructure layer — it is not a domain concern. Bounded contexts communicate via domain events, not direct imports.
 
 **What belongs in the domain layer:**
 
 ✓ **Aggregate Roots** — Entities that serve as entry points to aggregates. They enforce invariants and emit domain events.
-  - Example: `User` entity in `domain/user/entity.py`
+  - Example: `Account` entity in `account/domain/account/entity.py`
+  - Example: `Profile` entity in `core/domain/profile/entity.py`
   - Extends `AggregateRoot` base class
   - Manages its own lifecycle and state changes
 
 ✓ **Value Objects** — Immutable types defined by their attributes, not identity. They contain validation logic.
-  - Examples: `UserId`, `Username`, `UserPasswordHash`, `RawPassword`
-  - Found in `domain/user/value_objects.py`
+  - Examples: `AccountId` (shared), `Email`, `AccountPasswordHash`, `RawPassword` (Account BC)
+  - Examples: `ProfileId`, `Username` (Core BC)
   - Equality by value, not reference
 
 ✓ **Domain Events** — Immutable records of state changes that have occurred.
-  - Examples: `UserCreated`, `UserActivated`, `UserRoleChanged`
-  - Found in `domain/user/events.py`
+  - Examples: `AccountCreated`, `AccountActivated`, `AccountRoleChanged` (Account BC)
+  - Examples: `ProfileCreated`, `UsernameChanged` (Core BC)
   - Past-tense naming, frozen dataclasses
 
 ✓ **Repository Interfaces** — Abstractions for aggregate persistence (ports).
-  - Example: `UserRepository` protocol in `domain/user/repository.py`
-  - Defines methods like `get_by_id()`, `save()`, `delete()`
+  - Example: `AccountRepository` protocol in `account/domain/account/repository.py`
+  - Example: `ProfileRepository` protocol in `core/domain/profile/repository.py`
+  - Defines methods like `get_by_id()`, `save()`, `get_by_email()`
   - Implementation lives in infrastructure layer
 
 ✓ **Domain Services** — Stateless operations that don't naturally fit in entities.
-  - Example: `UserService` in `domain/user/services.py`
+  - Example: `AccountService` in `account/domain/account/services.py`
   - Coordinates operations across value objects and entities
   - May verify business rules or prepare data
 
 ✓ **Domain Exceptions** — Business rule violations.
-  - Example: `UserNotFoundError`, `RoleAssignmentNotPermittedError`
-  - Found in `domain/user/errors.py`
+  - Example: `EmailAlreadyExistsError`, `RoleAssignmentNotPermittedError`
+  - Found in `account/domain/account/errors.py`
 
 **What does NOT belong in the domain layer:**
 
@@ -150,33 +155,35 @@ The **domain layer** contains pure business logic with **zero external dependenc
 ✗ External API calls
 ✗ File I/O operations
 
-**Example - User Aggregate:**
+**Example - Account Aggregate:**
 
 ```python
-class User(AggregateRoot[UserId]):
+# account/domain/account/entity.py
+class Account(AggregateRoot[AccountId]):
     """
-    User aggregate root - manages user identity and lifecycle.
+    Account aggregate root - manages account identity, roles, and lifecycle.
 
     Invariants enforced:
-    - Super admin cannot be deactivated
+    - Super admin cannot be deactivated or have role changed
     - Only assignable roles can be granted
-    - Username must be unique (via repository)
+    - Email must be unique (via repository)
     """
 
-    def change_role(self, new_role: UserRole) -> None:
-        """Change user role and emit domain event."""
-        if not new_role.is_assignable:
-            raise RoleAssignmentNotPermittedError(new_role)
+    def change_role(self, new_role: AccountRole) -> bool:
+        """Change account role and emit domain event."""
+        if not self.role.is_changeable:
+            raise RoleChangeNotPermittedError(self.email, self.role)
+        if self.role == new_role:
+            return False
 
         old_role = self.role
         self.role = new_role
-
-        # Record domain event
-        self.record_event(UserRoleChanged(
-            user_id=self.id_.value,
+        self._register_event(AccountRoleChanged(
+            account_id=self.id_.value,
             old_role=old_role,
             new_role=new_role,
         ))
+        return True
 ```
 
 **Aggregate Boundaries:**
@@ -184,54 +191,75 @@ class User(AggregateRoot[UserId]):
 Aggregates define transactional consistency boundaries. Changes within an aggregate are atomic, while changes across aggregates are eventually consistent through domain events.
 
 ```
-┌─────────────────────────────────────────┐
-│            User Aggregate               │
-│  (domain/user/)                         │
-│                                         │
-│  ┌──────────────────────────────────┐  │
-│  │  User (Root)                     │  │
-│  │  • id: UserId                    │  │
-│  │  • username: Username            │  │
-│  │  • password_hash: PasswordHash   │  │
-│  │  • role: UserRole                │  │
-│  │  • is_active: bool               │  │
-│  └──────────────────────────────────┘  │
-│                                         │
-│  Invariants:                            │
-│  • Role assignment rules                │
+┌─────────────────────────────────────────┐     ┌─────────────────────────────────────────┐
+│        Account Aggregate                │     │        Profile Aggregate                │
+│  (account/domain/account/)              │     │  (core/domain/profile/)                 │
+│                                         │     │                                         │
+│  ┌──────────────────────────────────┐  │     │  ┌──────────────────────────────────┐  │
+│  │  Account (Root)                  │  │     │  │  Profile (Root)                  │  │
+│  │  • id: AccountId                 │  │     │  │  • id: ProfileId                 │  │
+│  │  • email: Email                  │  │     │  │  • account_id: AccountId         │  │
+│  │  • password_hash: PasswordHash   │  │     │  │  • username: Username | None     │  │
+│  │  • role: AccountRole             │  │     │  └──────────────────────────────────┘  │
+│  │  • is_active: bool               │  │     │                                         │
+│  └──────────────────────────────────┘  │     │  Invariants:                            │
+│                                         │     │  • Username uniqueness                  │
+│  Invariants:                            │     │  • One profile per account              │
+│  • Role assignment rules                │     └─────────────────────────────────────────┘
 │  • Activation constraints               │
-│  • Password complexity                  │
-└─────────────────────────────────────────┘
-
+│  • Email uniqueness                     │         Cross-Context Communication:
+└─────────────────────────────────────────┘         AccountCreated event ──────▶
+                                                    CreateProfileOnAccountCreated handler
 ```
 
-Note: In projects with multiple aggregates, they reference each other **by ID only**, never by embedding. This maintains clear boundaries and supports eventual consistency.
+Aggregates reference each other **by ID only** (`AccountId` is shared), never by embedding. This maintains clear boundaries and supports eventual consistency.
 
-![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer** (`src/application/`)
+### Cross-Context Integration via Domain Events
+
+Bounded contexts communicate through **domain events** rather than direct imports. When an Account is created, the Account BC emits an `AccountCreated` event, and the Core BC handles it via `CreateProfileOnAccountCreated` to automatically create a Profile:
+
+```
+Account BC                                     Core BC
+┌────────────────────┐                         ┌────────────────────────────────────────┐
+│ Account.create()   │                         │ CreateProfileOnAccountCreated          │
+│   ↓                │                         │   (event handler)                      │
+│ _register_event(   │  AccountCreated event   │   ↓                                   │
+│   AccountCreated)  │ ────────────────────▶   │ Profile.create(account_id=event.id)   │
+│                    │  (via EventDispatcher)   │   ↓                                   │
+│                    │                         │ profile_repository.save(profile)       │
+└────────────────────┘                         └────────────────────────────────────────┘
+```
+
+This ensures:
+- **No direct cross-context domain imports** — bounded contexts are independently deployable
+- **Eventual consistency** — the Profile is created asynchronously after the Account is persisted
+- **Loose coupling** — the Account BC doesn't know about the Profile BC
+
+![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer** (`{context}/application/`)
 
 The **application layer** orchestrates use cases by coordinating domain objects and infrastructure. It depends on the domain layer but has no knowledge of specific infrastructure implementations.
 
 **What belongs in the application layer:**
 
 ✓ **Use Case Handlers** — Implement business workflows by orchestrating domain logic.
-  - Example: `LogInHandler` in `application/log_in/handler.py`
+  - Example: `LogInHandler` in `account/application/log_in/handler.py`
   - Loads aggregates from repositories
   - Invokes domain services
   - Persists changes
   - Dispatches domain events
 
 ✓ **Command DTOs** — Plain data structures carrying request data.
-  - Example: `LogInCommand` in `application/log_in/command.py`
+  - Example: `LogInCommand` in `account/application/log_in/command.py`
   - Immutable, frozen dataclasses
   - No business logic, just data transfer
 
 ✓ **Use Case Ports** — Interfaces that handlers implement.
-  - Example: `LogInUseCase` protocol in `application/log_in/port.py`
+  - Example: `LogInUseCase` protocol in `account/application/log_in/port.py`
   - Controllers depend on these abstractions
   - Enables testing with different implementations
 
 ✓ **Transaction Boundaries** — Unit of Work pattern for atomic operations.
-  - Found in `application/shared/unit_of_work.py`
+  - Example: `AccountUnitOfWork` in `account/application/shared/account_unit_of_work.py`
   - Ensures all-or-nothing persistence
 
 **Application layer responsibilities:**
@@ -245,48 +273,42 @@ The **application layer** orchestrates use cases by coordinating domain objects 
 **Example - Log In Use Case:**
 
 ```python
+# account/application/log_in/handler.py
 class LogInHandler(LogInUseCase):
-    """
-    Handles user authentication and issues JWT token pair.
-
-    Flow:
-    1. Load user aggregate by username
-    2. Verify password (domain service)
-    3. Check if user is active
-    4. Issue access + refresh token pair (infrastructure)
-    5. Return tokens
-    """
-
     def __init__(
         self,
-        user_repository: UserRepository,       # Domain port
-        user_service: UserService,              # Domain service
-        token_pair_issuer: TokenPairIssuer,     # Application port
+        account_repository: AccountRepository,   # Domain port
+        account_service: AccountService,          # Domain service
+        token_pair_issuer: TokenPairIssuer,       # Application port
+        auth_unit_of_work: AuthUnitOfWork,        # Application port
     ) -> None:
-        self._user_repository = user_repository
-        self._user_service = user_service
+        self._account_repository = account_repository
+        self._account_service = account_service
         self._token_pair_issuer = token_pair_issuer
+        self._auth_unit_of_work = auth_unit_of_work
 
     async def execute(self, command: LogInCommand) -> LogInResult:
-        # Load aggregate (domain)
-        user = await self._user_repository.get_by_username(
-            Username(command.username)
-        )
+        # Load aggregate by email (domain)
+        email = Email(command.email)
+        account = await self._account_repository.get_by_email(email)
+        if account is None:
+            raise AccountNotFoundByEmailError(email)
 
-        # Verify password (domain logic)
-        if not await self._user_service.is_password_valid(
-            user, RawPassword(command.password)
+        # Verify password (domain service)
+        if not await self._account_service.is_password_valid(
+            account, RawPassword(command.password)
         ):
-            raise AuthenticationError("Invalid password")
+            raise AuthenticationError("Invalid password.")
 
         # Check business rule (domain)
-        if not user.is_active:
-            raise AuthenticationError("Account inactive")
+        if not account.is_active:
+            raise AuthenticationError("Account inactive.")
 
         # Issue JWT access token + refresh token (infrastructure)
         access_token, refresh_token = (
-            self._token_pair_issuer.issue_token_pair(user.id_)
+            self._token_pair_issuer.issue_token_pair(account.id_)
         )
+        await self._auth_unit_of_work.commit()
 
         return LogInResult(
             access_token=access_token,
@@ -297,85 +319,76 @@ class LogInHandler(LogInUseCase):
 
 **Key principle:** Application handlers orchestrate but never contain business logic. All business rules live in the domain layer.
 
-![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer** (`src/infrastructure/`)
+![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer** (`{context}/infrastructure/`)
 
 The **infrastructure layer** provides concrete implementations of domain and application ports. It contains all framework-specific code and external system integrations.
 
 **What belongs in the infrastructure layer:**
 
 ✓ **Repository Implementations** — Concrete persistence adapters.
-  - Example: `SqlaUserRepository` in `infrastructure/persistence/`
-  - Implements `UserRepository` domain port
-  - Uses SQLAlchemy for database access
-  - Translates between domain entities and ORM models
+  - Example: `SqlaAccountRepository` in `account/infrastructure/persistence/`
+  - Implements `AccountRepository` domain port
+  - Uses SQLAlchemy imperative mapping for database access
+  - Domain entities are mapped directly (no separate ORM models)
 
 ✓ **HTTP Controllers** — REST API endpoints.
-  - Example: Controllers in `infrastructure/http/controllers/`
+  - Example: Controllers in `account/infrastructure/http/controllers/`
   - Validate HTTP request structure
   - Invoke application use cases
   - Format HTTP responses
   - Translate domain errors to HTTP status codes
 
 ✓ **Security Implementations** — Concrete security adapters.
-  - Example: `BcryptPasswordHasher` in `infrastructure/security/`
+  - Example: `PasswordHasherBcrypt` in `account/infrastructure/security/`
   - Implements password hashing domain port (bcrypt + HMAC pepper)
   - `JwtAccessTokenProcessor` — JWT encoding/decoding
   - `RefreshTokenService` — Implements `TokenPairIssuer` and `TokenPairRefresher` ports
-  - `JwtBearerIdentityProvider` — Extracts user identity from Bearer tokens
+  - `JwtIdentityProvider` — Extracts user identity from Bearer tokens
 
-✓ **Event Dispatchers** — Publish domain events to handlers.
-  - Example: Event dispatcher in `infrastructure/events/`
-  - Collects events from aggregates after persistence
-  - Dispatches to registered handlers
+✓ **Event Handlers** — React to domain events from other bounded contexts.
+  - Example: `CreateProfileOnAccountCreated` in `core/infrastructure/events/handlers/`
+  - Handles `AccountCreated` event to create a Profile in the Core BC
 
 ✓ **Configuration** — Settings and dependency injection.
-  - Found in `infrastructure/config/`
+  - Found in `shared/infrastructure/config/`
   - Dishka DI container setup
   - Environment-based configuration
 
 **Example - Repository Implementation:**
 
 ```python
-class SqlaUserRepository(UserRepository):
-    """SQLAlchemy implementation of UserRepository domain port."""
+# account/infrastructure/persistence/sqla_account_repository.py
+class SqlaAccountRepository(AccountRepository):
+    """SQLAlchemy implementation of AccountRepository domain port."""
 
-    def __init__(self, session: AsyncSession, mapper: UserMapper):
+    def __init__(self, session: MainAsyncSession) -> None:
         self._session = session
-        self._mapper = mapper
 
-    async def get_by_username(self, username: Username) -> User:
-        stmt = select(UserModel).where(
-            UserModel.username == username.value
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
+    def save(self, account: Account) -> None:
+        self._session.add(account)
 
-        if not model:
-            raise UserNotFoundByUsernameError(username)
-
-        # Translate ORM model to domain entity
-        return self._mapper.to_entity(model)
-
-    async def save(self, user: User) -> None:
-        # Translate domain entity to ORM model
-        model = self._mapper.to_model(user)
-        await self._session.merge(model)
+    async def get_by_email(
+        self, email: Email, for_update: bool = False,
+    ) -> Account | None:
+        stmt = select(Account).where(Account.email == email)
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 ```
 
 **Example - HTTP Controller:**
 
 ```python
-# infrastructure/http/controllers/account/log_in.py
+# account/infrastructure/http/controllers/log_in.py
 @router.post(
     "/login",
     error_map={
         AuthenticationError: status.HTTP_401_UNAUTHORIZED,
-        UserNotFoundByUsernameError: status.HTTP_404_NOT_FOUND,
+        AccountNotFoundByEmailError: status.HTTP_404_NOT_FOUND,
     },
-    response_model=TokenResponse,
 )
 @inject
-async def login(
+async def log_in(
     request_data: LogInCommand,
     handler: FromDishka[LogInUseCase],   # Application port
 ) -> TokenResponse:
@@ -411,61 +424,68 @@ An **aggregate** is a cluster of domain objects (entities and value objects) tre
 **Aggregates in this project:**
 
 ```
-User Aggregate (domain/user/)
-├── Root: User entity
-├── Value Objects: UserId, Username, UserPasswordHash
-├── Domain Events: UserCreated, UserActivated, UserRoleChanged
+Account Aggregate (account/domain/account/)
+├── Root: Account entity
+├── Value Objects: AccountId (shared), Email, AccountPasswordHash
+├── Domain Events: AccountCreated, AccountActivated, AccountRoleChanged
 └── Consistency Rules:
-    • Username uniqueness
+    • Email uniqueness
     • Role assignment validation
     • Activation constraints
+
+Profile Aggregate (core/domain/profile/)
+├── Root: Profile entity
+├── Value Objects: ProfileId, Username, AccountId (reference)
+├── Domain Events: ProfileCreated, UsernameChanged
+└── Consistency Rules:
+    • Username uniqueness
+    • One profile per account
 ```
 
 ```python
-# domain/user/entity.py
-class User(AggregateRoot[UserId]):
+# account/domain/account/entity.py
+class Account(AggregateRoot[AccountId]):
     """
-    User aggregate root.
+    Account aggregate root.
 
-    Manages user identity, roles, and lifecycle.
+    Manages account identity, roles, and lifecycle.
     Enforces invariants and emits domain events.
     """
 
     def __init__(
         self,
         *,
-        id_: UserId,
-        username: Username,
-        password_hash: UserPasswordHash,
-        role: UserRole,
+        id_: AccountId,
+        email: Email,
+        password_hash: AccountPasswordHash,
+        role: AccountRole,
         is_active: bool,
     ) -> None:
         super().__init__(id_=id_)
-        self.username = username
+        self.email = email
         self.password_hash = password_hash
         self.role = role
         self.is_active = is_active
 
-    def activate(self) -> None:
-        """Activate a deactivated user."""
+    def activate(self) -> bool:
+        """Activate a deactivated account."""
+        if not self.role.is_changeable:
+            raise ActivationChangeNotPermittedError(self.email, self.role)
         if self.is_active:
-            return  # Already active, idempotent
-
+            return False
         self.is_active = True
-        self.record_event(UserActivated(user_id=self.id_.value))
+        self._register_event(AccountActivated(account_id=self.id_.value))
+        return True
 
-    def deactivate(self) -> None:
-        """Deactivate an active user."""
-        if not self.role.can_be_deactivated:
-            raise ActivationChangeNotPermittedError(
-                "Super admin cannot be deactivated"
-            )
-
+    def deactivate(self) -> bool:
+        """Deactivate an active account."""
+        if not self.role.is_changeable:
+            raise ActivationChangeNotPermittedError(self.email, self.role)
         if not self.is_active:
-            return  # Already inactive, idempotent
-
+            return False
         self.is_active = False
-        self.record_event(UserDeactivated(user_id=self.id_.value))
+        self._register_event(AccountDeactivated(account_id=self.id_.value))
+        return True
 ```
 
 **Why aggregates matter:**
@@ -479,7 +499,7 @@ class User(AggregateRoot[UserId]):
 **Domain events** are immutable records of something that happened in the domain. They enable loose coupling between aggregates and support eventual consistency.
 
 **Characteristics:**
-- Past-tense naming (UserCreated, not CreateUser)
+- Past-tense naming (AccountCreated, not CreateAccount)
 - Immutable (frozen dataclass)
 - Contain only necessary data (no objects, just primitives/enums)
 - Emitted by aggregate roots
@@ -487,56 +507,72 @@ class User(AggregateRoot[UserId]):
 **Events in this project:**
 
 ```python
-# domain/user/events.py
+# account/domain/account/events.py
 @dataclass(frozen=True, kw_only=True)
-class UserCreated(DomainEvent):
-    """Emitted when a new user is created."""
-    user_id: UUID
-    username: str
-    role: UserRole
-
-
-@dataclass(frozen=True, kw_only=True)
-class UserActivated(DomainEvent):
-    """Emitted when a deactivated user is reactivated."""
-    user_id: UUID
+class AccountCreated(DomainEvent):
+    """Emitted when a new account is created."""
+    account_id: UUID
+    email: str
+    role: AccountRole
 
 
 @dataclass(frozen=True, kw_only=True)
-class UserRoleChanged(DomainEvent):
-    """Emitted when a user's role changes."""
-    user_id: UUID
-    old_role: UserRole
-    new_role: UserRole
+class AccountActivated(DomainEvent):
+    """Emitted when a deactivated account is reactivated."""
+    account_id: UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class AccountRoleChanged(DomainEvent):
+    """Emitted when an account's role changes."""
+    account_id: UUID
+    old_role: AccountRole
+    new_role: AccountRole
+
+
+# core/domain/profile/events.py
+@dataclass(frozen=True, kw_only=True)
+class ProfileCreated(DomainEvent):
+    """Emitted when a new profile is created."""
+    profile_id: UUID
+    account_id: UUID
+    username: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class UsernameChanged(DomainEvent):
+    """Emitted when a profile's username changes."""
+    profile_id: UUID
+    old_username: str | None
+    new_username: str
 ```
 
 **Event flow:**
 
 ```
 1. Aggregate root performs action
-   └─> User.change_role(UserRole.ADMIN)
+   └─> Account.create(email=..., password_hash=..., role=...)
 
 2. Aggregate records event internally
-   └─> self.record_event(UserRoleChanged(...))
+   └─> self._register_event(AccountCreated(...))
 
-3. Repository persists aggregate
-   └─> await user_repository.save(user)
+3. Handler persists aggregate and commits
+   └─> account_repository.save(account)
+   └─> await account_unit_of_work.commit()
 
-4. Repository collects and dispatches events
-   └─> for event in user.collect_events():
-           await event_dispatcher.dispatch(event)
+4. Handler dispatches collected events
+   └─> await event_dispatcher.dispatch(account.collect_events())
 
-5. Event handlers react
-   └─> logger.info(f"User {event.user_id} role changed")
-   └─> await cache_invalidator.invalidate_user(event.user_id)
-   └─> await notification_service.notify_admin(event)
+5. Cross-context event handlers react
+   └─> CreateProfileOnAccountCreated.handle(event)
+       └─> Profile.create(account_id=AccountId(event.account_id))
 ```
 
 **Use cases for domain events:**
+- Cross-context integration (Account → Profile creation)
 - Audit logging (record all state changes)
-- Cache invalidation (when user changes, invalidate cache)
-- Notifications (send email when user activated)
-- Analytics (track user behavior)
+- Cache invalidation (when account changes, invalidate cache)
+- Notifications (send email when account activated)
 - Eventual consistency across aggregates
 
 ### Value Objects
@@ -552,60 +588,42 @@ class UserRoleChanged(DomainEvent):
 **Value objects in this project:**
 
 ```python
-# domain/user/value_objects.py
-@dataclass(frozen=True, kw_only=True, slots=True)
-class Username(ValueObject):
+# account/domain/account/value_objects.py
+@dataclass(frozen=True, slots=True, repr=False)
+class Email(ValueObject):
     """
-    Username value object.
+    Email value object.
 
     Rules:
-    - 3-32 characters
-    - Only alphanumeric and underscore
-    - Case-insensitive equality
+    - Max 255 characters
+    - Must match email pattern
     """
+    MAX_LEN: ClassVar[Final[int]] = 255
+    PATTERN: ClassVar[Final[re.Pattern[str]]] = re.compile(
+        r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    )
+
     value: str
 
     def __post_init__(self) -> None:
-        if not 3 <= len(self.value) <= 32:
-            raise InvalidUsernameError(
-                f"Username must be 3-32 characters, got {len(self.value)}"
+        if len(self.value) > self.MAX_LEN:
+            raise DomainTypeError(
+                f"Email must be at most {self.MAX_LEN} characters long."
             )
-        if not self.value.replace("_", "").isalnum():
-            raise InvalidUsernameError(
-                "Username must be alphanumeric with optional underscores"
-            )
-
-    def __eq__(self, other: object) -> bool:
-        """Case-insensitive equality."""
-        if not isinstance(other, Username):
-            return False
-        return self.value.lower() == other.value.lower()
+        if not re.fullmatch(self.PATTERN, self.value):
+            raise DomainTypeError("Invalid email format.")
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class RawPassword(ValueObject):
-    """
-    Raw (unhashed) password value object.
-
-    Rules:
-    - Minimum 8 characters
-    - Maximum 128 characters
-    - Must not be empty
-    """
-    value: str
-
-    def __post_init__(self) -> None:
-        if not 8 <= len(self.value) <= 128:
-            raise InvalidPasswordError(
-                "Password must be 8-128 characters"
-            )
+@dataclass(frozen=True, slots=True, repr=False)
+class AccountPasswordHash(ValueObject):
+    value: bytes
 ```
 
 **Benefits:**
-- Type safety (can't pass string where Username expected)
-- Encapsulated validation (can't create invalid username)
+- Type safety (can't pass string where Email expected)
+- Encapsulated validation (can't create invalid email)
 - Self-documenting (method signature shows intent)
-- Reusable (use Username across domain)
+- Reusable (use AccountId across bounded contexts)
 
 ### Repository Pattern
 
@@ -620,61 +638,47 @@ class RawPassword(ValueObject):
 **Repository in this project:**
 
 ```python
-# domain/user/repository.py (PORT - Interface)
-class UserRepository(Protocol):
+# account/domain/account/repository.py (PORT - Interface)
+class AccountRepository(Protocol):
     """
-    Repository port for User aggregate.
+    Repository port for Account aggregate.
 
     Defines persistence operations without
     specifying implementation details.
     """
 
-    async def get_by_id(self, user_id: UserId) -> User:
-        """Get user by ID. Raises UserNotFoundError if not found."""
-        ...
+    def save(self, account: Account) -> None: ...
 
-    async def get_by_username(self, username: Username) -> User:
-        """Get user by username. Raises UserNotFoundByUsernameError if not found."""
-        ...
+    async def get_by_id(
+        self, account_id: AccountId, for_update: bool = False,
+    ) -> Account | None: ...
 
-    async def save(self, user: User) -> None:
-        """Persist user. Create if new, update if exists."""
-        ...
+    async def get_by_email(
+        self, email: Email, for_update: bool = False,
+    ) -> Account | None: ...
 
-    async def delete(self, user_id: UserId) -> None:
-        """Delete user by ID."""
-        ...
+    async def get_all(
+        self, pagination: OffsetPaginationParams, sorting: SortingParams,
+    ) -> ListAccountsQM: ...
 
 
-# infrastructure/persistence/repositories/user_repository.py (ADAPTER - Implementation)
-class SqlaUserRepository(UserRepository):
-    """SQLAlchemy implementation of UserRepository."""
+# account/infrastructure/persistence/sqla_account_repository.py (ADAPTER)
+class SqlaAccountRepository(AccountRepository):
+    """SQLAlchemy implementation of AccountRepository."""
 
-    def __init__(
-        self,
-        session: AsyncSession,
-        mapper: UserMapper,
-    ):
+    def __init__(self, session: MainAsyncSession) -> None:
         self._session = session
-        self._mapper = mapper
 
-    async def get_by_username(self, username: Username) -> User:
-        stmt = select(UserModel).where(
-            UserModel.username == username.value
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
+    def save(self, account: Account) -> None:
+        self._session.add(account)
 
-        if not model:
-            raise UserNotFoundByUsernameError(username)
-
-        # Translate ORM model to domain entity
-        return self._mapper.to_entity(model)
-
-    async def save(self, user: User) -> None:
-        # Translate domain entity to ORM model
-        model = self._mapper.to_model(user)
-        await self._session.merge(model)
+    async def get_by_email(
+        self, email: Email, for_update: bool = False,
+    ) -> Account | None:
+        stmt = select(Account).where(Account.email == email)
+        if for_update:
+            stmt = stmt.with_for_update()
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 ```
 
 **Why repositories matter:**
@@ -695,36 +699,36 @@ class SqlaUserRepository(UserRepository):
 **Domain services in this project:**
 
 ```python
-# domain/user/services.py
-class UserService:
+# account/domain/account/services.py
+class AccountService:
     """
-    Domain service for user operations.
+    Domain service for account operations.
 
     Contains business logic that doesn't naturally
-    belong to the User entity or value objects.
+    belong to the Account entity or value objects.
     """
 
     def __init__(
         self,
-        user_id_generator: UserIdGenerator,
+        account_id_generator: AccountIdGenerator,
         password_hasher: PasswordHasher,
     ) -> None:
-        self._user_id_generator = user_id_generator
+        self._account_id_generator = account_id_generator
         self._password_hasher = password_hasher
 
     async def create(
         self,
-        username: Username,
+        email: Email,
         raw_password: RawPassword,
-        role: UserRole = UserRole.USER,
+        role: AccountRole = AccountRole.USER,
         is_active: bool = True,
-    ) -> User:
-        """Create a new User aggregate with hashed password."""
-        user_id = self._user_id_generator.generate()
+    ) -> Account:
+        """Create a new Account aggregate with hashed password."""
+        account_id = self._account_id_generator.generate()
         password_hash = await self._password_hasher.hash(raw_password)
-        return User.create(
-            id_=user_id,
-            username=username,
+        return Account.create(
+            id_=account_id,
+            email=email,
             password_hash=password_hash,
             role=role,
             is_active=is_active,
@@ -732,23 +736,14 @@ class UserService:
 
     async def is_password_valid(
         self,
-        user: User,
+        account: Account,
         raw_password: RawPassword,
     ) -> bool:
         """Verify password against stored hash."""
         return await self._password_hasher.verify(
             raw_password=raw_password,
-            hashed_password=user.password_hash,
+            hashed_password=account.password_hash,
         )
-
-    async def change_password(
-        self,
-        user: User,
-        raw_password: RawPassword,
-    ) -> None:
-        """Hash new password and update user aggregate."""
-        new_hash = await self._password_hasher.hash(raw_password)
-        user.change_password(new_hash)
 ```
 
 **Domain service vs Entity method:**
@@ -774,10 +769,10 @@ class UserService:
 **Handler in this project:**
 
 ```python
-# application/create_user/handler.py
-class CreateUserHandler(CreateUserUseCase):
+# account/application/create_account/handler.py
+class CreateAccountHandler(CreateAccountUseCase):
     """
-    Application service for creating users.
+    Application service for creating accounts.
 
     Orchestrates domain and infrastructure
     without containing business logic.
@@ -785,46 +780,46 @@ class CreateUserHandler(CreateUserUseCase):
 
     def __init__(
         self,
-        current_user_handler: CurrentUserHandler,
-        user_service: UserService,                 # Domain service
-        user_repository: UserRepository,           # Domain port
-        unit_of_work: UnitOfWork,                  # Application port
+        current_account_handler: CurrentAccountHandler,
+        account_service: AccountService,           # Domain service
+        account_repository: AccountRepository,     # Domain port
+        account_unit_of_work: AccountUnitOfWork,   # Application port
         event_dispatcher: EventDispatcher,         # Application port
     ) -> None:
-        self._current_user_handler = current_user_handler
-        self._user_service = user_service
-        self._user_repository = user_repository
-        self._unit_of_work = unit_of_work
+        self._current_account_handler = current_account_handler
+        self._account_service = account_service
+        self._account_repository = account_repository
+        self._account_unit_of_work = account_unit_of_work
         self._event_dispatcher = event_dispatcher
 
-    async def execute(self, command: CreateUserCommand) -> CreateUserResponse:
-        # 1. Get current user (authorization context)
-        current_user = await self._current_user_handler.get_current_user()
+    async def execute(self, command: CreateAccountCommand) -> CreateAccountResponse:
+        # 1. Get current account (authorization context)
+        current_account = await self._current_account_handler.get_current_account()
 
         # 2. Authorize (domain permission framework)
         authorize(
             CanManageRole(),
             context=RoleManagementContext(
-                subject=current_user,
+                subject=current_account,
                 target_role=command.role,
             ),
         )
 
         # 3. Create aggregate via domain service (hashes password)
-        user = await self._user_service.create(
-            Username(command.username),
+        account = await self._account_service.create(
+            Email(command.email),
             RawPassword(command.password),
             command.role,
         )
 
         # 4. Persist (infrastructure)
-        self._user_repository.save(user)
-        await self._unit_of_work.commit()
+        self._account_repository.save(account)
+        await self._account_unit_of_work.commit()
 
         # 5. Dispatch domain events
-        await self._event_dispatcher.dispatch(user.collect_events())
+        await self._event_dispatcher.dispatch(account.collect_events())
 
-        return CreateUserResponse(id=user.id_.value)
+        return CreateAccountResponse(id=account.id_.value)
 ```
 
 **Application service vs Domain service:**
@@ -835,17 +830,17 @@ class CreateUserHandler(CreateUserUseCase):
 | Coordinates multiple services | Stateless computation |
 | Manages transactions | No transaction concerns |
 | Can be async (I/O) | Typically sync |
-| Lives in `application/` | Lives in `domain/` |
+| Lives in `{context}/application/` | Lives in `{context}/domain/` |
 
 ### Command/Handler Pattern
 
 Commands are immutable DTOs carrying request data. Handlers implement use cases.
 
 ```python
-# application/log_in/command.py
+# account/application/log_in/command.py
 @dataclass(frozen=True, slots=True, kw_only=True)
 class LogInCommand:
-    username: str
+    email: str
     password: str
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -855,13 +850,13 @@ class LogInResult:
     expires_in: int
 
 
-# application/log_in/port.py
+# account/application/log_in/port.py
 class LogInUseCase(ABC):
     @abstractmethod
     async def execute(self, command: LogInCommand) -> LogInResult: ...
 
 
-# application/log_in/handler.py
+# account/application/log_in/handler.py
 class LogInHandler(LogInUseCase):
     """Handler implementing the log in use case."""
     async def execute(self, command: LogInCommand) -> LogInResult:
@@ -886,27 +881,27 @@ Is it pure business logic with no I/O?
 ├─ Yes → DOMAIN LAYER
 │  │
 │  ├─ Does it have identity and lifecycle?
-│  │  ├─ Yes → ENTITY (User)
-│  │  └─ No → VALUE OBJECT (Username, UserId)
+│  │  ├─ Yes → ENTITY (Account, Profile)
+│  │  └─ No → VALUE OBJECT (Email, AccountId, Username)
 │  │
 │  ├─ Does it record something that happened?
-│  │  └─ Yes → DOMAIN EVENT (UserCreated)
+│  │  └─ Yes → DOMAIN EVENT (AccountCreated, ProfileCreated)
 │  │
 │  ├─ Does it define persistence operations?
-│  │  └─ Yes → REPOSITORY INTERFACE (UserRepository)
+│  │  └─ Yes → REPOSITORY INTERFACE (AccountRepository)
 │  │
 │  └─ Is it stateless logic involving multiple entities?
-│     └─ Yes → DOMAIN SERVICE (UserService)
+│     └─ Yes → DOMAIN SERVICE (AccountService)
 │
 └─ No → Does it orchestrate domain + infrastructure?
    ├─ Yes → APPLICATION LAYER
-   │  └─ APPLICATION SERVICE (CreateUserHandler)
+   │  └─ APPLICATION SERVICE (CreateAccountHandler)
    │
    └─ No → Is it a technical detail?
       └─ Yes → INFRASTRUCTURE LAYER
          ├─ Database → REPOSITORY IMPLEMENTATION
          ├─ HTTP → CONTROLLER
-         ├─ Events → EVENT DISPATCHER
+         ├─ Events → EVENT DISPATCHER / HANDLER
          └─ Security → PASSWORD HASHER
 ```
 
@@ -935,8 +930,8 @@ ones.** In other words, dependencies must never point outwards.
 >   bind business logic to implementation details (including frameworks) or to
 >   out-of-process systems (databases, brokers, file systems, cloud SDKs, etc.).
 > - Components within the same zone **can depend on each other.** For example,
->   adapters in a feature can interact with one another, and domain services
->   within a feature can call each other.
+>   adapters in a bounded context can interact with one another, and domain services
+>   within a bounded context can call each other.
 > - **Entrypoints** (driving adapters) can depend on domain core through **inbound ports**.
 >   **Infrastructure adapters** (driven adapters) implement **outbound ports** defined by
 >   the domain. Both types of adapters can access domain entities and value objects as needed.
@@ -944,7 +939,7 @@ ones.** In other words, dependencies must never point outwards.
 >   technical concerns (database queries, API calls, serialization) without containing
 >   business rules. However, in specific cases where database constraints enforce business
 >   rules, adapters may raise domain-specific exceptions, such as
->   `UsernameAlreadyExistsError` for a `UNIQUE CONSTRAINT` violation. Handling
+>   `EmailAlreadyExistsError` for a `UNIQUE CONSTRAINT` violation. Handling
 >   these exceptions in domain services ensures that any business logic
 >   expressed in adapters remains under domain control.
 > - Avoid introducing elements in the domain core that specifically exist to
@@ -953,9 +948,9 @@ ones.** In other words, dependencies must never point outwards.
 >   imports, it might seem that the Dependency Rule isn't violated. However,
 >   you've broken the core idea of the rule by embedding infrastructure concerns
 >   (more concrete) into the business logic (more abstract).
-> - Each feature's hexagon should be **self-contained**. Cross-feature dependencies
->   should be minimized and go through well-defined integration points. Shared
->   concerns live in `/common`.
+> - Each bounded context's hexagon should be **self-contained**. Cross-context dependencies
+>   should be minimized and go through well-defined integration points (domain events).
+>   Shared concerns live in `shared/`.
 
 ### Note on Adapters in Hexagonal Architecture
 
@@ -965,13 +960,13 @@ Hexagonal Architecture distinguishes between two types of adapters:
 - **Entrypoints** such as REST controllers, CLI handlers, message consumers
 - These adapters **drive** the application by invoking inbound ports (use cases)
 - They translate external requests into domain operations
-- Example: `infrastructure/http/controllers/account/log_in.py`
+- Example: `account/infrastructure/http/controllers/log_in.py`
 
 **Driven Adapters (Secondary)** — Provide infrastructure services to the domain:
 - **Infrastructure adapters** such as database repositories, external API clients
 - These adapters are **driven by** the domain through outbound ports
 - They translate domain abstractions into concrete infrastructure operations
-- Example: `infrastructure/persistence/sqla_user_repository.py`
+- Example: `account/infrastructure/persistence/sqla_account_repository.py`
 
 Both adapter types depend on the domain through **ports** (abstractions). This creates a dependency structure where:
 - Entrypoints depend on **inbound ports** (use case interfaces)
@@ -1002,7 +997,7 @@ The domain core (entities, value objects, domain services, ports) has zero depen
 
 ## Hexagonal Architecture Continued
 
-![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`infrastructure/http/controllers/`)
+![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`{context}/infrastructure/http/controllers/`)
 
 Entrypoints are **driving adapters** that receive external requests and invoke the domain through inbound ports:
 
@@ -1016,11 +1011,11 @@ Entrypoints are **driving adapters** that receive external requests and invoke t
   external actors and the domain's inbound ports
 
 **Example Flow:**
-1. HTTP request arrives at `POST /api/v1/account/login`
-2. Controller (`infrastructure/http/controllers/account/log_in.py`) validates request structure
+1. HTTP request arrives at `POST /api/v1/accounts/login`
+2. Controller (`account/infrastructure/http/controllers/log_in.py`) validates request structure
 3. Controller invokes `LogInUseCase` (inbound port) with validated data
-4. Handler (`application/log_in/handler.py`) orchestrates the use case
-5. Handler calls domain services and outbound ports (`UserRepository`, `TokenPairIssuer`) as needed
+4. Handler (`account/application/log_in/handler.py`) orchestrates the use case
+5. Handler calls domain services and outbound ports (`AccountRepository`, `TokenPairIssuer`) as needed
 6. Infrastructure implements outbound ports, executing database queries and JWT encoding
 7. Controller receives result and formats HTTP response
 
@@ -1030,8 +1025,8 @@ Entrypoints are **driving adapters** that receive external requests and invoke t
 >   request matches the structure of the defined request model (e.g., type
 >   safety and required fields) should be performed by controllers at the
 >   entrypoint, while **_business rule_** validation (e.g., ensuring the email domain
->   is allowed, verifying the uniqueness of username, or checking if a user
->   meets the required age) belongs to the Domain core.
+>   is allowed, verifying the uniqueness of email, or checking if an account
+>   meets the required role) belongs to the Domain core.
 > - Business rule validation often involves relationships between fields, such
 >   as ensuring that a discount applies only within a specific date range or a
 >   promotion code is valid for orders above a certain total.
@@ -1068,7 +1063,7 @@ External systems operate completely outside the hexagon's boundaries:
   - Replace bcrypt with Argon2 by swapping `PasswordHasher` implementation
 
 > [!NOTE]
-> The hexagon (domain core + ports) is the **stable center** of each feature.
+> The hexagon (domain core + ports) is the **stable center** of each bounded context.
 > Everything outside — entrypoints, adapters, and external systems — is **replaceable**
 > and depends on the hexagon through abstractions. This is the core value of
 > Hexagonal Architecture: protecting business logic from infrastructure volatility.
@@ -1080,14 +1075,14 @@ External systems operate completely outside the hexagon's boundaries:
 
 ## Request Flow Example
 
-Let's trace a complete request through all three layers to see how they interact. We'll follow a user login request from HTTP to database and back.
+Let's trace a complete request through all three layers to see how they interact. We'll follow an account login request from HTTP to database and back.
 
-### HTTP POST /api/v1/account/login
+### HTTP POST /api/v1/accounts/login
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  1. INFRASTRUCTURE LAYER - HTTP Controller                  │
-│     infrastructure/http/controllers/account/log_in.py       │
+│     account/infrastructure/http/controllers/log_in.py       │
 └─────────────────────────────────────────────────────────────┘
          │
          │  Validates HTTP request structure
@@ -1097,17 +1092,17 @@ Let's trace a complete request through all three layers to see how they interact
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  2. APPLICATION LAYER - Use Case Handler                    │
-│     application/log_in/handler.py                           │
+│     account/application/log_in/handler.py                   │
 └─────────────────────────────────────────────────────────────┘
          │
-         │  Loads User aggregate from repository
+         │  Loads Account aggregate from repository
          │  Invokes domain service (password verification)
-         │  Checks user activation status
+         │  Checks account activation status
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  3. DOMAIN LAYER - Domain Services & Entities               │
-│     domain/user/services.py                                 │
+│     account/domain/account/services.py                      │
 └─────────────────────────────────────────────────────────────┘
          │
          │  Verifies password via PasswordHasher port
@@ -1116,7 +1111,7 @@ Let's trace a complete request through all three layers to see how they interact
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  4. INFRASTRUCTURE LAYER - Token Issuance                   │
-│     infrastructure/security/refresh_token_service.py        │
+│     account/infrastructure/security/refresh_token_service.py│
 └─────────────────────────────────────────────────────────────┘
          │
          │  Creates JWT access token (short-lived, stateless)
@@ -1132,17 +1127,16 @@ Let's trace a complete request through all three layers to see how they interact
 **Step 1: HTTP Controller (Infrastructure)**
 
 ```python
-# infrastructure/http/controllers/account/log_in.py
+# account/infrastructure/http/controllers/log_in.py
 @router.post(
     "/login",
     error_map={
         AuthenticationError: status.HTTP_401_UNAUTHORIZED,
-        UserNotFoundByUsernameError: status.HTTP_404_NOT_FOUND,
+        AccountNotFoundByEmailError: status.HTTP_404_NOT_FOUND,
     },
-    response_model=TokenResponse,
 )
 @inject
-async def login(
+async def log_in(
     request_data: LogInCommand,
     handler: FromDishka[LogInUseCase],   # Injected use case port
 ) -> TokenResponse:
@@ -1157,38 +1151,43 @@ async def login(
 **Step 2: Application Handler (Application)**
 
 ```python
-# application/log_in/handler.py
+# account/application/log_in/handler.py
 class LogInHandler(LogInUseCase):
     def __init__(
         self,
-        user_repository: UserRepository,       # Domain port
-        user_service: UserService,              # Domain service
-        token_pair_issuer: TokenPairIssuer,     # Application port
+        account_repository: AccountRepository,   # Domain port
+        account_service: AccountService,          # Domain service
+        token_pair_issuer: TokenPairIssuer,       # Application port
+        auth_unit_of_work: AuthUnitOfWork,        # Application port
     ) -> None:
-        self._user_repository = user_repository
-        self._user_service = user_service
+        self._account_repository = account_repository
+        self._account_service = account_service
         self._token_pair_issuer = token_pair_issuer
+        self._auth_unit_of_work = auth_unit_of_work
 
     async def execute(self, command: LogInCommand) -> LogInResult:
-        # 1. Load aggregate (from repository)
-        user = await self._user_repository.get_by_username(
-            Username(command.username)
+        # 1. Load aggregate by email (from repository)
+        account = await self._account_repository.get_by_email(
+            Email(command.email)
         )
+        if account is None:
+            raise AccountNotFoundByEmailError(Email(command.email))
 
         # 2. Verify password (domain service)
-        if not await self._user_service.is_password_valid(
-            user, RawPassword(command.password)
+        if not await self._account_service.is_password_valid(
+            account, RawPassword(command.password)
         ):
-            raise AuthenticationError("Invalid password")
+            raise AuthenticationError("Invalid password.")
 
         # 3. Check business rules (domain)
-        if not user.is_active:
-            raise AuthenticationError("Account inactive")
+        if not account.is_active:
+            raise AuthenticationError("Account inactive.")
 
         # 4. Issue token pair (infrastructure, via application port)
         access_token, refresh_token = (
-            self._token_pair_issuer.issue_token_pair(user.id_)
+            self._token_pair_issuer.issue_token_pair(account.id_)
         )
+        await self._auth_unit_of_work.commit()
 
         return LogInResult(
             access_token=access_token,
@@ -1200,48 +1199,48 @@ class LogInHandler(LogInUseCase):
 **Step 3: Domain Service (Domain)**
 
 ```python
-# domain/user/services.py
-class UserService:
+# account/domain/account/services.py
+class AccountService:
     def __init__(
         self,
-        user_id_generator: UserIdGenerator,
+        account_id_generator: AccountIdGenerator,
         password_hasher: PasswordHasher,
     ) -> None:
-        self._user_id_generator = user_id_generator
+        self._account_id_generator = account_id_generator
         self._password_hasher = password_hasher
 
     async def is_password_valid(
         self,
-        user: User,
+        account: Account,
         raw_password: RawPassword,
     ) -> bool:
         """Verify password against stored hash."""
         return await self._password_hasher.verify(
             raw_password=raw_password,
-            hashed_password=user.password_hash,
+            hashed_password=account.password_hash,
         )
 ```
 
 **Step 4: Token Issuance (Infrastructure)**
 
 ```python
-# infrastructure/security/refresh_token_service.py
+# account/infrastructure/security/refresh_token_service.py
 class RefreshTokenService(TokenPairIssuer, TokenPairRefresher):
     """
     Infrastructure service responsibilities:
     - Encode JWT access tokens (short-lived, stateless)
     - Generate and persist refresh tokens (long-lived, server-side)
     - Rotate refresh tokens on use
-    - Revoke all tokens for a user (on deactivation/deletion)
+    - Revoke all tokens for an account (on deactivation/deletion)
     """
 
-    def issue_token_pair(self, user_id: UserId) -> tuple[str, str]:
+    def issue_token_pair(self, account_id: AccountId) -> tuple[str, str]:
         # 1. Create refresh token and persist to database
-        refresh_token = self._create_refresh_token(user_id)
+        refresh_token = self._create_refresh_token(account_id)
         self._repository.add(refresh_token)
 
         # 2. Create JWT access token
-        access_token = self._create_access_token(user_id)
+        access_token = self._create_access_token(account_id)
 
         return access_token, refresh_token.id_
 ```
@@ -1254,7 +1253,7 @@ HTTP Request                  Domain / Application             Infrastructure
     │  LogInCommand              │                               │
     │  (dataclass)               │                               │
     ├──────────────▶             │                               │
-    │                             │  User                        │
+    │                             │  Account                     │
     │                             │  (aggregate root)            │
     │                             ├──────── load ───────────────▶│ DB SELECT
     │                             │                               │
@@ -1277,7 +1276,7 @@ HTTP Request                  Domain / Application             Infrastructure
 **Separation of Concerns:**
 - HTTP layer only knows about HTTP (request/response models, status codes)
 - Application layer only orchestrates (no HTTP, no SQL, no JWT)
-- Domain layer only knows business logic (password verification, user status)
+- Domain layer only knows business logic (password verification, account status)
 - Infrastructure layer handles technical details (JWT encoding, token storage, database)
 
 **Authentication as Infrastructure:**
@@ -1287,8 +1286,8 @@ HTTP Request                  Domain / Application             Infrastructure
 
 **Dependency Direction:**
 - HTTP Controller depends on `LogInUseCase` port (abstraction)
-- Application Handler depends on `UserRepository`, `TokenPairIssuer` ports (abstractions)
-- Infrastructure implements those ports (`SqlaUserRepository`, `RefreshTokenService`)
+- Application Handler depends on `AccountRepository`, `TokenPairIssuer` ports (abstractions)
+- Infrastructure implements those ports (`SqlaAccountRepository`, `RefreshTokenService`)
 - Domain has zero dependencies on outer layers
 
 **Testing Strategy:**
@@ -1448,9 +1447,9 @@ rather than concrete implementations. The controller invokes the use case throug
 allowing the application layer to remain independent of HTTP concerns.
 
 In this architecture:
-- HTTP controllers live in `infrastructure/http/controllers/`
-- They depend on use case ports (interfaces) like `LogInUseCase`, `CreateUserUseCase`
-- Concrete handlers live in `application/` and implement these ports
+- HTTP controllers live in `{context}/infrastructure/http/controllers/`
+- They depend on use case ports (interfaces) like `LogInUseCase`, `CreateAccountUseCase`
+- Concrete handlers live in `{context}/application/` and implement these ports
 - Dependency injection wires up the concrete implementations
 
 </details>
@@ -1467,9 +1466,9 @@ The repository depends on both the domain port it implements and the infrastruct
 technologies (SQLAlchemy, ORM models) it uses.
 
 In this architecture:
-- Domain defines repository interfaces (ports) like `UserRepository`
-- Infrastructure implements these ports: `SqlaUserRepository`
-- The repository translates between domain entities and ORM models
+- Domain defines repository interfaces (ports) like `AccountRepository`
+- Infrastructure implements these ports: `SqlaAccountRepository`
+- The repository uses SQLAlchemy imperative mapping (domain entities mapped directly)
 - Application layer depends on the port, not the concrete implementation
 
 </details>
@@ -1485,167 +1484,142 @@ In this architecture:
 the HTTP layer and the application layer. In this architecture:
 
 - The IdP extracts user identity from JWT Bearer tokens in the `Authorization` header
-- It provides the current user's ID without exposing authentication mechanisms
+- It provides the current account's ID without exposing authentication mechanisms
 - Domain remains unaware of how authentication works (tokens, etc.)
-- Application layer uses IdP to get current user context
+- Application layer uses IdP to get current account context
 
-The `JwtBearerIdentityProvider` (infrastructure) decodes the JWT access token and
-extracts the user ID, abstracting all token details from the application layer.
+The `JwtIdentityProvider` (infrastructure) decodes the JWT access token and
+extracts the account ID, abstracting all token details from the application layer.
 
 </details>
 
 ## Structure
 
-This project implements **Domain-Driven Design** with **Clean Architecture** using a layer-based organization. Code is organized into three distinct layers (domain, application, infrastructure) with aggregates representing bounded contexts.
+This project implements **Domain-Driven Design** with **Clean Architecture** using a bounded-context-first organization. Code is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers.
 
 ```
 .
-├── config/...                                   # configuration files and Docker setup
-├── Makefile                                     # development task automation
-├── scripts/...                                  # utility scripts (dependency plotting, etc.)
-├── pyproject.toml                               # project metadata and tooling config
+├── config/...                                        # configuration files and Docker setup
+├── Makefile                                          # development task automation
+├── scripts/...                                       # utility scripts (dependency plotting, etc.)
+├── pyproject.toml                                    # project metadata and tooling config
 └── src/
-    ├── run.py                                   # application entry point
+    ├── run.py                                        # application entry point
     │
-    ├── domain/                                  # DOMAIN LAYER - Core business logic
-    │   │                                        # (NO external dependencies)
-    │   ├── user/                                # User aggregate (bounded context)
-    │   │   ├── entity.py                        # User aggregate root
-    │   │   ├── value_objects.py                 # UserId, Username, UserPasswordHash, RawPassword
-    │   │   ├── events.py                        # UserCreated, UserActivated, UserRoleChanged, etc.
-    │   │   ├── enums.py                         # UserRole enum
-    │   │   ├── services.py                      # Domain services + permission framework
-    │   │   ├── repository.py                    # UserRepository interface (DRIVEN PORT)
-    │   │   ├── ports.py                         # PasswordHasher, IdentityProvider, AccessRevoker
-    │   │   └── errors.py                        # Domain exceptions
+    ├── account/                                      # ACCOUNT BOUNDED CONTEXT
+    │   ├── domain/account/                           # Domain layer (NO external dependencies)
+    │   │   ├── entity.py                             # Account aggregate root
+    │   │   ├── value_objects.py                      # Email, AccountPasswordHash, RawPassword
+    │   │   ├── events.py                             # AccountCreated, AccountActivated, etc.
+    │   │   ├── enums.py                              # AccountRole enum (USER, ADMIN, SUPER_ADMIN)
+    │   │   ├── services.py                           # AccountService + permission framework
+    │   │   ├── repository.py                         # AccountRepository interface (DRIVEN PORT)
+    │   │   ├── ports.py                              # PasswordHasher, AccessRevoker, AccountIdGenerator
+    │   │   └── errors.py                             # Domain exceptions
     │   │
-    │   └── shared/                              # Shared domain building blocks
-    │       ├── aggregate_root.py                # Base aggregate root class
-    │       ├── domain_event.py                  # Base domain event class
-    │       ├── entity.py                        # Base entity classes
-    │       ├── value_object.py                  # Base value object classes
-    │       ├── queries.py                       # Shared query types
-    │       └── errors.py                        # Common domain exceptions
+    │   ├── application/                              # Application layer (use cases)
+    │   │   ├── sign_up/                              # Sign up → returns token pair
+    │   │   ├── log_in/                               # Log in → returns token pair
+    │   │   ├── refresh_token/                        # Refresh → rotates token pair
+    │   │   ├── change_password/                      # Change own password
+    │   │   ├── current_account/                      # Get current account info
+    │   │   ├── create_account/                       # Admin creates account
+    │   │   ├── list_accounts/                        # Admin lists accounts
+    │   │   ├── set_account_password/                 # Admin sets account password
+    │   │   ├── grant_admin/                          # Super admin grants admin role
+    │   │   ├── revoke_admin/                         # Super admin revokes admin role
+    │   │   ├── activate_account/                     # Admin activates account
+    │   │   ├── deactivate_account/                   # Admin deactivates account
+    │   │   └── shared/                               # AccountUnitOfWork, AuthUnitOfWork, TokenPairIssuer
+    │   │
+    │   └── infrastructure/                           # Infrastructure layer (adapters)
+    │       ├── http/
+    │       │   ├── controllers/                      # One controller per use case
+    │       │   ├── routers/account_router.py         # /accounts prefix, combines sub-routers
+    │       │   └── schemas/                          # TokenResponse, RefreshRequest
+    │       ├── persistence/
+    │       │   ├── sqla_account_repository.py        # SqlaAccountRepository
+    │       │   ├── sqla_account_unit_of_work.py      # SqlaAccountUnitOfWork
+    │       │   ├── sqla_auth_unit_of_work.py         # SqlaAuthUnitOfWork
+    │       │   └── mappers/account.py                # accounts_table + imperative mapping
+    │       ├── security/                             # Bcrypt hasher, JWT, token service, ID generators
+    │       └── events/handlers/                      # Account event handlers
     │
-    ├── application/                             # APPLICATION LAYER - Use cases
-    │   │                                        # (Orchestrates domain + infrastructure)
-    │   ├── log_in/                              # Log in use case → returns token pair
-    │   │   ├── handler.py                       # LogInHandler
-    │   │   ├── command.py                       # LogInCommand, LogInResult
-    │   │   └── port.py                          # LogInUseCase interface (DRIVER PORT)
+    ├── core/                                         # CORE BOUNDED CONTEXT
+    │   ├── domain/profile/                           # Domain layer
+    │   │   ├── entity.py                             # Profile aggregate root
+    │   │   ├── value_objects.py                      # ProfileId, Username
+    │   │   ├── events.py                             # ProfileCreated, UsernameChanged
+    │   │   ├── repository.py                         # ProfileRepository interface
+    │   │   ├── ports.py                              # ProfileIdGenerator
+    │   │   └── errors.py                             # Domain exceptions
     │   │
-    │   ├── refresh_token/                       # Refresh token use case → rotates token pair
-    │   │   ├── handler.py                       # RefreshTokenHandler
-    │   │   ├── command.py                       # RefreshTokenCommand, RefreshTokenResult
-    │   │   └── port.py                          # RefreshTokenUseCase interface
+    │   ├── application/                              # Application layer (use cases)
+    │   │   ├── get_my_profile/                       # Get authenticated user's profile
+    │   │   ├── set_username/                         # Set/update username
+    │   │   ├── list_profiles/                        # List all profiles
+    │   │   └── shared/                               # CoreUnitOfWork
     │   │
-    │   ├── sign_up/                             # Sign up use case
-    │   │   ├── handler.py                       # SignUpHandler
-    │   │   ├── command.py                       # SignUpCommand DTO
-    │   │   └── port.py                          # SignUpUseCase interface (DRIVER PORT)
-    │   │
-    │   ├── create_user/                         # Create user use case
-    │   │   ├── handler.py
-    │   │   ├── command.py
-    │   │   └── port.py
-    │   │
-    │   ├── activate_user/                       # Activate user use case
-    │   ├── deactivate_user/                     # Deactivate user use case
-    │   ├── grant_admin/                         # Grant admin use case
-    │   ├── revoke_admin/                        # Revoke admin use case
-    │   ├── set_user_password/                   # Set password use case
-    │   ├── change_password/                     # Change password use case
-    │   ├── list_users/                          # List users use case
-    │   ├── current_user/                        # Current user query
-    │   │
-    │   └── shared/                              # Shared application layer
-    │       ├── unit_of_work.py                  # Transaction abstraction
-    │       ├── event_dispatcher.py              # EventDispatcher protocol
-    │       ├── token_pair_issuer.py             # TokenPairIssuer protocol
-    │       └── token_pair_refresher.py          # TokenPairRefresher protocol
+    │   └── infrastructure/                           # Infrastructure layer (adapters)
+    │       ├── http/controllers/, routers/            # Profile endpoints
+    │       ├── persistence/                          # SqlaProfileRepository + mapper
+    │       ├── security/                             # ProfileIdGenerator
+    │       └── events/handlers/                      # CreateProfileOnAccountCreated
     │
-    └── infrastructure/                          # INFRASTRUCTURE LAYER - Adapters
-        │                                        # (External systems and frameworks)
-        ├── http/                                # REST adapters (DRIVER ADAPTERS)
-        │   ├── controllers/                     # HTTP request handlers
-        │   │   ├── account/                     # Account-related endpoints
-        │   │   │   ├── log_in.py                # POST /login → TokenResponse
-        │   │   │   ├── sign_up.py               # POST /signup
-        │   │   │   ├── refresh.py               # POST /refresh → TokenResponse
-        │   │   │   └── change_password.py       # PUT /password
-        │   │   └── user/                        # User-related endpoints
-        │   │       ├── create_user.py
-        │   │       ├── activate_user.py
-        │   │       ├── deactivate_user.py
-        │   │       ├── grant_admin.py
-        │   │       ├── revoke_admin.py
-        │   │       ├── set_user_password.py
-        │   │       └── list_users.py
-        │   ├── routers/                         # FastAPI routers
-        │   │   ├── account_router.py
-        │   │   ├── user_router.py
-        │   │   ├── api_v1_router.py
-        │   │   └── root_router.py
-        │   ├── schemas/                         # Response/request schemas
-        │   │   ├── token_response.py            # TokenResponse (access + refresh + expires_in)
-        │   │   └── refresh_request.py           # RefreshRequest
-        │   ├── middleware/                       # HTTP middleware
-        │   └── errors/                          # Error translators, handlers
+    └── shared/                                       # SHARED KERNEL
+        ├── domain/                                   # Shared domain building blocks
+        │   ├── entity.py                             # Base Entity[T]
+        │   ├── aggregate_root.py                     # AggregateRoot[T] + event management
+        │   ├── value_object.py                       # Base ValueObject (frozen dataclass)
+        │   ├── domain_event.py                       # DomainEvent base
+        │   ├── account_id.py                         # AccountId (shared across contexts)
+        │   ├── authorization.py                      # Permission framework (Permission, authorize())
+        │   ├── errors.py                             # Shared exceptions
+        │   ├── queries.py                            # OffsetPaginationParams, SortingParams
+        │   └── ports/identity_provider.py            # IdentityProvider protocol
         │
-        ├── persistence/                         # Database adapters (DRIVEN ADAPTERS)
-        │   ├── sqla_user_repository.py          # SqlaUserRepository (implements UserRepository)
-        │   ├── sqla_refresh_token_repository.py # SqlaRefreshTokenRepository
-        │   ├── sqla_unit_of_work.py             # SqlaUnitOfWork
-        │   ├── mappers/                         # Entity-to-model mappers
-        │   │   ├── user.py                      # User entity <-> users table
-        │   │   └── refresh_token.py             # RefreshToken <-> refresh_tokens table
-        │   └── ...                              # registry, constants, types
+        ├── application/                              # Shared application protocols
+        │   ├── event_dispatcher.py                   # EventDispatcher protocol
+        │   └── event_handler.py                      # EventHandler[E] protocol
         │
-        ├── security/                            # Security implementations
-        │   ├── password_hasher_bcrypt.py         # BcryptPasswordHasher (HMAC pepper + bcrypt)
-        │   ├── access_token_processor_jwt.py     # JwtAccessTokenProcessor (JWT encode/decode)
-        │   ├── refresh_token_service.py          # RefreshTokenService (TokenPairIssuer + Refresher)
-        │   ├── refresh_token.py                  # RefreshToken dataclass
-        │   ├── refresh_token_repository.py       # RefreshTokenRepository protocol
-        │   ├── refresh_token_id_generator.py     # StrRefreshTokenIdGenerator (secrets.token_urlsafe)
-        │   ├── identity_provider.py              # JwtBearerIdentityProvider (Bearer auth)
-        │   ├── access_revoker.py                 # RefreshTokenAccessRevoker
-        │   └── user_id_generator_uuid.py         # UuidUserIdGenerator
-        │
-        ├── events/                              # Event handling infrastructure
-        │   └── in_process_dispatcher.py         # InProcessEventDispatcher
-        │
-        └── config/                              # Application configuration
-            ├── app_factory.py                   # FastAPI app factory
-            ├── di/                              # Dependency injection (Dishka)
-            │   ├── provider_registry.py         # Provider registry
-            │   ├── domain.py                    # Domain service providers
-            │   ├── application.py               # Application service providers
-            │   ├── infrastructure.py            # Infrastructure providers
-            │   └── settings.py                  # Settings providers
-            └── settings/                        # Settings management
-                ├── app_settings.py              # AppSettings
-                ├── loader.py                    # Config file loader
-                ├── database.py                  # Database settings
-                ├── security.py                  # AuthSettings + PasswordSettings
-                └── logs.py                      # Logging configuration
+        └── infrastructure/                           # Shared infrastructure
+            ├── config/
+            │   ├── app_factory.py                    # FastAPI app factory + table mapping
+            │   ├── di/                               # Dishka DI providers
+            │   │   ├── provider_registry.py          # get_providers()
+            │   │   ├── domain.py                     # AccountDomainProvider, CoreDomainProvider
+            │   │   ├── application.py                # AccountApplicationProvider, CoreApplicationProvider
+            │   │   ├── infrastructure.py             # Infrastructure providers
+            │   │   ├── events.py                     # EventHandlerProvider (auto-discovery)
+            │   │   └── settings.py                   # SettingsProvider
+            │   └── settings/                         # Config models (AppSettings, database, security)
+            ├── http/
+            │   ├── routers/api_v1_router.py          # /api/v1 root (accounts + profiles + health)
+            │   ├── controllers/health.py             # Health check endpoint
+            │   ├── errors/                           # Error translators, callbacks
+            │   └── middleware/                        # OpenAPI Bearer token marker
+            ├── persistence/                          # Registry, types, constants
+            ├── events/
+            │   ├── dispatcher.py                     # InProcessEventDispatcher
+            │   └── registry.py                       # Handler auto-discovery
+            └── security/identity_provider.py         # JwtIdentityProvider
 ```
 
 ### Key Architecture Patterns
 
-**Layer-Based DDD:**
-- Business logic organized into **aggregates** (User) representing bounded contexts
-- Each aggregate defines a **consistency boundary** for transactions
+**Bounded-Context DDD:**
+- Codebase organized into **bounded contexts** (`account/`, `core/`, `shared/`)
+- Each context contains its own domain, application, and infrastructure layers
+- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username, display data)
+- Cross-context communication via **domain events** (no direct domain imports)
 - Authentication (JWT + refresh tokens) is an infrastructure concern, not a domain aggregate
-- Clear separation: Domain → Application → Infrastructure
-- Dependencies flow inward: Infrastructure depends on Application depends on Domain
 
 **Aggregate Structure:**
-- **Aggregate Root**: Entry point for all operations (User entity)
-- **Domain Events**: Record state changes (UserCreated, UserActivated)
-- **Value Objects**: Immutable business types (UserId, Username)
+- **Aggregate Root**: Entry point for all operations (Account entity, Profile entity)
+- **Domain Events**: Record state changes (AccountCreated, ProfileCreated)
+- **Value Objects**: Immutable business types (AccountId, Email, Username)
 - **Repository Interfaces**: Persistence abstractions defined in domain
-- **Domain Services**: Stateless business logic
+- **Domain Services**: Stateless business logic (AccountService)
 
 **Application Layer (Use Cases):**
 - **Command**: Input DTO for use case (LogInCommand)
@@ -1721,11 +1695,6 @@ The project includes a comprehensive Makefile for automating common development 
 
 ## API
 
-<p align="center">
-  <img src="docs/handlers.png" alt="Handlers" />
-  <br><em>Figure 14: Handlers</em>
-</p>
-
 ### General
 
 - `/` (GET): Open to **everyone**.
@@ -1733,14 +1702,15 @@ The project includes a comprehensive Makefile for automating common development 
 - `/api/v1/health` (GET): Open to **everyone**.
   - Returns `200 OK` if the API is alive.
 
-### Account (`/api/v1/account`)
+### Accounts (`/api/v1/accounts`)
 
 - `/signup` (POST): Open to **everyone**.
-  - Registers a new user with validation and uniqueness checks.
+  - Registers a new account with email validation and uniqueness checks.
   - Passwords are peppered (HMAC-SHA384), salted, and stored as bcrypt hashes.
   - Returns a JWT access token and refresh token upon successful registration.
+  - Automatically creates a Profile in the Core BC via `AccountCreated` event.
 - `/login` (POST): Open to **everyone**.
-  - Authenticates a registered user by verifying credentials.
+  - Authenticates a registered account by verifying email and password.
   - Returns a JWT access token (short-lived) and a refresh token (long-lived,
     stored server-side).
   - Access tokens are stateless and verified cryptographically.
@@ -1752,36 +1722,45 @@ The project includes a comprehensive Makefile for automating common development 
 - `/password` (PUT): Open to **authenticated users**.
   - The current user can change their password.
   - New password must differ from current password.
-
-### Users (`/api/v1/users`)
-
+- `/me` (GET): Open to **authenticated users**.
+  - Returns the current account's information (id, email, role, is_active).
 - `/` (POST): Open to **admins**.
-  - Creates a new user, including admins, if the username is unique.
+  - Creates a new account, including admins, if the email is unique.
   - Only super admins can create new admins.
+  - Returns the new account's `account_id`.
 - `/` (GET): Open to **admins**.
-  - Retrieves a paginated list of existing users with relevant information.
-- `/{user_id}/password` (PUT): Open to **admins**.
-  - Admins can set passwords of subordinate users.
-- `/{user_id}/roles/admin` (PUT): Open to **super admins**.
-  - Grants admin rights to a specified user.
+  - Retrieves a paginated list of existing accounts with relevant information.
+- `/{account_id}/password` (PUT): Open to **admins**.
+  - Admins can set passwords of subordinate accounts.
+- `/{account_id}/roles/admin` (PUT): Open to **super admins**.
+  - Grants admin rights to a specified account.
   - Super admin rights cannot be changed.
-- `/{user_id}/roles/admin` (DELETE): Open to **super admins**.
-  - Revokes admin rights from a specified user.
+- `/{account_id}/roles/admin` (DELETE): Open to **super admins**.
+  - Revokes admin rights from a specified account.
   - Super admin rights cannot be changed.
-- `/{user_id}/activation` (PUT): Open to **admins**.
-  - Restores a previously soft-deleted user.
+- `/{account_id}/activation` (PUT): Open to **admins**.
+  - Restores a previously soft-deleted account.
   - Only super admins can activate other admins.
-- `/{user_id}/activation` (DELETE): Open to **admins**.
-  - Soft-deletes an existing user, making that user inactive.
-  - Also revokes all of the user's refresh tokens.
+- `/{account_id}/activation` (DELETE): Open to **admins**.
+  - Soft-deletes an existing account, making it inactive.
+  - Also revokes all of the account's refresh tokens.
   - Only super admins can deactivate other admins.
   - Super admins cannot be soft-deleted.
+
+### Profiles (`/api/v1/profiles`)
+
+- `/me` (GET): Open to **authenticated users**.
+  - Returns the current user's profile (profile_id, account_id, username).
+- `/me/username` (PUT): Open to **authenticated users**.
+  - Sets or updates the current user's username.
+  - Username must be unique, 5-20 characters.
+- `/` (GET): Open to **admins**.
+  - Retrieves a paginated list of all profiles.
 
 > [!NOTE]
 >
 > - Super admin privileges must be initially granted manually (e.g., directly in
->   the database), though the user account itself can be created through the
->   API.
+>   the database), though the account itself can be created through the API.
 
 ## Configuration
 
@@ -1834,7 +1813,7 @@ https://github.com/ivan-borovets/toml-config-manager
 
 <p align="center">
   <img src="docs/toml_config_manager.svg" alt="Configuration flow" />
-  <br><em>Figure 15: Configuration flow </em>
+  <br><em>Figure 14: Configuration flow </em>
   <br><small>Here, the arrows represent usage flow, <b>not dependencies.</b></small>
 </p>
 
@@ -1847,7 +1826,7 @@ https://github.com/ivan-borovets/toml-config-manager
   defaults.
 - If you want to adjust settings, edit the existing TOML files in
   `config/local/` directly.\
-  `.env.local` will be generated automatically — **don’t** create or edit it
+  `.env.local` will be generated automatically — **don't** create or edit it
   manually.
 - Docker Compose in this project is already configured with `APP_ENV`.\
   Just keep in mind this variable if you change the setup:
@@ -1871,7 +1850,7 @@ export APP_ENV=local
 3. Check it and generate `.env`
 
 ```shell
-# Probably you'll need Python 3.13 installed on your system to run these commands. 
+# Probably you'll need Python 3.13 installed on your system to run these commands.
 # The next code section provides commands for its fast installation.
 make env  # should print APP_ENV=local
 make dotenv  # should tell you where .env.local was generated

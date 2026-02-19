@@ -2,8 +2,10 @@ import uuid
 from dataclasses import dataclass
 from uuid import UUID
 
-from domain.shared.value_object import ValueObject
-from domain.user.value_objects import RawPassword, UserId, Username, UserPasswordHash
+from account.domain.account.value_objects import AccountPasswordHash, Email, RawPassword
+from core.domain.profile.value_objects import ProfileId, Username
+from shared.domain.account_id import AccountId
+from shared.domain.value_object import ValueObject
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -25,17 +27,25 @@ def create_multi_field_vo(value1: int = 1, value2: str = "Alice") -> MultiFieldV
     return MultiFieldVO(value1, value2)
 
 
-def create_user_id(value: UUID | None = None) -> UserId:
-    return UserId(value if value else uuid.uuid4())
+def create_account_id(value: UUID | None = None) -> AccountId:
+    return AccountId(value if value else uuid.uuid4())
 
 
-def create_username(value: str = "Alice") -> Username:
-    return Username(value)
+def create_email(value: str = "alice@example.com") -> Email:
+    return Email(value)
 
 
 def create_raw_password(value: str = "Good Password") -> RawPassword:
     return RawPassword(value)
 
 
-def create_password_hash(value: bytes = b"password_hash") -> UserPasswordHash:
-    return UserPasswordHash(value)
+def create_password_hash(value: bytes = b"password_hash") -> AccountPasswordHash:
+    return AccountPasswordHash(value)
+
+
+def create_profile_id(value: UUID | None = None) -> ProfileId:
+    return ProfileId(value if value else uuid.uuid4())
+
+
+def create_username(value: str = "alice123") -> Username:
+    return Username(value)

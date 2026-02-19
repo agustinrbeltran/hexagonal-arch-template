@@ -116,7 +116,7 @@ down.db:
 	@$(SUPABASE) stop
 
 reset.db:
-	@$(SUPABASE) reset
+	@$(SUPABASE) db reset
 
 logs.db:
 	@$(DOCKER) logs -f $(SUPABASE_DB_CONTAINER)
