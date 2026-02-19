@@ -1,16 +1,34 @@
-from sqlalchemy import UUID, Boolean, Column, Enum, LargeBinary, String, Table
-from sqlalchemy.orm import composite
+from dataclasses import dataclass
+from uuid import UUID
 
-from account.domain.account.entity import Account
+from sqlalchemy import (
+    UUID as SA_UUID,
+    Boolean,
+    Column,
+    Enum,
+    LargeBinary,
+    String,
+    Table,
+)
+
 from account.domain.account.enums import AccountRole
-from account.domain.account.value_objects import AccountPasswordHash, Email
-from shared.domain.account_id import AccountId
+from account.domain.account.value_objects import Email
 from shared.infrastructure.persistence.registry import mapper_registry
+
+
+@dataclass(eq=False, kw_only=True)
+class AccountRecord:
+    id: UUID
+    email: str
+    password_hash: bytes
+    role: AccountRole
+    is_active: bool
+
 
 accounts_table = Table(
     "accounts",
     mapper_registry.metadata,
-    Column("id", UUID(as_uuid=True), primary_key=True),
+    Column("id", SA_UUID(as_uuid=True), primary_key=True),
     Column("email", String(Email.MAX_LEN), nullable=False, unique=True),
     Column("password_hash", LargeBinary, nullable=False),
     Column(
@@ -24,18 +42,4 @@ accounts_table = Table(
 
 
 def map_accounts_table() -> None:
-    mapper_registry.map_imperatively(
-        Account,
-        accounts_table,
-        properties={
-            "id_": composite(AccountId, accounts_table.c.id),
-            "email": composite(Email, accounts_table.c.email),
-            "password_hash": composite(
-                AccountPasswordHash, accounts_table.c.password_hash
-            ),
-            "role": accounts_table.c.role,
-            "is_active": accounts_table.c.is_active,
-        },
-        exclude_properties=["_events"],
-        column_prefix="_",
-    )
+    mapper_registry.map_imperatively(AccountRecord, accounts_table)
