@@ -53,9 +53,11 @@ class RevokeAdminHandler(RevokeAdminUseCase):
         if account is None:
             raise AccountNotFoundByIdError(account_id)
 
-        if account.change_role(AccountRole.USER):
-            await self._account_unit_of_work.commit()
+        changed = account.change_role(AccountRole.USER)
 
         await self._event_dispatcher.dispatch(account.collect_events())
+
+        if changed:
+            await self._account_unit_of_work.commit()
 
         log.info("Revoke admin: done. Target account ID: '%s'.", account.id_.value)

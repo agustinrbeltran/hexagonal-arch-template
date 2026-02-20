@@ -57,12 +57,12 @@ class SignUpHandler(SignUpUseCase):
 
         self._account_repository.save(account)
 
+        await self._event_dispatcher.dispatch(account.collect_events())
+
         try:
             await self._account_unit_of_work.commit()
         except EmailAlreadyExistsError:
             raise
-
-        await self._event_dispatcher.dispatch(account.collect_events())
 
         log.info("Sign up: done. Email: '%s'.", account.email.value)
         return SignUpResponse(id=account.id_.value)

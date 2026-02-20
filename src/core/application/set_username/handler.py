@@ -38,8 +38,8 @@ class SetUsernameHandler(SetUsernameUseCase):
         username = Username(command.username)
         profile.set_username(username)
 
-        await self._core_unit_of_work.commit()
         await self._event_dispatcher.dispatch(profile.collect_events())
+        await self._core_unit_of_work.commit()
 
         log.info(
             "Set username: done. Profile ID: '%s', username: '%s'.",

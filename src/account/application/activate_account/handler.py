@@ -66,9 +66,11 @@ class ActivateAccountHandler(ActivateAccountUseCase):
             ),
         )
 
-        if account.activate():
-            await self._account_unit_of_work.commit()
+        changed = account.activate()
 
         await self._event_dispatcher.dispatch(account.collect_events())
+
+        if changed:
+            await self._account_unit_of_work.commit()
 
         log.info("Activate account: done. Target account ID: '%s'.", account.id_.value)
