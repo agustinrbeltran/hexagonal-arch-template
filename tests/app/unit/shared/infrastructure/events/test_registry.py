@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from dataclasses import dataclass
 
 import pytest
@@ -23,12 +24,12 @@ class _AnotherTestEvent(DomainEvent):
 
 
 @pytest.fixture(autouse=True)
-def _clean_registries() -> None:
+def _clean_registries() -> Generator[None]:
     # Save state
     saved_registry = dict(_registry)
     saved_type_registry = dict(_event_type_registry)
 
-    yield  # type: ignore[misc]
+    yield
 
     # Restore state
     _registry.clear()

@@ -101,6 +101,7 @@ class TestDeserializeEvent:
 
         restored = deserialize_event("AccountCreated", payload)
 
+        assert isinstance(restored, AccountCreated)
         assert isinstance(restored.account_id, UUID)
         assert restored.account_id == uid
 
@@ -128,6 +129,7 @@ class TestDeserializeEvent:
 
         restored = deserialize_event("AccountCreated", payload)
 
+        assert isinstance(restored, AccountCreated)
         assert isinstance(restored.role, AccountRole)
         assert restored.role == AccountRole.ADMIN
 

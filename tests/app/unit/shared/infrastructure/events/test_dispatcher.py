@@ -12,7 +12,7 @@ from shared.infrastructure.persistence.mappers.outbox import OutboxRecord
 
 @pytest.fixture
 def mock_session() -> MagicMock:
-    return create_autospec(AsyncSession, instance=True)
+    return create_autospec(AsyncSession, instance=True)  # type: ignore[no-any-return]
 
 
 @pytest.fixture

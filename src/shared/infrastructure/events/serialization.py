@@ -31,7 +31,7 @@ def deserialize_event(event_type: str, payload: str) -> DomainEvent:
         expected = hints.get(field_name)
         coerced[field_name] = _coerce(value, expected)
 
-    return event_cls(**coerced)
+    return event_cls(**coerced)  # type: ignore[arg-type]
 
 
 def _coerce(value: object, expected: type | None) -> object:
@@ -41,7 +41,7 @@ def _coerce(value: object, expected: type | None) -> object:
     origin = getattr(expected, "__origin__", None)
 
     if origin in _UNION_ORIGINS:
-        args = expected.__args__  # type: ignore[union-attr]
+        args = expected.__args__  # type: ignore[attr-defined]
         non_none = [a for a in args if a is not type(None)]
         if non_none:
             return _coerce(value, non_none[0])

@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
@@ -36,7 +37,7 @@ class _FailingHandler:
 
 
 @pytest.fixture(autouse=True)
-def _register_test_event():  # type: ignore[no-untyped-def]
+def _register_test_event() -> Generator[None]:
     saved_registry = dict(_registry)
     saved_type_registry = dict(_event_type_registry)
 
