@@ -27,6 +27,14 @@ make down.db                      # Stop DB
 make reset.db                     # Reset DB to initial state
 ```
 
+**Migration workflow** — `supabase/migrations/` is the canonical source of truth. Every schema change needs a local `.sql` file. The correct order when using the MCP tool:
+
+1. Apply via `apply_migration` (MCP generates a timestamp automatically)
+2. Call `list_migrations` to read back the assigned version number
+3. Create `supabase/migrations/<version>_<name>.sql` with the same SQL
+
+Never apply a migration via MCP without immediately writing the corresponding file.
+
 ### Code Quality
 ```bash
 make code.format                  # Format with ruff
@@ -112,3 +120,10 @@ Each bounded context owns its own domain, application, and infrastructure layers
 - **Tests**: unit tests in `tests/app/unit/{context}/`, factories in `tests/app/unit/factories/`, mock with `create_autospec()`, async tests use `@pytest.mark.asyncio`
 - **Linting**: ruff (format + lint), slotscheck, mypy (strict mode)
 - **Line length**: 88 chars (ruff)
+
+## Completion Checklist
+
+At the end of each implementation:
+
+1. If the change includes database/schema updates, verify a migration file was created in `supabase/migrations/`.
+2. Run `make code.check` before considering the implementation complete.

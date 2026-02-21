@@ -33,4 +33,7 @@ class GetMyProfileHandler(GetMyProfileUseCase):
             id=profile.id_.value,
             account_id=profile.account_id.value,
             username=profile.username.value if profile.username else None,
+            first_name=profile.first_name.value if profile.first_name else None,
+            last_name=profile.last_name.value if profile.last_name else None,
+            birth_date=profile.birth_date.value if profile.birth_date else None,
         )

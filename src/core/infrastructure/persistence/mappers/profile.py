@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import (
     UUID as SA_UUID,
     Column,
+    Date,
     ForeignKey,
     String,
     Table,
@@ -18,6 +20,9 @@ class ProfileRecord:
     id: UUID
     account_id: UUID
     username: str | None
+    first_name: str | None
+    last_name: str | None
+    birth_date: date | None
 
 
 profiles_table = Table(
@@ -32,6 +37,9 @@ profiles_table = Table(
         unique=True,
     ),
     Column("username", String(Username.MAX_LEN), nullable=True, unique=True),
+    Column("first_name", String(50), nullable=True),
+    Column("last_name", String(50), nullable=True),
+    Column("birth_date", Date, nullable=True),
 )
 
 

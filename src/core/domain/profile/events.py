@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from shared.domain.domain_event import DomainEvent
@@ -15,7 +16,23 @@ class ProfileCreated(DomainEvent):
 
 @register_event
 @dataclass(frozen=True, kw_only=True)
-class UsernameChanged(DomainEvent):
+class ProfileUpdated(DomainEvent):
     profile_id: UUID
+    old_first_name: str | None
+    new_first_name: str | None
+    old_last_name: str | None
+    new_last_name: str | None
+    old_birth_date: date | None
+    new_birth_date: date | None
     old_username: str | None
-    new_username: str
+    new_username: str | None
+
+
+@register_event
+@dataclass(frozen=True, kw_only=True)
+class ProfilePatchApplied(DomainEvent):
+    profile_id: UUID
+    first_name: tuple[str | None, str | None] | None = None
+    last_name: tuple[str | None, str | None] | None = None
+    birth_date: tuple[date | None, date | None] | None = None
+    username: tuple[str | None, str | None] | None = None
