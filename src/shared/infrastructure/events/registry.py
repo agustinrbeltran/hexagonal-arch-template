@@ -13,6 +13,12 @@ _registry: dict[type[DomainEvent], list[type]] = defaultdict(list)
 _event_type_registry: dict[str, type[DomainEvent]] = {}
 
 
+def register_event[T: DomainEvent](cls: type[T]) -> type[T]:
+    _event_type_registry[cls.__name__] = cls
+    log.debug("Registered event type %s", cls.__name__)
+    return cls
+
+
 def handles[T](*event_types: type[DomainEvent]) -> Callable[[type[T]], type[T]]:
     def decorator(cls: type[T]) -> type[T]:
         for event_type in event_types:

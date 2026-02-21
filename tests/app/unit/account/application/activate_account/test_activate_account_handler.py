@@ -70,7 +70,7 @@ async def test_already_active_skips_commit() -> None:
     await sut.execute(command)
 
     cast(AsyncMock, account_unit_of_work.commit).assert_not_awaited()
-    cast(AsyncMock, event_dispatcher.dispatch).assert_awaited_once()
+    cast(AsyncMock, event_dispatcher.dispatch).assert_not_awaited()
 
 
 @pytest.mark.asyncio

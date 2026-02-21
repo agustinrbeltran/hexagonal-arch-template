@@ -35,7 +35,7 @@ class SqlaProfileRepository(ProfileRepository):
         """:raises DataMapperError:"""
         try:
             record = ProfileConverter.to_record(profile)
-            self._session.add(record)
+            self._session.sync_session.merge(record)
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 

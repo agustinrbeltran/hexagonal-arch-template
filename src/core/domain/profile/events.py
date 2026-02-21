@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from shared.domain.domain_event import DomainEvent
+from shared.infrastructure.events.registry import register_event
 
 
+@register_event
 @dataclass(frozen=True, kw_only=True)
 class ProfileCreated(DomainEvent):
     profile_id: UUID
@@ -11,6 +13,7 @@ class ProfileCreated(DomainEvent):
     username: str | None
 
 
+@register_event
 @dataclass(frozen=True, kw_only=True)
 class UsernameChanged(DomainEvent):
     profile_id: UUID

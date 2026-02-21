@@ -10,6 +10,7 @@ from shared.infrastructure.events.registry import (
     get_event_class,
     get_handlers_for,
     handles,
+    register_event,
 )
 
 
@@ -92,3 +93,29 @@ class TestGetEventClass:
 class TestGetHandlersFor:
     def test_returns_empty_for_unregistered_event(self) -> None:
         assert get_handlers_for(_AnotherTestEvent) == []
+
+
+class TestRegisterEvent:
+    def test_get_event_class_returns_registered_class(self) -> None:
+        @register_event
+        @dataclass(frozen=True, kw_only=True)
+        class _RegisteredEvent(DomainEvent):
+            pass
+
+        assert get_event_class("_RegisteredEvent") is _RegisteredEvent
+
+    def test_get_handlers_for_returns_empty_list(self) -> None:
+        @register_event
+        @dataclass(frozen=True, kw_only=True)
+        class _HandlerlessEvent(DomainEvent):
+            pass
+
+        assert get_handlers_for(_HandlerlessEvent) == []
+
+    def test_returns_the_class_unchanged(self) -> None:
+        @register_event
+        @dataclass(frozen=True, kw_only=True)
+        class _ReturnedEvent(DomainEvent):
+            pass
+
+        assert _ReturnedEvent.__name__ == "_ReturnedEvent"

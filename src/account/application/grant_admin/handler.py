@@ -54,7 +54,7 @@ class GrantAdminHandler(GrantAdminUseCase):
             raise AccountNotFoundByIdError(account_id)
 
         changed = account.change_role(AccountRole.ADMIN)
-    
+
         if not changed:
             return
 

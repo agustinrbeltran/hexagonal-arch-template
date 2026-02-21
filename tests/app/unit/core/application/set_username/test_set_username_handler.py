@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock, create_autospec
+from unittest.mock import AsyncMock, MagicMock, create_autospec
 
 import pytest
 
@@ -93,3 +93,31 @@ async def test_for_update_forwarded_to_repo() -> None:
     cast(AsyncMock, profile_repository.get_by_account_id).assert_awaited_once_with(
         account_id, for_update=True
     )
+
+
+@pytest.mark.asyncio
+async def test_save_is_called_with_updated_profile() -> None:
+    identity_provider = create_autospec(IdentityProvider, instance=True)
+    profile_repository = create_autospec(ProfileRepository, instance=True)
+    core_unit_of_work = create_autospec(CoreUnitOfWork, instance=True)
+    event_dispatcher = create_autospec(EventDispatcher, instance=True)
+
+    account_id = create_account_id()
+    profile = create_profile(account_id=account_id, username=None)
+    command = SetUsernameCommand(username="newuser1")
+
+    cast(AsyncMock, identity_provider.get_current_account_id).return_value = account_id
+    cast(AsyncMock, profile_repository.get_by_account_id).return_value = profile
+
+    sut = SetUsernameHandler(
+        identity_provider=cast(IdentityProvider, identity_provider),
+        profile_repository=cast(ProfileRepository, profile_repository),
+        core_unit_of_work=cast(CoreUnitOfWork, core_unit_of_work),
+        event_dispatcher=cast(EventDispatcher, event_dispatcher),
+    )
+
+    await sut.execute(command)
+
+    cast(MagicMock, profile_repository.save).assert_called_once_with(profile)
+    assert profile.username is not None
+    assert profile.username.value == "newuser1"
