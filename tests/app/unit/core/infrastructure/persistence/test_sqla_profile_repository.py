@@ -12,8 +12,7 @@ from tests.app.unit.factories.profile_entity import create_profile
 
 
 def _make_session() -> AsyncMock:
-    session = create_autospec(AsyncSession, instance=True)
-    return session
+    return cast(AsyncMock, create_autospec(AsyncSession, instance=True))
 
 
 class TestSqlaProfileRepositorySave:
