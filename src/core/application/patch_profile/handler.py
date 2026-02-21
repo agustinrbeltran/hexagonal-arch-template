@@ -8,7 +8,7 @@ from core.domain.profile.repository import ProfileRepository
 from core.domain.profile.value_objects import BirthDate, FirstName, LastName, Username
 from shared.application.event_dispatcher import EventDispatcher
 from shared.domain.ports.identity_provider import IdentityProvider
-from shared.domain.unset import UNSET, _Unset
+from shared.domain.unset import UNSET, Unset
 
 log = logging.getLogger(__name__)
 
@@ -36,37 +36,27 @@ class PatchProfileHandler(PatchProfileUseCase):
         if profile is None:
             raise ProfileNotFoundByAccountIdError(account_id)
 
-        first_name: FirstName | None | _Unset
-        if isinstance(command.first_name, _Unset):
-            first_name = UNSET
-        elif command.first_name is None:
-            first_name = None
-        else:
-            first_name = FirstName(command.first_name)
+        first_name: FirstName | Unset | None = UNSET
+        if not isinstance(command.first_name, Unset):
+            first_name = (
+                None if command.first_name is None else FirstName(command.first_name)
+            )
 
-        last_name: LastName | None | _Unset
-        if isinstance(command.last_name, _Unset):
-            last_name = UNSET
-        elif command.last_name is None:
-            last_name = None
-        else:
-            last_name = LastName(command.last_name)
+        last_name: LastName | Unset | None = UNSET
+        if not isinstance(command.last_name, Unset):
+            last_name = (
+                None if command.last_name is None else LastName(command.last_name)
+            )
 
-        birth_date: BirthDate | None | _Unset
-        if isinstance(command.birth_date, _Unset):
-            birth_date = UNSET
-        elif command.birth_date is None:
-            birth_date = None
-        else:
-            birth_date = BirthDate(command.birth_date)
+        birth_date: BirthDate | Unset | None = UNSET
+        if not isinstance(command.birth_date, Unset):
+            birth_date = (
+                None if command.birth_date is None else BirthDate(command.birth_date)
+            )
 
-        username: Username | None | _Unset
-        if isinstance(command.username, _Unset):
-            username = UNSET
-        elif command.username is None:
-            username = None
-        else:
-            username = Username(command.username)
+        username: Username | Unset | None = UNSET
+        if not isinstance(command.username, Unset):
+            username = None if command.username is None else Username(command.username)
 
         profile.apply_patch(
             first_name=first_name,

@@ -1,6 +1,10 @@
 from datetime import date
 
-from core.domain.profile.events import ProfileCreated, ProfilePatchApplied, ProfileUpdated
+from core.domain.profile.events import (
+    ProfileCreated,
+    ProfilePatchApplied,
+    ProfileUpdated,
+)
 from core.domain.profile.value_objects import (
     BirthDate,
     FirstName,
@@ -10,7 +14,7 @@ from core.domain.profile.value_objects import (
 )
 from shared.domain.account_id import AccountId
 from shared.domain.aggregate_root import AggregateRoot
-from shared.domain.unset import UNSET, _Unset
+from shared.domain.unset import UNSET, Unset
 
 
 class Profile(AggregateRoot[ProfileId]):
@@ -103,38 +107,38 @@ class Profile(AggregateRoot[ProfileId]):
     def apply_patch(
         self,
         *,
-        first_name: FirstName | None | _Unset = UNSET,
-        last_name: LastName | None | _Unset = UNSET,
-        birth_date: BirthDate | None | _Unset = UNSET,
-        username: Username | None | _Unset = UNSET,
+        first_name: FirstName | Unset | None = UNSET,
+        last_name: LastName | Unset | None = UNSET,
+        birth_date: BirthDate | Unset | None = UNSET,
+        username: Username | Unset | None = UNSET,
     ) -> bool:
         first_name_delta: tuple[str | None, str | None] | None = None
         last_name_delta: tuple[str | None, str | None] | None = None
         birth_date_delta: tuple[date | None, date | None] | None = None
         username_delta: tuple[str | None, str | None] | None = None
 
-        if not isinstance(first_name, _Unset) and first_name != self.first_name:
+        if not isinstance(first_name, Unset) and first_name != self.first_name:
             first_name_delta = (
                 self.first_name.value if self.first_name else None,
                 first_name.value if first_name else None,
             )
             self.first_name = first_name
 
-        if not isinstance(last_name, _Unset) and last_name != self.last_name:
+        if not isinstance(last_name, Unset) and last_name != self.last_name:
             last_name_delta = (
                 self.last_name.value if self.last_name else None,
                 last_name.value if last_name else None,
             )
             self.last_name = last_name
 
-        if not isinstance(birth_date, _Unset) and birth_date != self.birth_date:
+        if not isinstance(birth_date, Unset) and birth_date != self.birth_date:
             birth_date_delta = (
                 self.birth_date.value if self.birth_date else None,
                 birth_date.value if birth_date else None,
             )
             self.birth_date = birth_date
 
-        if not isinstance(username, _Unset) and username != self.username:
+        if not isinstance(username, Unset) and username != self.username:
             username_delta = (
                 self.username.value if self.username else None,
                 username.value if username else None,

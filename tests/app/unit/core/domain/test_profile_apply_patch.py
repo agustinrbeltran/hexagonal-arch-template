@@ -12,9 +12,7 @@ def test_apply_patch_partial_mutation_only_provided_fields() -> None:
     ln = LastName("Smith")
     bd = BirthDate(date(1990, 6, 15))
     uname = create_username("alice_s123")
-    profile = create_profile(
-        username=uname, first_name=fn, last_name=ln, birth_date=bd
-    )
+    profile = create_profile(username=uname, first_name=fn, last_name=ln, birth_date=bd)
 
     result = profile.apply_patch(first_name=FirstName("Andres"))
 

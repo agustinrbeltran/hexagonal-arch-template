@@ -5,6 +5,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
+from fastapi_error_map.rules import Rule
 from pydantic import BaseModel
 
 from core.application.patch_profile.command import PatchProfileCommand
@@ -30,7 +31,7 @@ class UpdateProfileBody(BaseModel):
     username: str | None = None
 
 
-_PROFILE_ERROR_MAP = {
+_PROFILE_ERROR_MAP: dict[type[Exception], int | Rule] = {
     AuthenticationError: status.HTTP_401_UNAUTHORIZED,
     ProfileNotFoundByAccountIdError: status.HTTP_404_NOT_FOUND,
     DomainTypeError: status.HTTP_400_BAD_REQUEST,

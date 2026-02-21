@@ -3,9 +3,11 @@ Unit tests for the PATCH /profiles/me controller logic.
 Verifies that PatchProfileCommand is built correctly using model_fields_set.
 """
 
+from datetime import date
+
 from core.application.patch_profile.command import PatchProfileCommand
 from core.infrastructure.http.controllers.update_profile import UpdateProfileBody
-from shared.domain.unset import UNSET, _Unset
+from shared.domain.unset import UNSET, Unset
 
 
 def _build_patch_command(body: UpdateProfileBody) -> PatchProfileCommand:
@@ -25,9 +27,9 @@ def test_partial_body_only_provided_fields_in_command() -> None:
     command = _build_patch_command(body)
 
     assert command.first_name == "Andres"
-    assert isinstance(command.last_name, _Unset)
-    assert isinstance(command.birth_date, _Unset)
-    assert isinstance(command.username, _Unset)
+    assert isinstance(command.last_name, Unset)
+    assert isinstance(command.birth_date, Unset)
+    assert isinstance(command.username, Unset)
 
 
 def test_explicit_null_field_is_none_not_unset() -> None:
@@ -36,9 +38,9 @@ def test_explicit_null_field_is_none_not_unset() -> None:
     command = _build_patch_command(body)
 
     assert command.birth_date is None
-    assert isinstance(command.first_name, _Unset)
-    assert isinstance(command.last_name, _Unset)
-    assert isinstance(command.username, _Unset)
+    assert isinstance(command.first_name, Unset)
+    assert isinstance(command.last_name, Unset)
+    assert isinstance(command.username, Unset)
 
 
 def test_empty_body_all_fields_are_unset() -> None:
@@ -46,23 +48,19 @@ def test_empty_body_all_fields_are_unset() -> None:
 
     command = _build_patch_command(body)
 
-    assert isinstance(command.first_name, _Unset)
-    assert isinstance(command.last_name, _Unset)
-    assert isinstance(command.birth_date, _Unset)
-    assert isinstance(command.username, _Unset)
+    assert isinstance(command.first_name, Unset)
+    assert isinstance(command.last_name, Unset)
+    assert isinstance(command.birth_date, Unset)
+    assert isinstance(command.username, Unset)
 
 
 def test_full_body_all_fields_set() -> None:
-    from datetime import date
-
-    body = UpdateProfileBody.model_validate(
-        {
-            "first_name": "Andres",
-            "last_name": "Garcia",
-            "birth_date": "2000-01-01",
-            "username": "andres_g99",
-        }
-    )
+    body = UpdateProfileBody.model_validate({
+        "first_name": "Andres",
+        "last_name": "Garcia",
+        "birth_date": "2000-01-01",
+        "username": "andres_g99",
+    })
 
     command = _build_patch_command(body)
 

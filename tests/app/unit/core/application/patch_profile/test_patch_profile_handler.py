@@ -9,10 +9,9 @@ from core.application.patch_profile.handler import PatchProfileHandler
 from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
 from core.domain.profile.repository import ProfileRepository
-from core.domain.profile.value_objects import BirthDate, FirstName, LastName, Username
+from core.domain.profile.value_objects import BirthDate, FirstName, LastName
 from shared.application.event_dispatcher import EventDispatcher
 from shared.domain.ports.identity_provider import IdentityProvider
-from shared.domain.unset import UNSET
 from tests.app.unit.factories.profile_entity import create_profile
 from tests.app.unit.factories.value_objects import create_account_id, create_username
 

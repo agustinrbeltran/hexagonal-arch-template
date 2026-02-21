@@ -1,7 +1,7 @@
 from typing import Final
 
 
-class _Unset:
+class Unset:
     """Sentinel type to distinguish "field not provided" from None (explicit clear)."""
 
     __slots__ = ()
@@ -10,4 +10,4 @@ class _Unset:
         return "UNSET"
 
 
-UNSET: Final[_Unset] = _Unset()
+UNSET: Final[Unset] = Unset()
