@@ -1,4 +1,4 @@
-from core.domain.profile.events import ProfileCreated, ProfileUpdated, UsernameChanged
+from core.domain.profile.events import ProfileCreated, ProfileUpdated
 from core.domain.profile.value_objects import (
     BirthDate,
     FirstName,
@@ -55,20 +55,6 @@ class Profile(AggregateRoot[ProfileId]):
             )
         )
         return profile
-
-    def set_username(self, username: Username) -> bool:
-        if self.username == username:
-            return False
-        old_username = self.username.value if self.username else None
-        self.username = username
-        self._register_event(
-            UsernameChanged(
-                profile_id=self.id_.value,
-                old_username=old_username,
-                new_username=username.value,
-            )
-        )
-        return True
 
     def update(
         self,

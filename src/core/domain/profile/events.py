@@ -16,14 +16,6 @@ class ProfileCreated(DomainEvent):
 
 @register_event
 @dataclass(frozen=True, kw_only=True)
-class UsernameChanged(DomainEvent):
-    profile_id: UUID
-    old_username: str | None
-    new_username: str
-
-
-@register_event
-@dataclass(frozen=True, kw_only=True)
 class ProfileUpdated(DomainEvent):
     profile_id: UUID
     old_first_name: str | None
