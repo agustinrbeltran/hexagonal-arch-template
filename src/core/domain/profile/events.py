@@ -26,3 +26,13 @@ class ProfileUpdated(DomainEvent):
     new_birth_date: date | None
     old_username: str | None
     new_username: str | None
+
+
+@register_event
+@dataclass(frozen=True, kw_only=True)
+class ProfilePatchApplied(DomainEvent):
+    profile_id: UUID
+    first_name: tuple[str | None, str | None] | None = None
+    last_name: tuple[str | None, str | None] | None = None
+    birth_date: tuple[date | None, date | None] | None = None
+    username: tuple[str | None, str | None] | None = None
