@@ -164,12 +164,14 @@ split-on-trailing-comma = true
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
     "ARG002", # unused-method-argument
+    "PLC2701", # private-import
     "PLC2801", # unnecessary-dunder-call
     "PLR2004", # magic-value-comparison
     "PT011", # pytest-raises-too-broad
     "S101", # assert
     "S106", # hardcoded-password-func-arg
     "S107", # hardcoded-password-default
+    "SLF001", # private-member-access
 ]
 #
 "src/infrastructure/security/password_hasher_bcrypt.py" = ["E501", ]               # line-too-long

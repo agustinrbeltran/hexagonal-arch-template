@@ -29,7 +29,7 @@ class CreateProfileHandler(CreateProfileUseCase):
         account_id = AccountId(command.account_id)
 
         profile = Profile.create(id_=profile_id, account_id=account_id)
-        self._profile_repository.save(profile)
+        await self._profile_repository.save(profile)
         await self._core_unit_of_work.commit()
 
         log.info(

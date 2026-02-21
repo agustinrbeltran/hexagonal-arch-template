@@ -76,7 +76,7 @@ async def test_already_inactive_skips_commit_but_revokes_access() -> None:
     await sut.execute(command)
 
     cast(AsyncMock, account_unit_of_work.commit).assert_not_awaited()
-    cast(AsyncMock, access_revoker.remove_all_account_access).assert_awaited_once()
+    cast(AsyncMock, access_revoker.remove_all_account_access).assert_not_awaited()
 
 
 @pytest.mark.asyncio

@@ -72,9 +72,9 @@ class SetAccountPasswordHandler(SetAccountPasswordUseCase):
         )
 
         await self._account_service.change_password(account, password)
-        await self._account_unit_of_work.commit()
-
+        await self._account_repository.save(account)
         await self._event_dispatcher.dispatch(account.collect_events())
+        await self._account_unit_of_work.commit()
 
         log.info(
             "Set account password: done. Target account ID: '%s'.", account.id_.value

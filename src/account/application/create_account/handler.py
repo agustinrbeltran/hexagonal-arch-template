@@ -53,14 +53,14 @@ class CreateAccountHandler(CreateAccountUseCase):
         password = RawPassword(command.password)
         account = await self._account_service.create(email, password, command.role)
 
-        self._account_repository.save(account)
+        await self._account_repository.save(account)
+
+        await self._event_dispatcher.dispatch(account.collect_events())
 
         try:
             await self._account_unit_of_work.commit()
         except EmailAlreadyExistsError:
             raise
-
-        await self._event_dispatcher.dispatch(account.collect_events())
 
         log.info("Create account: done. Target email: '%s'.", account.email.value)
         return CreateAccountResponse(id=account.id_.value)

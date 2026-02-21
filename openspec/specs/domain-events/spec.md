@@ -1,5 +1,3 @@
-## MODIFIED Requirements
-
 ### Requirement: Aggregates collect domain events internally
 Every aggregate root MUST maintain an internal `_events: list[DomainEvent]` field. Business methods on the aggregate MUST register relevant events via `_register_event(event)`. Events are NOT dispatched immediately — they accumulate until collected. This applies to both `Account` (Account BC) and `Profile` (Core BC) aggregates.
 
@@ -16,27 +14,27 @@ Every aggregate root MUST maintain an internal `_events: list[DomainEvent]` fiel
 - **THEN** all events are present in the `_events` list in order
 
 ### Requirement: In-process event dispatcher
-The system SHALL provide an `EventDispatcher` in `shared/application/event_dispatcher.py` (shared kernel) that accepts a list of `DomainEvent` instances and invokes registered handlers. The dispatcher is a driven port — the in-process implementation lives in shared infrastructure.
+The system SHALL provide an `EventDispatcher` protocol in `shared/application/event_dispatcher.py` (shared kernel) that accepts a list of `DomainEvent` instances. The protocol defines a single async method `dispatch(events: list[DomainEvent]) -> None`. The concrete implementation is the `OutboxEventDispatcher` which writes events to an outbox table within the same database session, rather than invoking handlers directly.
 
-#### Scenario: Dispatcher invokes registered handlers
+#### Scenario: Dispatcher writes events to outbox
 - **WHEN** an `AccountCreated` event is dispatched
-- **THEN** all handlers registered for `AccountCreated` are invoked with the event, including cross-context handlers
+- **THEN** an outbox entry is created in the session with the serialized event
 
-#### Scenario: Unhandled events are silently ignored
+#### Scenario: Unhandled events are still persisted
 - **WHEN** a domain event is dispatched and no handlers are registered for its type
-- **THEN** no error is raised — the event is simply not processed
+- **THEN** the event is still written to the outbox (handlers are resolved later by the relay)
 
-### Requirement: Use case handlers dispatch events after commit
-Application-layer handlers MUST collect events from aggregates after persisting changes and dispatch them via the `EventDispatcher` port. Events MUST be dispatched after the unit of work commits successfully. This applies to handlers in both Account and Core bounded contexts.
+### Requirement: Use case handlers dispatch events before commit
+Application-layer handlers MUST collect events from aggregates and dispatch them via the `EventDispatcher` port BEFORE the unit of work commits. This ensures outbox entries are part of the same database transaction as the aggregate state change. Events and aggregate state are committed atomically.
 
-#### Scenario: Events dispatched after successful commit
-- **WHEN** a use case handler commits changes via its context's unit of work
-- **THEN** `collect_events()` is called on the aggregate and events are dispatched
+#### Scenario: Events dispatched before commit
+- **WHEN** a use case handler persists an aggregate and dispatches events
+- **THEN** `event_dispatcher.dispatch(events)` is called before `unit_of_work.commit()`
 
-#### Scenario: Cross-context event dispatched
-- **WHEN** `SignUpHandler` commits an Account and dispatches `AccountCreated`
-- **THEN** the `CreateProfileOnAccountCreated` handler in Core BC is invoked
+#### Scenario: Atomic commit of aggregate and events
+- **WHEN** `SignUpHandler` dispatches `AccountCreated` and commits via `AccountUnitOfWork`
+- **THEN** the account row and the outbox row are committed in a single transaction
 
-#### Scenario: Events are NOT dispatched on rollback
-- **WHEN** a use case handler encounters an error and rolls back
-- **THEN** no domain events are dispatched
+#### Scenario: Events are NOT persisted on rollback
+- **WHEN** a use case handler encounters an error and the transaction rolls back
+- **THEN** both the aggregate state and outbox entries are rolled back

@@ -1,4 +1,4 @@
-from dishka import AsyncContainer, Provider, Scope, provide, provide_all
+from dishka import Provider, Scope, provide, provide_all
 
 from account.application.activate_account.handler import ActivateAccountHandler
 from account.application.activate_account.port import ActivateAccountUseCase
@@ -50,7 +50,8 @@ from core.infrastructure.persistence.sqla_profile_repository import (
 )
 from shared.application.event_dispatcher import EventDispatcher
 from shared.domain.ports.identity_provider import IdentityProvider
-from shared.infrastructure.events.dispatcher import InProcessEventDispatcher
+from shared.infrastructure.events.dispatcher import OutboxEventDispatcher
+from shared.infrastructure.persistence.types_ import MainAsyncSession
 from shared.infrastructure.security.identity_provider import JwtBearerIdentityProvider
 
 
@@ -69,8 +70,8 @@ class AccountApplicationProvider(Provider):
     identity_provider = provide(JwtBearerIdentityProvider, provides=IdentityProvider)
 
     @provide
-    def event_dispatcher(self, container: AsyncContainer) -> EventDispatcher:
-        return InProcessEventDispatcher(container)
+    def event_dispatcher(self, session: MainAsyncSession) -> EventDispatcher:
+        return OutboxEventDispatcher(session)
 
     # Account Use Cases
     activate_account_use_case = provide(

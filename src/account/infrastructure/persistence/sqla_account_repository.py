@@ -31,11 +31,11 @@ class SqlaAccountRepository(AccountRepository):
     def __init__(self, session: MainAsyncSession) -> None:
         self._session = session
 
-    def save(self, account: Account) -> None:
+    async def save(self, account: Account) -> None:
         """:raises DataMapperError:"""
         try:
             record = AccountConverter.to_record(account)
-            self._session.add(record)
+            await self._session.merge(record)
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
