@@ -1,7 +1,7 @@
 from datetime import date
 
 from core.domain.profile.entity import Profile
-from core.domain.profile.events import ProfileCreated, ProfileUpdated, UsernameChanged
+from core.domain.profile.events import ProfileCreated, ProfileUpdated
 from core.domain.profile.value_objects import BirthDate, FirstName, LastName, Username
 from tests.app.unit.factories.profile_entity import create_profile
 from tests.app.unit.factories.value_objects import (
@@ -23,48 +23,6 @@ def test_create_registers_profile_created_event() -> None:
     assert events[0].profile_id == profile_id.value
     assert events[0].account_id == account_id.value
     assert events[0].username is None
-
-
-def test_set_username_changes_and_registers_event() -> None:
-    old_username = create_username("olduser1")
-    new_username = create_username("newuser1")
-    profile = create_profile(username=old_username)
-
-    result = profile.set_username(new_username)
-
-    assert result is True
-    assert profile.username == new_username
-    events = profile.collect_events()
-    assert len(events) == 1
-    assert isinstance(events[0], UsernameChanged)
-    assert events[0].old_username == old_username.value
-    assert events[0].new_username == new_username.value
-
-
-def test_set_username_same_returns_false_no_event() -> None:
-    username = create_username("sameuser")
-    profile = create_profile(username=username)
-
-    result = profile.set_username(username)
-
-    assert result is False
-    events = profile.collect_events()
-    assert len(events) == 0
-
-
-def test_set_username_from_none() -> None:
-    profile = create_profile(username=None)
-    new_username = create_username("first1")
-
-    result = profile.set_username(new_username)
-
-    assert result is True
-    assert profile.username == new_username
-    events = profile.collect_events()
-    assert len(events) == 1
-    assert isinstance(events[0], UsernameChanged)
-    assert events[0].old_username is None
-    assert events[0].new_username == new_username.value
 
 
 # task 2.5: Profile.create new optional fields default to None

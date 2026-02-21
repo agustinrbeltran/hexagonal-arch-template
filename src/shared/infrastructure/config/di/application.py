@@ -40,8 +40,6 @@ from core.application.get_my_profile.handler import GetMyProfileHandler
 from core.application.get_my_profile.port import GetMyProfileUseCase
 from core.application.list_profiles.handler import ListProfilesHandler
 from core.application.list_profiles.port import ListProfilesUseCase
-from core.application.set_username.handler import SetUsernameHandler
-from core.application.set_username.port import SetUsernameUseCase
 from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.application.update_profile.handler import UpdateProfileHandler
 from core.application.update_profile.port import UpdateProfileUseCase
@@ -114,7 +112,6 @@ class CoreApplicationProvider(Provider):
         CreateProfileHandler, provides=CreateProfileUseCase
     )
     get_my_profile_use_case = provide(GetMyProfileHandler, provides=GetMyProfileUseCase)
-    set_username_use_case = provide(SetUsernameHandler, provides=SetUsernameUseCase)
     update_profile_use_case = provide(
         UpdateProfileHandler, provides=UpdateProfileUseCase
     )
