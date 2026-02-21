@@ -31,11 +31,11 @@ class SqlaProfileRepository(ProfileRepository):
     def __init__(self, session: MainAsyncSession) -> None:
         self._session = session
 
-    def save(self, profile: Profile) -> None:
+    async def save(self, profile: Profile) -> None:
         """:raises DataMapperError:"""
         try:
             record = ProfileConverter.to_record(profile)
-            self._session.sync_session.merge(record)
+            await self._session.merge(record)
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 

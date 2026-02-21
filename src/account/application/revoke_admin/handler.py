@@ -59,7 +59,7 @@ class RevokeAdminHandler(RevokeAdminUseCase):
             return
 
         await self._event_dispatcher.dispatch(account.collect_events())
-        self._account_repository.save(account)
+        await self._account_repository.save(account)
         await self._account_unit_of_work.commit()
 
         log.info("Revoke admin: done. Target account ID: '%s'.", account.id_.value)

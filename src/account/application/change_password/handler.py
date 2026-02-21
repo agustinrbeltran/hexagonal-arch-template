@@ -60,7 +60,7 @@ class ChangePasswordHandler(ChangePasswordUseCase):
             raise ReAuthenticationError(AUTH_INVALID_CURRENT_CREDENTIAL)
 
         await self._account_service.change_password(current_account, new_password)
-        self._account_repository.save(current_account)
+        await self._account_repository.save(current_account)
         await self._event_dispatcher.dispatch(current_account.collect_events())
         await self._account_unit_of_work.commit()
 

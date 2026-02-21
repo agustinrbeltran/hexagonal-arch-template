@@ -55,7 +55,7 @@ class SignUpHandler(SignUpUseCase):
 
         account = await self._account_service.create(email, password)
 
-        self._account_repository.save(account)
+        await self._account_repository.save(account)
 
         await self._event_dispatcher.dispatch(account.collect_events())
 

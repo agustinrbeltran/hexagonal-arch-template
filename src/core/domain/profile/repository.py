@@ -20,7 +20,7 @@ class ListProfilesQM(TypedDict):
 
 class ProfileRepository(Protocol):
     @abstractmethod
-    def save(self, profile: "Profile") -> None:
+    async def save(self, profile: "Profile") -> None:
         """:raises DataMapperError:"""
 
     @abstractmethod

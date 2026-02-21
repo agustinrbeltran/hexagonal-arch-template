@@ -58,7 +58,7 @@ class GrantAdminHandler(GrantAdminUseCase):
         if not changed:
             return
 
-        self._account_repository.save(account)
+        await self._account_repository.save(account)
         await self._event_dispatcher.dispatch(account.collect_events())
         await self._account_unit_of_work.commit()
 

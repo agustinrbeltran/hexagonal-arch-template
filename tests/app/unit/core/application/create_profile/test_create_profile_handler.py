@@ -32,8 +32,8 @@ async def test_creates_profile_successfully() -> None:
 
     await sut.execute(command)
 
-    cast(MagicMock, profile_repository.save).assert_called_once()
-    saved_profile: Profile = cast(MagicMock, profile_repository.save).call_args[0][0]
+    cast(AsyncMock, profile_repository.save).assert_awaited_once()
+    saved_profile: Profile = cast(AsyncMock, profile_repository.save).call_args[0][0]
     assert saved_profile.id_ == profile_id
     assert saved_profile.account_id == account_id
     assert saved_profile.username is None

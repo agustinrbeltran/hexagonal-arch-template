@@ -22,7 +22,7 @@ class ListAccountsQM(TypedDict):
 
 class AccountRepository(Protocol):
     @abstractmethod
-    def save(self, account: "Account") -> None:
+    async def save(self, account: "Account") -> None:
         """:raises DataMapperError:"""
 
     @abstractmethod

@@ -118,6 +118,6 @@ async def test_save_is_called_with_updated_profile() -> None:
 
     await sut.execute(command)
 
-    cast(MagicMock, profile_repository.save).assert_called_once_with(profile)
+    cast(AsyncMock, profile_repository.save).assert_awaited_once_with(profile)
     assert profile.username is not None
     assert profile.username.value == "newuser1"

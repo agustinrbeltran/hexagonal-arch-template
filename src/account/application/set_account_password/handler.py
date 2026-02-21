@@ -72,7 +72,7 @@ class SetAccountPasswordHandler(SetAccountPasswordUseCase):
         )
 
         await self._account_service.change_password(account, password)
-        self._account_repository.save(account)
+        await self._account_repository.save(account)
         await self._event_dispatcher.dispatch(account.collect_events())
         await self._account_unit_of_work.commit()
 

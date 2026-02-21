@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock, Mock, create_autospec
+from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
@@ -45,7 +45,7 @@ async def test_signs_up_unauthenticated_user() -> None:
     result = await sut.execute(command)
 
     assert result["id"] == new_account.id_.value
-    cast(Mock, account_repository.save).assert_called_once_with(new_account)
+    cast(AsyncMock, account_repository.save).assert_awaited_once_with(new_account)
     cast(AsyncMock, account_unit_of_work.commit).assert_awaited_once()
     cast(AsyncMock, event_dispatcher.dispatch).assert_awaited_once()
 
