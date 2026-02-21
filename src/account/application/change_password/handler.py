@@ -5,6 +5,7 @@ from account.application.change_password.command import ChangePasswordCommand
 from account.application.change_password.port import ChangePasswordUseCase
 from account.application.current_account.handler import CurrentAccountHandler
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
+from account.domain.account.repository import AccountRepository
 from account.domain.account.services import AccountService
 from account.domain.account.value_objects import RawPassword
 
@@ -29,10 +30,12 @@ class ChangePasswordHandler(ChangePasswordUseCase):
         self,
         current_account_handler: CurrentAccountHandler,
         account_service: AccountService,
+        account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,
     ) -> None:
         self._current_account_handler = current_account_handler
         self._account_service = account_service
+        self._account_repository = account_repository
         self._account_unit_of_work = account_unit_of_work
 
     async def execute(self, command: ChangePasswordCommand) -> None:
@@ -54,6 +57,7 @@ class ChangePasswordHandler(ChangePasswordUseCase):
             raise ReAuthenticationError(AUTH_INVALID_CURRENT_CREDENTIAL)
 
         await self._account_service.change_password(current_account, new_password)
+        self._account_repository.save(current_account)
         await self._account_unit_of_work.commit()
 
         log.info("Change password: done. Account ID: '%s'.", current_account.id_.value)

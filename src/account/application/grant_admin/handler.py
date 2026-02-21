@@ -54,6 +54,7 @@ class GrantAdminHandler(GrantAdminUseCase):
             raise AccountNotFoundByIdError(account_id)
 
         changed = account.change_role(AccountRole.ADMIN)
+        self._account_repository.save(account)
 
         await self._event_dispatcher.dispatch(account.collect_events())
 

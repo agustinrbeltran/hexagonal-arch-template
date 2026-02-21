@@ -70,6 +70,7 @@ class DeactivateAccountHandler(DeactivateAccountUseCase):
         )
 
         changed = account.deactivate()
+        self._account_repository.save(account)
 
         await self._event_dispatcher.dispatch(account.collect_events())
 
