@@ -27,6 +27,14 @@ make down.db                      # Stop DB
 make reset.db                     # Reset DB to initial state
 ```
 
+**Migration workflow** — `supabase/migrations/` is the canonical source of truth. Every schema change needs a local `.sql` file. The correct order when using the MCP tool:
+
+1. Apply via `apply_migration` (MCP generates a timestamp automatically)
+2. Call `list_migrations` to read back the assigned version number
+3. Create `supabase/migrations/<version>_<name>.sql` with the same SQL
+
+Never apply a migration via MCP without immediately writing the corresponding file.
+
 ### Code Quality
 ```bash
 make code.format                  # Format with ruff
