@@ -112,3 +112,10 @@ Each bounded context owns its own domain, application, and infrastructure layers
 - **Tests**: unit tests in `tests/app/unit/{context}/`, factories in `tests/app/unit/factories/`, mock with `create_autospec()`, async tests use `@pytest.mark.asyncio`
 - **Linting**: ruff (format + lint), slotscheck, mypy (strict mode)
 - **Line length**: 88 chars (ruff)
+
+## Completion Checklist
+
+At the end of each implementation:
+
+1. If the change includes database/schema updates, verify a migration file was created in `supabase/migrations/`.
+2. Run `make code.check` before considering the implementation complete.
