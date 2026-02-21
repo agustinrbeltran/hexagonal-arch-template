@@ -22,7 +22,7 @@ from shared.infrastructure.persistence.errors import DataMapperError
 def create_set_username_router() -> APIRouter:
     router = ErrorAwareRouter()
 
-    @router.put(
+    @router.patch(
         "/me/username",
         description=getdoc(SetUsernameUseCase),
         error_map={

@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import ClassVar, Final
 from uuid import UUID
 
@@ -67,4 +68,60 @@ class Username(ValueObject):
         if not re.match(self.PATTERN_END, username_value):
             raise DomainTypeError(
                 "Username must end with a letter (A-Z, a-z) or a digit (0-9).",
+            )
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class FirstName(ValueObject):
+    """raises DomainTypeError"""
+
+    MIN_LEN: ClassVar[Final[int]] = 1
+    MAX_LEN: ClassVar[Final[int]] = 50
+
+    value: str
+
+    def __post_init__(self) -> None:
+        """:raises DomainTypeError:"""
+        trimmed = self.value.strip()
+        if len(trimmed) < self.MIN_LEN or len(trimmed) > self.MAX_LEN:
+            raise DomainTypeError(
+                f"First name must be between {self.MIN_LEN} and {self.MAX_LEN} characters.",
+            )
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class LastName(ValueObject):
+    """raises DomainTypeError"""
+
+    MIN_LEN: ClassVar[Final[int]] = 1
+    MAX_LEN: ClassVar[Final[int]] = 50
+
+    value: str
+
+    def __post_init__(self) -> None:
+        """:raises DomainTypeError:"""
+        trimmed = self.value.strip()
+        if len(trimmed) < self.MIN_LEN or len(trimmed) > self.MAX_LEN:
+            raise DomainTypeError(
+                f"Last name must be between {self.MIN_LEN} and {self.MAX_LEN} characters.",
+            )
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class BirthDate(ValueObject):
+    """raises DomainTypeError"""
+
+    MAX_AGE_YEARS: ClassVar[Final[int]] = 150
+
+    value: date
+
+    def __post_init__(self) -> None:
+        """:raises DomainTypeError:"""
+        today = date.today()
+        if self.value >= today:
+            raise DomainTypeError("Birth date must be in the past.")
+        min_date = today - timedelta(days=self.MAX_AGE_YEARS * 365)
+        if self.value < min_date:
+            raise DomainTypeError(
+                f"Birth date cannot be more than {self.MAX_AGE_YEARS} years ago.",
             )

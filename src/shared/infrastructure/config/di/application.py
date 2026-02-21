@@ -43,6 +43,8 @@ from core.application.list_profiles.port import ListProfilesUseCase
 from core.application.set_username.handler import SetUsernameHandler
 from core.application.set_username.port import SetUsernameUseCase
 from core.application.shared.core_unit_of_work import CoreUnitOfWork
+from core.application.update_profile.handler import UpdateProfileHandler
+from core.application.update_profile.port import UpdateProfileUseCase
 from core.domain.profile.repository import ProfileRepository
 from core.infrastructure.persistence.sqla_core_unit_of_work import SqlaCoreUnitOfWork
 from core.infrastructure.persistence.sqla_profile_repository import (
@@ -113,4 +115,5 @@ class CoreApplicationProvider(Provider):
     )
     get_my_profile_use_case = provide(GetMyProfileHandler, provides=GetMyProfileUseCase)
     set_username_use_case = provide(SetUsernameHandler, provides=SetUsernameUseCase)
+    update_profile_use_case = provide(UpdateProfileHandler, provides=UpdateProfileUseCase)
     list_profiles_use_case = provide(ListProfilesHandler, provides=ListProfilesUseCase)
