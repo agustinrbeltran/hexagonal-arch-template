@@ -55,9 +55,11 @@ class RevokeAdminHandler(RevokeAdminUseCase):
 
         changed = account.change_role(AccountRole.USER)
 
-        await self._event_dispatcher.dispatch(account.collect_events())
+        if not changed:
+            return
 
-        if changed:
-            await self._account_unit_of_work.commit()
+        await self._event_dispatcher.dispatch(account.collect_events())
+        self._account_repository.save(account)
+        await self._account_unit_of_work.commit()
 
         log.info("Revoke admin: done. Target account ID: '%s'.", account.id_.value)

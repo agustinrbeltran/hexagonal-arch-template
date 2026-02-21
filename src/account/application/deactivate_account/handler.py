@@ -70,14 +70,16 @@ class DeactivateAccountHandler(DeactivateAccountUseCase):
         )
 
         changed = account.deactivate()
+
+        if not changed:
+            return
+
+
         self._account_repository.save(account)
-
         await self._event_dispatcher.dispatch(account.collect_events())
-
-        if changed:
-            await self._account_unit_of_work.commit()
-
         await self._access_revoker.remove_all_account_access(account.id_)
+        await self._account_unit_of_work.commit()
+
 
         log.info(
             "Deactivate account: done. Target account ID: '%s'.", account.id_.value
