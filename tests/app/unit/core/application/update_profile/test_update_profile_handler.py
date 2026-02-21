@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
+from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.application.update_profile.command import UpdateProfileCommand
 from core.application.update_profile.handler import UpdateProfileHandler
-from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
 from core.domain.profile.repository import ProfileRepository
 from shared.application.event_dispatcher import EventDispatcher

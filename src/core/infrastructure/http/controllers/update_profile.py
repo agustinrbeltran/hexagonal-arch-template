@@ -1,10 +1,10 @@
 from datetime import date
+from inspect import getdoc
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
-from inspect import getdoc
 from pydantic import BaseModel
 
 from core.application.update_profile.command import UpdateProfileCommand
@@ -27,26 +27,23 @@ class UpdateProfileBody(BaseModel):
     username: str | None = None
 
 
-_error_map = {
-    AuthenticationError: status.HTTP_401_UNAUTHORIZED,
-    ProfileNotFoundByAccountIdError: status.HTTP_404_NOT_FOUND,
-    DomainTypeError: status.HTTP_400_BAD_REQUEST,
-    UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
-    DataMapperError: rule(
-        status=status.HTTP_503_SERVICE_UNAVAILABLE,
-        translator=ServiceUnavailableTranslator(),
-        on_error=log_error,
-    ),
-}
-
-
 def create_update_profile_router() -> APIRouter:
     router = ErrorAwareRouter()
 
     @router.put(
         "/me",
         description=getdoc(UpdateProfileUseCase),
-        error_map=_error_map,
+        error_map={
+            AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+            ProfileNotFoundByAccountIdError: status.HTTP_404_NOT_FOUND,
+            DomainTypeError: status.HTTP_400_BAD_REQUEST,
+            UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
+            DataMapperError: rule(
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                translator=ServiceUnavailableTranslator(),
+                on_error=log_error,
+            ),
+        },
         default_on_error=log_info,
         status_code=status.HTTP_204_NO_CONTENT,
         dependencies=[Security(bearer_scheme)],
@@ -67,7 +64,17 @@ def create_update_profile_router() -> APIRouter:
     @router.patch(
         "/me",
         description=getdoc(UpdateProfileUseCase),
-        error_map=_error_map,
+        error_map={
+            AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+            ProfileNotFoundByAccountIdError: status.HTTP_404_NOT_FOUND,
+            DomainTypeError: status.HTTP_400_BAD_REQUEST,
+            UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
+            DataMapperError: rule(
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                translator=ServiceUnavailableTranslator(),
+                on_error=log_error,
+            ),
+        },
         default_on_error=log_info,
         status_code=status.HTTP_204_NO_CONTENT,
         dependencies=[Security(bearer_scheme)],

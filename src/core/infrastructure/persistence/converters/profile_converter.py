@@ -1,5 +1,11 @@
 from core.domain.profile.entity import Profile
-from core.domain.profile.value_objects import BirthDate, FirstName, LastName, ProfileId, Username
+from core.domain.profile.value_objects import (
+    BirthDate,
+    FirstName,
+    LastName,
+    ProfileId,
+    Username,
+)
 from core.infrastructure.persistence.mappers.profile import ProfileRecord
 from shared.domain.account_id import AccountId
 

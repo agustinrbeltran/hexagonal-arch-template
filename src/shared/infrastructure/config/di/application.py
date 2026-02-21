@@ -115,5 +115,7 @@ class CoreApplicationProvider(Provider):
     )
     get_my_profile_use_case = provide(GetMyProfileHandler, provides=GetMyProfileUseCase)
     set_username_use_case = provide(SetUsernameHandler, provides=SetUsernameUseCase)
-    update_profile_use_case = provide(UpdateProfileHandler, provides=UpdateProfileUseCase)
+    update_profile_use_case = provide(
+        UpdateProfileHandler, provides=UpdateProfileUseCase
+    )
     list_profiles_use_case = provide(ListProfilesHandler, provides=ListProfilesUseCase)

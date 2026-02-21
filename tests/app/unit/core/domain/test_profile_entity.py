@@ -122,7 +122,9 @@ def test_update_clear_fields_with_none() -> None:
     uname = Username("alice_s123")
     profile = create_profile(username=uname, first_name=fn, last_name=ln, birth_date=bd)
 
-    result = profile.update(first_name=None, last_name=None, birth_date=None, username=None)
+    result = profile.update(
+        first_name=None, last_name=None, birth_date=None, username=None
+    )
 
     assert result is True
     assert profile.first_name is None

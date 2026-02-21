@@ -1,5 +1,11 @@
 from core.domain.profile.entity import Profile
-from core.domain.profile.value_objects import BirthDate, FirstName, LastName, ProfileId, Username
+from core.domain.profile.value_objects import (
+    BirthDate,
+    FirstName,
+    LastName,
+    ProfileId,
+    Username,
+)
 from shared.domain.account_id import AccountId
 from tests.app.unit.factories.value_objects import create_account_id, create_profile_id
 

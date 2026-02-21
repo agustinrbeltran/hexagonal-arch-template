@@ -1,3 +1,4 @@
+import datetime as _dt
 import re
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -85,7 +86,8 @@ class FirstName(ValueObject):
         trimmed = self.value.strip()
         if len(trimmed) < self.MIN_LEN or len(trimmed) > self.MAX_LEN:
             raise DomainTypeError(
-                f"First name must be between {self.MIN_LEN} and {self.MAX_LEN} characters.",
+                f"First name must be between {self.MIN_LEN} "
+                f"and {self.MAX_LEN} characters.",
             )
 
 
@@ -103,7 +105,8 @@ class LastName(ValueObject):
         trimmed = self.value.strip()
         if len(trimmed) < self.MIN_LEN or len(trimmed) > self.MAX_LEN:
             raise DomainTypeError(
-                f"Last name must be between {self.MIN_LEN} and {self.MAX_LEN} characters.",
+                f"Last name must be between {self.MIN_LEN} "
+                f"and {self.MAX_LEN} characters.",
             )
 
 
@@ -117,7 +120,7 @@ class BirthDate(ValueObject):
 
     def __post_init__(self) -> None:
         """:raises DomainTypeError:"""
-        today = date.today()
+        today = _dt.datetime.now(tz=_dt.UTC).date()
         if self.value >= today:
             raise DomainTypeError("Birth date must be in the past.")
         min_date = today - timedelta(days=self.MAX_AGE_YEARS * 365)

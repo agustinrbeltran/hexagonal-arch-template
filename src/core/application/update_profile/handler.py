@@ -1,8 +1,8 @@
 import logging
 
+from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.application.update_profile.command import UpdateProfileCommand
 from core.application.update_profile.port import UpdateProfileUseCase
-from core.application.shared.core_unit_of_work import CoreUnitOfWork
 from core.domain.profile.errors import ProfileNotFoundByAccountIdError
 from core.domain.profile.repository import ProfileRepository
 from core.domain.profile.value_objects import BirthDate, FirstName, LastName, Username
@@ -35,9 +35,15 @@ class UpdateProfileHandler(UpdateProfileUseCase):
         if profile is None:
             raise ProfileNotFoundByAccountIdError(account_id)
 
-        first_name = FirstName(command.first_name) if command.first_name is not None else None
-        last_name = LastName(command.last_name) if command.last_name is not None else None
-        birth_date = BirthDate(command.birth_date) if command.birth_date is not None else None
+        first_name = (
+            FirstName(command.first_name) if command.first_name is not None else None
+        )
+        last_name = (
+            LastName(command.last_name) if command.last_name is not None else None
+        )
+        birth_date = (
+            BirthDate(command.birth_date) if command.birth_date is not None else None
+        )
         username = Username(command.username) if command.username is not None else None
 
         profile.update(

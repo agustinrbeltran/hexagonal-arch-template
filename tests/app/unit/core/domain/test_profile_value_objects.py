@@ -1,3 +1,4 @@
+import datetime as _dt
 from datetime import date, timedelta
 
 import pytest
@@ -61,13 +62,13 @@ class TestBirthDate:
 
     def test_today_raises(self) -> None:
         with pytest.raises(DomainTypeError):
-            BirthDate(date.today())
+            BirthDate(_dt.datetime.now(tz=_dt.UTC).date())
 
     def test_too_far_in_past_raises(self) -> None:
         with pytest.raises(DomainTypeError):
             BirthDate(date(1800, 1, 1))
 
     def test_yesterday_is_valid(self) -> None:
-        yesterday = date.today() - timedelta(days=1)
+        yesterday = _dt.datetime.now(tz=_dt.UTC).date() - timedelta(days=1)
         bd = BirthDate(yesterday)
         assert bd.value == yesterday
