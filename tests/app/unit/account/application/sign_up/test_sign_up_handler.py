@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.account_provisioner import AccountProvisioner
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.application.sign_up.command import SignUpCommand
@@ -21,7 +21,7 @@ from tests.app.unit.factories.value_objects import create_account_id
 
 @pytest.mark.asyncio
 async def test_signs_up_unauthenticated_user() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -36,7 +36,7 @@ async def test_signs_up_unauthenticated_user() -> None:
     cast(AsyncMock, account_provisioner.register).return_value = expected_id
 
     sut = SignUpHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -53,7 +53,7 @@ async def test_signs_up_unauthenticated_user() -> None:
 
 @pytest.mark.asyncio
 async def test_already_authenticated_raises_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -67,7 +67,7 @@ async def test_already_authenticated_raises_error() -> None:
     ).return_value = existing_account
 
     sut = SignUpHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -80,7 +80,7 @@ async def test_already_authenticated_raises_error() -> None:
 
 @pytest.mark.asyncio
 async def test_authorization_error_swallowed_and_signup_proceeds() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -95,7 +95,7 @@ async def test_authorization_error_swallowed_and_signup_proceeds() -> None:
     cast(AsyncMock, account_provisioner.register).return_value = expected_id
 
     sut = SignUpHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -109,7 +109,7 @@ async def test_authorization_error_swallowed_and_signup_proceeds() -> None:
 
 @pytest.mark.asyncio
 async def test_email_already_exists_propagated() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -127,7 +127,7 @@ async def test_email_already_exists_propagated() -> None:
     )
 
     sut = SignUpHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),

@@ -6,17 +6,16 @@ from collections.abc import Callable
 from typing import Any
 
 from shared.domain.domain_event import DomainEvent
+from shared.domain.event_registry import (
+    _event_type_registry,
+    register_event,
+)
 
 log = logging.getLogger(__name__)
 
 _registry: dict[type[DomainEvent], list[type]] = defaultdict(list)
-_event_type_registry: dict[str, type[DomainEvent]] = {}
 
-
-def register_event[T: DomainEvent](cls: type[T]) -> type[T]:
-    _event_type_registry[cls.__name__] = cls
-    log.debug("Registered event type %s", cls.__name__)
-    return cls
+__all__ = ["_event_type_registry", "register_event"]
 
 
 def handles[T](*event_types: type[DomainEvent]) -> Callable[[type[T]], type[T]]:

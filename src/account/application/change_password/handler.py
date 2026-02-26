@@ -2,7 +2,7 @@ import logging
 
 from account.application.change_password.command import ChangePasswordCommand
 from account.application.change_password.port import ChangePasswordUseCase
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.password_resetter import PasswordResetter
 from account.domain.account.value_objects import RawPassword
 
@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 class ChangePasswordHandler(ChangePasswordUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         password_resetter: PasswordResetter,
     ) -> None:
         self._current_account_handler = current_account_handler

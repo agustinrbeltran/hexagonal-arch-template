@@ -5,7 +5,7 @@ import pytest
 
 from account.application.activate_account.command import ActivateAccountCommand
 from account.application.activate_account.handler import ActivateAccountHandler
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.domain.account.enums import AccountRole
 from account.domain.account.errors import AccountNotFoundByIdError
@@ -18,7 +18,7 @@ from tests.app.unit.factories.value_objects import create_account_id
 
 @pytest.mark.asyncio
 async def test_activates_inactive_account() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     event_dispatcher = create_autospec(EventDispatcher, instance=True)
@@ -32,7 +32,7 @@ async def test_activates_inactive_account() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target
 
     sut = ActivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         event_dispatcher=cast(EventDispatcher, event_dispatcher),
@@ -47,7 +47,7 @@ async def test_activates_inactive_account() -> None:
 
 @pytest.mark.asyncio
 async def test_already_active_skips_commit() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     event_dispatcher = create_autospec(EventDispatcher, instance=True)
@@ -61,7 +61,7 @@ async def test_already_active_skips_commit() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target
 
     sut = ActivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         event_dispatcher=cast(EventDispatcher, event_dispatcher),
@@ -75,7 +75,7 @@ async def test_already_active_skips_commit() -> None:
 
 @pytest.mark.asyncio
 async def test_user_caller_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     event_dispatcher = create_autospec(EventDispatcher, instance=True)
@@ -87,7 +87,7 @@ async def test_user_caller_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = user
 
     sut = ActivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         event_dispatcher=cast(EventDispatcher, event_dispatcher),
@@ -99,7 +99,7 @@ async def test_user_caller_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_target_not_found_raises_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     event_dispatcher = create_autospec(EventDispatcher, instance=True)
@@ -112,7 +112,7 @@ async def test_target_not_found_raises_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = None
 
     sut = ActivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         event_dispatcher=cast(EventDispatcher, event_dispatcher),
@@ -124,7 +124,7 @@ async def test_target_not_found_raises_error() -> None:
 
 @pytest.mark.asyncio
 async def test_admin_targeting_admin_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     event_dispatcher = create_autospec(EventDispatcher, instance=True)
@@ -140,7 +140,7 @@ async def test_admin_targeting_admin_raises_authorization_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target_admin
 
     sut = ActivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         event_dispatcher=cast(EventDispatcher, event_dispatcher),

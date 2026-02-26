@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.list_accounts.handler import ListAccountsHandler
 from account.application.list_accounts.query import ListAccountsQuery
 from account.domain.account.enums import AccountRole
@@ -15,7 +15,7 @@ from tests.app.unit.factories.account_entity import create_account
 
 @pytest.mark.asyncio
 async def test_returns_repo_result() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
 
     admin = create_account(role=AccountRole.ADMIN)
@@ -28,7 +28,7 @@ async def test_returns_repo_result() -> None:
     cast(AsyncMock, account_repository.get_all).return_value = expected
 
     sut = ListAccountsHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
     )
 
@@ -40,7 +40,7 @@ async def test_returns_repo_result() -> None:
 
 @pytest.mark.asyncio
 async def test_user_caller_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
 
     user = create_account(role=AccountRole.USER)
@@ -51,7 +51,7 @@ async def test_user_caller_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = user
 
     sut = ListAccountsHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
     )
 
@@ -61,7 +61,7 @@ async def test_user_caller_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_pagination_and_sorting_forwarded_to_repo() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
 
     admin = create_account(role=AccountRole.ADMIN)
@@ -74,7 +74,7 @@ async def test_pagination_and_sorting_forwarded_to_repo() -> None:
     cast(AsyncMock, account_repository.get_all).return_value = expected
 
     sut = ListAccountsHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
     )
 

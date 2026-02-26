@@ -1,6 +1,6 @@
 import logging
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.list_accounts.port import ListAccountsUseCase
 from account.application.list_accounts.query import ListAccountsQuery
 from account.domain.account.enums import AccountRole
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 class ListAccountsHandler(ListAccountsUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_repository: AccountRepository,
     ) -> None:
         self._current_account_handler = current_account_handler

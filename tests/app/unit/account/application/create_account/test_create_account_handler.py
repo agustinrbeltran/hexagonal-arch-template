@@ -5,7 +5,7 @@ import pytest
 
 from account.application.create_account.command import CreateAccountCommand
 from account.application.create_account.handler import CreateAccountHandler
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.account_provisioner import AccountProvisioner
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.domain.account.enums import AccountRole
@@ -19,7 +19,7 @@ from tests.app.unit.factories.value_objects import create_account_id
 
 @pytest.mark.asyncio
 async def test_creates_account_and_returns_response() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -35,7 +35,7 @@ async def test_creates_account_and_returns_response() -> None:
     cast(AsyncMock, account_provisioner.register).return_value = expected_id
 
     sut = CreateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -52,7 +52,7 @@ async def test_creates_account_and_returns_response() -> None:
 
 @pytest.mark.asyncio
 async def test_user_caller_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -66,7 +66,7 @@ async def test_user_caller_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = user
 
     sut = CreateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -79,7 +79,7 @@ async def test_user_caller_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_admin_creating_admin_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -93,7 +93,7 @@ async def test_admin_creating_admin_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = admin
 
     sut = CreateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
@@ -106,7 +106,7 @@ async def test_admin_creating_admin_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_email_already_exists_propagated() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_provisioner = create_autospec(AccountProvisioner, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
@@ -125,7 +125,7 @@ async def test_email_already_exists_propagated() -> None:
     )
 
     sut = CreateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_provisioner=cast(AccountProvisioner, account_provisioner),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),

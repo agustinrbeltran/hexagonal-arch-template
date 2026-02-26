@@ -5,7 +5,7 @@ from account.application.create_account.command import (
     CreateAccountResponse,
 )
 from account.application.create_account.port import CreateAccountUseCase
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.account_provisioner import AccountProvisioner
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.domain.account.entity import Account
@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 class CreateAccountHandler(CreateAccountUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_provisioner: AccountProvisioner,
         account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,

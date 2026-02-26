@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.set_account_password.command import SetAccountPasswordCommand
 from account.application.set_account_password.handler import SetAccountPasswordHandler
 from account.application.shared.password_resetter import PasswordResetter
@@ -17,7 +17,7 @@ from tests.app.unit.factories.value_objects import create_account_id
 
 @pytest.mark.asyncio
 async def test_sets_password_successfully() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     password_resetter = create_autospec(PasswordResetter, instance=True)
 
@@ -30,7 +30,7 @@ async def test_sets_password_successfully() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target
 
     sut = SetAccountPasswordHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         password_resetter=cast(PasswordResetter, password_resetter),
     )
@@ -42,7 +42,7 @@ async def test_sets_password_successfully() -> None:
 
 @pytest.mark.asyncio
 async def test_user_caller_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     password_resetter = create_autospec(PasswordResetter, instance=True)
 
@@ -53,7 +53,7 @@ async def test_user_caller_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = user
 
     sut = SetAccountPasswordHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         password_resetter=cast(PasswordResetter, password_resetter),
     )
@@ -64,7 +64,7 @@ async def test_user_caller_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_target_not_found_raises_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     password_resetter = create_autospec(PasswordResetter, instance=True)
 
@@ -76,7 +76,7 @@ async def test_target_not_found_raises_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = None
 
     sut = SetAccountPasswordHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         password_resetter=cast(PasswordResetter, password_resetter),
     )
@@ -87,7 +87,7 @@ async def test_target_not_found_raises_error() -> None:
 
 @pytest.mark.asyncio
 async def test_admin_targeting_admin_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     password_resetter = create_autospec(PasswordResetter, instance=True)
 
@@ -100,7 +100,7 @@ async def test_admin_targeting_admin_raises_authorization_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target_admin
 
     sut = SetAccountPasswordHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         password_resetter=cast(PasswordResetter, password_resetter),
     )

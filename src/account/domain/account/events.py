@@ -3,7 +3,7 @@ from uuid import UUID
 
 from account.domain.account.enums import AccountRole
 from shared.domain.domain_event import DomainEvent
-from shared.infrastructure.events.registry import register_event
+from shared.domain.event_registry import register_event
 
 
 @register_event

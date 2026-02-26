@@ -1,6 +1,6 @@
 import logging
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.deactivate_account.command import DeactivateAccountCommand
 from account.application.deactivate_account.port import DeactivateAccountUseCase
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 class DeactivateAccountHandler(DeactivateAccountUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,
         access_revoker: AccessRevoker,

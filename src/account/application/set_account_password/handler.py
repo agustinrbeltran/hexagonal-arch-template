@@ -1,6 +1,6 @@
 import logging
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.set_account_password.command import SetAccountPasswordCommand
 from account.application.set_account_password.port import SetAccountPasswordUseCase
 from account.application.shared.password_resetter import PasswordResetter
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class SetAccountPasswordHandler(SetAccountPasswordUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_repository: AccountRepository,
         password_resetter: PasswordResetter,
     ) -> None:
