@@ -12,6 +12,7 @@ class AuthSettings(BaseModel):
         "RS256",
         "RS384",
         "RS512",
+        "ES256",
     ] = Field(alias="JWT_ALGORITHM")
     access_token_expiry_min: int = Field(alias="ACCESS_TOKEN_EXPIRY_MIN", ge=1)
 

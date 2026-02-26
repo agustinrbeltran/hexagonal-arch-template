@@ -10,6 +10,7 @@ class AuthSettingsData(TypedDict):
         "RS256",
         "RS384",
         "RS512",
+        "ES256",
     ]
     ACCESS_TOKEN_EXPIRY_MIN: int
 
@@ -32,6 +33,7 @@ def create_auth_settings_data(
         "RS256",
         "RS384",
         "RS512",
+        "ES256",
     ] = "RS256",
     access_token_expiry_min: int = 15,
 ) -> AuthSettingsData:

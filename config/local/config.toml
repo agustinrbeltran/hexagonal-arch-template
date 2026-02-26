@@ -24,8 +24,9 @@ MAX_OVERFLOW = 20
 LEVEL = "DEBUG"
 
 [security.auth]
-# Can be set to "HS256", "HS384", "HS512", "RS256", "RS384", "RS512"
-JWT_ALGORITHM = "HS256"
+# Can be set to "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256"
+# Supabase local uses ES256 (asymmetric ECDSA) by default
+JWT_ALGORITHM = "ES256"
 # Access token lifetime in minutes (short-lived, stateless)
 ACCESS_TOKEN_EXPIRY_MIN = 15
 

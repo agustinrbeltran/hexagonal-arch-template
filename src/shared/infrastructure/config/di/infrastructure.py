@@ -100,9 +100,13 @@ class EntrypointProvider(Provider):
         self,
         security: SecuritySettings,
     ) -> AccessTokenDecoder:
+        jwks_url: str | None = None
+        if security.auth.jwt_algorithm.startswith("ES"):
+            jwks_url = f"{security.supabase.url}/auth/v1/.well-known/jwks.json"
         return AccessTokenDecoder(
             secret=security.auth.jwt_secret,
             algorithm=security.auth.jwt_algorithm,
+            jwks_url=jwks_url,
         )
 
 

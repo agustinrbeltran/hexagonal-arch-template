@@ -1,5 +1,4 @@
 import logging
-from typing import Literal
 
 import jwt
 
@@ -13,23 +12,24 @@ class AccessTokenDecoder:
     def __init__(
         self,
         secret: str,
-        algorithm: Literal[
-            "HS256",
-            "HS384",
-            "HS512",
-            "RS256",
-            "RS384",
-            "RS512",
-        ],
+        algorithm: str,
+        jwks_url: str | None = None,
     ) -> None:
         self._secret = secret
         self._algorithm = algorithm
+        self._jwk_client = jwt.PyJWKClient(jwks_url) if jwks_url else None
 
     def decode_account_id(self, token: str) -> str | None:
         try:
+            if self._jwk_client:
+                signing_key = self._jwk_client.get_signing_key_from_jwt(token)
+                key = signing_key.key
+            else:
+                key = self._secret
+
             payload = jwt.decode(
                 token,
-                key=self._secret,
+                key=key,
                 algorithms=[self._algorithm],
                 audience="authenticated",
             )
