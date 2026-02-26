@@ -7,127 +7,42 @@ from account.domain.account.errors import (
     RoleAssignmentNotPermittedError,
     RoleChangeNotPermittedError,
 )
-from account.domain.account.services import AccountService
-from tests.app.unit.account.domain.mock_types import (
-    AccountIdGeneratorMock,
-    PasswordHasherMock,
-)
 from tests.app.unit.factories.account_entity import create_account
-from tests.app.unit.factories.value_objects import (
-    create_account_id,
-    create_email,
-    create_password_hash,
-    create_raw_password,
-)
+from tests.app.unit.factories.value_objects import create_account_id, create_email
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
     [AccountRole.USER, AccountRole.ADMIN],
 )
-async def test_creates_active_account_with_hashed_password(
-    role: AccountRole,
-    account_id_generator: AccountIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
-) -> None:
-    # Arrange
+def test_creates_account_with_default_state(role: AccountRole) -> None:
+    account_id = create_account_id()
     email = create_email()
-    raw_password = create_raw_password()
 
-    expected_id = create_account_id()
-    expected_hash = create_password_hash()
+    result = Account.create(id_=account_id, email=email, role=role)
 
-    account_id_generator.generate.return_value = expected_id
-    password_hasher.hash.return_value = expected_hash
-    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
-
-    # Act
-    result = await sut.create(email, raw_password, role)
-
-    # Assert
     assert isinstance(result, Account)
-    assert result.id_ == expected_id
+    assert result.id_ == account_id
     assert result.email == email
-    assert result.password_hash == expected_hash
     assert result.role == role
     assert result.is_active is True
 
 
-@pytest.mark.asyncio
-async def test_creates_inactive_account_if_specified(
-    account_id_generator: AccountIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
-) -> None:
-    email = create_email()
-    raw_password = create_raw_password()
-    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
-
-    result = await sut.create(email, raw_password, is_active=False)
+def test_creates_inactive_account_if_specified() -> None:
+    result = Account.create(
+        id_=create_account_id(), email=create_email(), is_active=False
+    )
 
     assert not result.is_active
 
 
-@pytest.mark.asyncio
-async def test_fails_to_create_account_with_unassignable_role(
-    account_id_generator: AccountIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
-) -> None:
-    email = create_email()
-    raw_password = create_raw_password()
-    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
-
+def test_fails_to_create_account_with_unassignable_role() -> None:
     with pytest.raises(RoleAssignmentNotPermittedError):
-        await sut.create(
-            email=email,
-            raw_password=raw_password,
+        Account.create(
+            id_=create_account_id(),
+            email=create_email(),
             role=AccountRole.SUPER_ADMIN,
         )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "is_valid",
-    [True, False],
-)
-async def test_checks_password_authenticity(
-    is_valid: bool,
-    account_id_generator: AccountIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
-) -> None:
-    # Arrange
-    account = create_account()
-    raw_password = create_raw_password()
-
-    password_hasher.verify.return_value = is_valid
-    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
-
-    # Act
-    result = await sut.is_password_valid(account, raw_password)
-
-    # Assert
-    assert result is is_valid
-
-
-@pytest.mark.asyncio
-async def test_changes_password(
-    account_id_generator: AccountIdGeneratorMock,
-    password_hasher: PasswordHasherMock,
-) -> None:
-    # Arrange
-    initial_hash = create_password_hash(b"old")
-    account = create_account(password_hash=initial_hash)
-    raw_password = create_raw_password()
-
-    expected_hash = create_password_hash(b"new")
-    password_hasher.hash.return_value = expected_hash
-    sut = AccountService(account_id_generator, password_hasher)  # type: ignore[arg-type]
-
-    # Act
-    await sut.change_password(account, raw_password)
-
-    # Assert
-    assert account.password_hash == expected_hash
 
 
 @pytest.mark.parametrize(

@@ -32,9 +32,3 @@ class AccountRoleChanged(DomainEvent):
     account_id: UUID
     old_role: AccountRole
     new_role: AccountRole
-
-
-@register_event
-@dataclass(frozen=True, kw_only=True)
-class AccountPasswordChanged(DomainEvent):
-    account_id: UUID

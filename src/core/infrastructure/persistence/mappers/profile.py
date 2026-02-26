@@ -32,7 +32,7 @@ profiles_table = Table(
     Column(
         "account_id",
         SA_UUID(as_uuid=True),
-        ForeignKey("accounts.id"),
+        ForeignKey("auth.users.id"),
         nullable=False,
         unique=True,
     ),

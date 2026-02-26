@@ -19,10 +19,7 @@ log = logging.getLogger(__name__)
 
 def _map_tables() -> None:
     from account.infrastructure.persistence.mappers.account import (  # noqa: PLC0415
-        map_accounts_table,
-    )
-    from account.infrastructure.persistence.mappers.refresh_token import (  # noqa: PLC0415
-        map_refresh_tokens_table,
+        map_account_metadata_table,
     )
     from core.infrastructure.persistence.mappers.profile import (  # noqa: PLC0415
         map_profiles_table,
@@ -31,8 +28,7 @@ def _map_tables() -> None:
         map_outbox_table,
     )
 
-    map_accounts_table()
-    map_refresh_tokens_table()
+    map_account_metadata_table()
     map_profiles_table()
     map_outbox_table()
 

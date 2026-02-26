@@ -16,7 +16,6 @@ from account.domain.account.errors import (
     EmailAlreadyExistsError,
     RoleAssignmentNotPermittedError,
 )
-from account.infrastructure.security.errors import PasswordHasherBusyError
 from shared.domain.errors import (
     AuthenticationError,
     AuthorizationError,
@@ -50,11 +49,6 @@ def create_create_account_router() -> APIRouter:
             ),
             AuthorizationError: status.HTTP_403_FORBIDDEN,
             DomainTypeError: status.HTTP_400_BAD_REQUEST,
-            PasswordHasherBusyError: rule(
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                translator=ServiceUnavailableTranslator(),
-                on_error=log_error,
-            ),
             RoleAssignmentNotPermittedError: status.HTTP_422_UNPROCESSABLE_ENTITY,
             EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
         },

@@ -3,21 +3,19 @@ import logging
 from account.application.current_account.handler import CurrentAccountHandler
 from account.application.set_account_password.command import SetAccountPasswordCommand
 from account.application.set_account_password.port import SetAccountPasswordUseCase
-from account.application.shared.account_unit_of_work import AccountUnitOfWork
+from account.application.shared.password_resetter import PasswordResetter
 from account.domain.account.entity import Account
 from account.domain.account.enums import AccountRole
 from account.domain.account.errors import AccountNotFoundByIdError
 from account.domain.account.repository import AccountRepository
 from account.domain.account.services import (
     AccountManagementContext,
-    AccountService,
     CanManageRole,
     CanManageSubordinate,
     RoleManagementContext,
     authorize,
 )
 from account.domain.account.value_objects import RawPassword
-from shared.application.event_dispatcher import EventDispatcher
 from shared.domain.account_id import AccountId
 
 log = logging.getLogger(__name__)
@@ -28,15 +26,11 @@ class SetAccountPasswordHandler(SetAccountPasswordUseCase):
         self,
         current_account_handler: CurrentAccountHandler,
         account_repository: AccountRepository,
-        account_service: AccountService,
-        account_unit_of_work: AccountUnitOfWork,
-        event_dispatcher: EventDispatcher,
+        password_resetter: PasswordResetter,
     ) -> None:
         self._current_account_handler = current_account_handler
         self._account_repository = account_repository
-        self._account_service = account_service
-        self._account_unit_of_work = account_unit_of_work
-        self._event_dispatcher = event_dispatcher
+        self._password_resetter = password_resetter
 
     async def execute(self, command: SetAccountPasswordCommand) -> None:
         log.info(
@@ -58,7 +52,6 @@ class SetAccountPasswordHandler(SetAccountPasswordUseCase):
         password = RawPassword(command.password)
         account: Account | None = await self._account_repository.get_by_id(
             account_id,
-            for_update=True,
         )
         if account is None:
             raise AccountNotFoundByIdError(account_id)
@@ -71,11 +64,9 @@ class SetAccountPasswordHandler(SetAccountPasswordUseCase):
             ),
         )
 
-        await self._account_service.change_password(account, password)
-        await self._account_repository.save(account)
-        await self._event_dispatcher.dispatch(account.collect_events())
-        await self._account_unit_of_work.commit()
+        await self._password_resetter.reset_password(account_id, password)
 
         log.info(
-            "Set account password: done. Target account ID: '%s'.", account.id_.value
+            "Set account password: done. Target account ID: '%s'.",
+            account.id_.value,
         )

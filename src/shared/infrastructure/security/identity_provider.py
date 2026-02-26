@@ -4,7 +4,7 @@ from uuid import UUID
 from starlette.requests import Request
 
 from account.infrastructure.security.access_token_processor_jwt import (
-    JwtAccessTokenProcessor,
+    AccessTokenDecoder,
 )
 from shared.domain.account_id import AccountId
 from shared.domain.errors import AuthenticationError
@@ -20,10 +20,10 @@ class JwtBearerIdentityProvider(IdentityProvider):
     def __init__(
         self,
         request: Request,
-        access_token_processor: JwtAccessTokenProcessor,
+        access_token_decoder: AccessTokenDecoder,
     ) -> None:
         self._request = request
-        self._access_token_processor = access_token_processor
+        self._access_token_decoder = access_token_decoder
 
     async def get_current_account_id(self) -> AccountId:
         """:raises AuthenticationError:"""
@@ -32,7 +32,7 @@ class JwtBearerIdentityProvider(IdentityProvider):
             raise AuthenticationError(AUTH_NOT_AUTHENTICATED)
 
         token = auth_header[len("Bearer ") :]
-        account_id_str = self._access_token_processor.decode_account_id(token)
+        account_id_str = self._access_token_decoder.decode_account_id(token)
         if account_id_str is None:
             raise AuthenticationError(AUTH_INVALID_TOKEN)
 

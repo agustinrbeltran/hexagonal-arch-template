@@ -5,14 +5,12 @@ import pytest
 
 from account.application.refresh_token.command import RefreshTokenCommand
 from account.application.refresh_token.handler import RefreshTokenHandler
-from account.application.shared.auth_unit_of_work import AuthUnitOfWork
 from account.application.shared.token_pair_refresher import TokenPairRefresher
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_commits_auth_uow_after_rotation() -> None:
+async def test_refresh_token_returns_new_token_pair() -> None:
     token_pair_refresher = create_autospec(TokenPairRefresher, instance=True)
-    auth_unit_of_work = create_autospec(AuthUnitOfWork, instance=True)
 
     command = RefreshTokenCommand(refresh_token="r1")
     cast(AsyncMock, token_pair_refresher.refresh).return_value = (
@@ -20,11 +18,9 @@ async def test_refresh_token_commits_auth_uow_after_rotation() -> None:
         "new-refresh",
     )
     token_pair_refresher.access_token_expiry_seconds = 300
-    cast(AsyncMock, auth_unit_of_work.commit).return_value = None
 
     sut = RefreshTokenHandler(
         token_pair_refresher=cast(TokenPairRefresher, token_pair_refresher),
-        auth_unit_of_work=cast(AuthUnitOfWork, auth_unit_of_work),
     )
 
     result = await sut.execute(command)
@@ -32,4 +28,4 @@ async def test_refresh_token_commits_auth_uow_after_rotation() -> None:
     assert result.access_token == "access"  # noqa: S105
     assert result.refresh_token == "new-refresh"  # noqa: S105
     assert result.expires_in == 300
-    cast(AsyncMock, auth_unit_of_work.commit).assert_awaited_once()
+    cast(AsyncMock, token_pair_refresher.refresh).assert_awaited_once()

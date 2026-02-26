@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from shared.domain.account_id import AccountId
+from account.domain.account.value_objects import Email, RawPassword
 
 
 class TokenPairIssuer(Protocol):
@@ -10,4 +10,7 @@ class TokenPairIssuer(Protocol):
     def access_token_expiry_seconds(self) -> int: ...
 
     @abstractmethod
-    def issue_token_pair(self, account_id: AccountId) -> tuple[str, str]: ...
+    async def issue_token_pair(
+        self, email: Email, password: RawPassword
+    ) -> tuple[str, str]:
+        """:raises AuthenticationError:"""

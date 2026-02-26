@@ -12,8 +12,8 @@ from account.infrastructure.persistence.converters.account_converter import (
     AccountConverter,
 )
 from account.infrastructure.persistence.mappers.account import (
-    AccountRecord,
-    accounts_table,
+    account_metadata_table,
+    auth_users_table,
 )
 from shared.domain.account_id import AccountId
 from shared.domain.queries import (
@@ -25,6 +25,19 @@ from shared.domain.queries import (
 from shared.infrastructure.persistence.constants import DB_QUERY_FAILED
 from shared.infrastructure.persistence.errors import DataMapperError, ReaderError
 from shared.infrastructure.persistence.types_ import MainAsyncSession
+
+# Base join for cross-schema queries
+_account_join = auth_users_table.join(
+    account_metadata_table,
+    auth_users_table.c.id == account_metadata_table.c.account_id,
+)
+
+# Sortable columns mapping
+_SORTABLE_COLUMNS = {
+    "email": auth_users_table.c.email,
+    "role": account_metadata_table.c.role,
+    "is_active": account_metadata_table.c.is_active,
+}
 
 
 class SqlaAccountRepository(AccountRepository):
@@ -45,19 +58,34 @@ class SqlaAccountRepository(AccountRepository):
         for_update: bool = False,
     ) -> Account | None:
         """:raises DataMapperError:"""
-        stmt = select(AccountRecord).where(
-            AccountRecord.id == account_id.value  # type: ignore[arg-type]
+        stmt = (
+            select(
+                auth_users_table.c.id,
+                auth_users_table.c.email,
+                account_metadata_table.c.role,
+                account_metadata_table.c.is_active,
+            )
+            .select_from(_account_join)
+            .where(auth_users_table.c.id == account_id.value)
         )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            record = (await self._session.execute(stmt)).scalar_one_or_none()
+            row = (await self._session.execute(stmt)).one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
-        return AccountConverter.to_entity(record) if record else None
+        if row is None:
+            return None
+
+        return AccountConverter.to_entity(
+            account_id=row.id,
+            email=row.email,
+            role=row.role,
+            is_active=row.is_active,
+        )
 
     async def get_by_email(
         self,
@@ -65,19 +93,34 @@ class SqlaAccountRepository(AccountRepository):
         for_update: bool = False,
     ) -> Account | None:
         """:raises DataMapperError:"""
-        stmt = select(AccountRecord).where(
-            AccountRecord.email == email.value  # type: ignore[arg-type]
+        stmt = (
+            select(
+                auth_users_table.c.id,
+                auth_users_table.c.email,
+                account_metadata_table.c.role,
+                account_metadata_table.c.is_active,
+            )
+            .select_from(_account_join)
+            .where(auth_users_table.c.email == email.value)
         )
 
         if for_update:
             stmt = stmt.with_for_update()
 
         try:
-            record = (await self._session.execute(stmt)).scalar_one_or_none()
+            row = (await self._session.execute(stmt)).one_or_none()
         except SQLAlchemyError as err:
             raise DataMapperError(DB_QUERY_FAILED) from err
 
-        return AccountConverter.to_entity(record) if record else None
+        if row is None:
+            return None
+
+        return AccountConverter.to_entity(
+            account_id=row.id,
+            email=row.email,
+            role=row.role,
+            is_active=row.is_active,
+        )
 
     async def get_all(
         self,
@@ -88,7 +131,7 @@ class SqlaAccountRepository(AccountRepository):
         :raises SortingError:
         :raises ReaderError:
         """
-        sorting_col = accounts_table.c.get(sorting.field)
+        sorting_col = _SORTABLE_COLUMNS.get(sorting.field)
         if sorting_col is None:
             raise SortingError(f"Invalid sorting field: '{sorting.field}'")
 
@@ -100,12 +143,13 @@ class SqlaAccountRepository(AccountRepository):
 
         stmt = (
             select(
-                accounts_table.c.id,
-                accounts_table.c.email,
-                accounts_table.c.role,
-                accounts_table.c.is_active,
+                auth_users_table.c.id,
+                auth_users_table.c.email,
+                account_metadata_table.c.role,
+                account_metadata_table.c.is_active,
                 func.count().over().label("total"),
             )
+            .select_from(_account_join)
             .order_by(order_by)
             .limit(pagination.limit)
             .offset(pagination.offset)
