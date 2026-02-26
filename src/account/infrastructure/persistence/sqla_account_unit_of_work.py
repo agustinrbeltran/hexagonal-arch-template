@@ -32,7 +32,11 @@ class SqlaAccountUnitOfWork(AccountUnitOfWork):
         except IntegrityError as err:
             log.error("IntegrityError during flush: %s", err)
             err_str = str(err)
-            if "uq_accounts_email" in err_str or "accounts_email_key" in err_str:
+            if (
+                "uq_accounts_email" in err_str
+                or "accounts_email_key" in err_str
+                or "users_username_key" in err_str
+            ):
                 params: Mapping[str, Any] = cast(Mapping[str, Any], err.params)
                 email = str(params.get("email", "unknown"))
                 raise EmailAlreadyExistsError(email) from err
