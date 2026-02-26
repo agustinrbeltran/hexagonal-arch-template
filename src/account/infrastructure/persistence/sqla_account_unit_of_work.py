@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any, Final, cast
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -17,6 +17,33 @@ from shared.infrastructure.persistence.types_ import MainAsyncSession
 
 log = logging.getLogger(__name__)
 
+UNIQUE_VIOLATION_SQLSTATE: Final[str] = "23505"
+EMAIL_UNIQUE_CONSTRAINT_NAMES: Final[frozenset[str]] = frozenset(
+    {"uq_accounts_email", "accounts_email_key", "users_username_key"}
+)
+
+
+def _is_email_unique_violation(err: IntegrityError) -> bool:
+    diag = getattr(err.orig, "diag", None)
+    constraint_name = getattr(diag, "constraint_name", None)
+    if constraint_name in EMAIL_UNIQUE_CONSTRAINT_NAMES:
+        return True
+
+    sqlstate = getattr(err.orig, "sqlstate", None) or getattr(err.orig, "pgcode", None)
+    if sqlstate != UNIQUE_VIOLATION_SQLSTATE:
+        return False
+
+    error_text = str(err).lower()
+    return "(email)=" in error_text
+
+
+def _extract_email(params: Any) -> str:
+    if isinstance(params, Mapping):
+        email = params.get("email")
+        if email is not None:
+            return str(email)
+    return "unknown"
+
 
 class SqlaAccountUnitOfWork(AccountUnitOfWork):
     def __init__(self, session: MainAsyncSession) -> None:
@@ -31,10 +58,9 @@ class SqlaAccountUnitOfWork(AccountUnitOfWork):
             await self._session.flush()
         except IntegrityError as err:
             log.error("IntegrityError during flush: %s", err)
-            err_str = str(err)
-            if "uq_accounts_email" in err_str or "accounts_email_key" in err_str:
+            if _is_email_unique_violation(err):
                 params: Mapping[str, Any] = cast(Mapping[str, Any], err.params)
-                email = str(params.get("email", "unknown"))
+                email = _extract_email(params)
                 raise EmailAlreadyExistsError(email) from err
             raise DataMapperError(DB_CONSTRAINT_VIOLATION) from err
         except SQLAlchemyError as err:
