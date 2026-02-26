@@ -1,4 +1,4 @@
-from typing import cast
+from typing import NamedTuple, cast
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
@@ -13,9 +13,8 @@ from shared.infrastructure.persistence.errors import DataMapperError
 from shared.infrastructure.persistence.types_ import MainAsyncSession
 
 
-class _FakeDiag:
-    def __init__(self, constraint_name: str | None) -> None:
-        self.constraint_name = constraint_name
+class _FakeDiag(NamedTuple):
+    constraint_name: str | None
 
 
 class _FakePgError(Exception):
@@ -27,7 +26,7 @@ class _FakePgError(Exception):
     ) -> None:
         super().__init__(
             "duplicate key value violates unique constraint "
-            'DETAIL:  Key (email)=(existing@example.com) already exists.'
+            "DETAIL:  Key (email)=(existing@example.com) already exists."
         )
         self.diag = _FakeDiag(constraint_name)
         self.sqlstate = sqlstate
@@ -70,7 +69,7 @@ class TestSqlaAccountUnitOfWorkCommit:
         )
         sut = SqlaAccountUnitOfWork(session=cast(MainAsyncSession, session))
 
-        with pytest.raises(EmailAlreadyExistsError, match="existing@example.com"):
+        with pytest.raises(EmailAlreadyExistsError, match=r"existing@example\.com"):
             await sut.commit()
 
         session.commit.assert_not_awaited()
@@ -83,7 +82,7 @@ class TestSqlaAccountUnitOfWorkCommit:
         )
         sut = SqlaAccountUnitOfWork(session=cast(MainAsyncSession, session))
 
-        with pytest.raises(DataMapperError, match="Database constraint violation."):
+        with pytest.raises(DataMapperError, match=r"Database constraint violation\."):
             await sut.commit()
 
         session.commit.assert_not_awaited()
