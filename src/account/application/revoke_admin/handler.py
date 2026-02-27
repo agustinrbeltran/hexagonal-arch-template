@@ -1,6 +1,6 @@
 import logging
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.revoke_admin.command import RevokeAdminCommand
 from account.application.revoke_admin.port import RevokeAdminUseCase
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 class RevokeAdminHandler(RevokeAdminUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,
         event_dispatcher: EventDispatcher,

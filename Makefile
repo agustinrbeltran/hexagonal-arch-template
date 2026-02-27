@@ -50,6 +50,7 @@ help:
 	@echo "  up.db          Start Supabase local DB"
 	@echo "  up.db-echo     Start Supabase local DB with debug output"
 	@echo "  down.db        Stop Supabase local DB"
+	@echo "  migrate.db     Apply pending Supabase migrations"
 	@echo "  logs.db        Tail Supabase DB container logs"
 	@echo "  shell.db       Open a shell inside the Supabase DB container"
 	@echo ""
@@ -105,7 +106,7 @@ SUPABASE_CONFIG := supabase/config.toml
 SUPABASE_PROJECT_ID := $(shell python3 -c "import re, pathlib; p=pathlib.Path('$(SUPABASE_CONFIG)'); txt=p.read_text() if p.exists() else ''; m=re.search(r'^project_id\\s*=\\s*\\\"([^\\\"]+)\\\"', txt, re.M); print(m.group(1) if m else pathlib.Path().resolve().name)")
 SUPABASE_DB_CONTAINER := supabase_db_$(SUPABASE_PROJECT_ID)
 
-.PHONY: up.db up.db-echo down.db logs.db shell.db
+.PHONY: up.db up.db-echo down.db reset.db migrate.db logs.db shell.db
 up.db:
 	@$(SUPABASE) start
 
@@ -117,6 +118,9 @@ down.db:
 
 reset.db:
 	@$(SUPABASE) db reset
+
+migrate.db:
+	@$(SUPABASE) migration up
 
 logs.db:
 	@$(DOCKER) logs -f $(SUPABASE_DB_CONTAINER)

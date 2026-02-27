@@ -22,7 +22,6 @@ maintainers = [
 ]
 requires-python = "==3.13.*"
 dependencies = [
-    "bcrypt==5.0.0",
     "dishka==1.7.2",
     "fastapi-error-map==0.9.8",
     "fastapi==0.121.0",
@@ -30,6 +29,7 @@ dependencies = [
     "psycopg[binary]==3.2.12",
     "pyjwt[crypto]==2.10.1",
     "sqlalchemy[mypy]==2.0.44",
+    "supabase==2.13.0",
     "uvicorn==0.38.0",
     "uvloop==0.22.1",
     "uuid-utils==0.11.1",
@@ -46,9 +46,10 @@ dev = [
 ]
 test = [
     "coverage==7.10.0",
+    "httpx==0.28.1",
     "line-profiler==5.0.0",
     "pytest==8.4.1",
-    "pytest-asyncio==1.1.0"
+    "pytest-asyncio==1.1.0",
 ]
 
 [tool.coverage.report]

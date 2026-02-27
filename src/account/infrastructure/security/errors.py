@@ -1,10 +1,3 @@
-from shared.infrastructure.persistence.errors import InfrastructureError
-
-
-class PasswordHasherBusyError(InfrastructureError):
-    pass
-
-
 class SecurityError(Exception):
     pass
 

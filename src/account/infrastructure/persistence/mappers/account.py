@@ -6,40 +6,47 @@ from sqlalchemy import (
     Boolean,
     Column,
     Enum,
-    LargeBinary,
     String,
     Table,
 )
 
 from account.domain.account.enums import AccountRole
-from account.domain.account.value_objects import Email
 from shared.infrastructure.persistence.registry import mapper_registry
 
 
 @dataclass(eq=False, kw_only=True)
-class AccountRecord:
-    id: UUID
-    email: str
-    password_hash: bytes
+class AccountMetadataRecord:
+    account_id: UUID
     role: AccountRole
     is_active: bool
 
 
-accounts_table = Table(
-    "accounts",
+account_metadata_table = Table(
+    "account_metadata",
     mapper_registry.metadata,
-    Column("id", SA_UUID(as_uuid=True), primary_key=True),
-    Column("email", String(Email.MAX_LEN), nullable=False, unique=True),
-    Column("password_hash", LargeBinary, nullable=False),
+    Column("account_id", SA_UUID(as_uuid=True), primary_key=True),
     Column(
         "role",
-        Enum(AccountRole, name="accountrole"),
+        Enum(AccountRole, name="accountrole", create_type=False),
         default=AccountRole.USER,
         nullable=False,
     ),
     Column("is_active", Boolean, default=True, nullable=False),
 )
 
+# Read-only reference to auth.users for cross-schema joins
+auth_users_table = Table(
+    "users",
+    mapper_registry.metadata,
+    Column("id", SA_UUID(as_uuid=True), primary_key=True),
+    Column("email", String(255), nullable=True),
+    schema="auth",
+    extend_existing=True,
+)
 
-def map_accounts_table() -> None:
-    mapper_registry.map_imperatively(AccountRecord, accounts_table)
+
+def map_account_metadata_table() -> None:
+    mapper_registry.map_imperatively(
+        AccountMetadataRecord,
+        account_metadata_table,
+    )

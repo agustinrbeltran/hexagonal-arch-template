@@ -1,26 +1,53 @@
 # Overview
 
-📘 This FastAPI-based project demonstrates a practical implementation of **Domain-Driven Design (DDD)** with **Clean Architecture** using a **bounded-context-first organization**. It showcases DDD tactical patterns including aggregates, domain events, value objects, and the repository pattern, combined with Clean Architecture's dependency rule and CQRS principles. The codebase is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers. If these patterns are new to you, refer to the [Useful Resources](#useful-resources) section.
+📘 This FastAPI-based project demonstrates a practical implementation of
+**Domain-Driven Design (DDD)** with **Clean Architecture** using a
+**bounded-context-first organization**. It showcases DDD tactical patterns
+including aggregates, domain events, value objects, and the repository pattern,
+combined with Clean Architecture's dependency rule and CQRS principles. The
+codebase is organized into **bounded contexts** (`account/`, `core/`,
+`shared/`), each containing its own domain, application, and infrastructure
+layers. If these patterns are new to you, refer to the
+[Useful Resources](#useful-resources) section.
 
-This template demonstrates how to organize code around **bounded contexts** and **domain aggregates** rather than flat technical layers, while maintaining clear separation of concerns through the domain, application, and infrastructure layers within each context. See [About This Template](#about-this-template) for the relationship to the original work.
+This template demonstrates how to organize code around **bounded contexts** and
+**domain aggregates** rather than flat technical layers, while maintaining clear
+separation of concerns through the domain, application, and infrastructure
+layers within each context. See [About This Template](#about-this-template) for
+the relationship to the original work.
 
 ## About This Template
 
-This project demonstrates how to apply Domain-Driven Design tactical patterns in a FastAPI application using Clean Architecture principles. The codebase is organized into **bounded contexts** — `account/` (Account aggregate for identity, auth, roles) and `core/` (Profile aggregate for user profiles) — with a `shared/` kernel for cross-cutting concerns. Each bounded context contains its own domain, application, and infrastructure layers with clear boundaries and dependency rules.
+This project demonstrates how to apply Domain-Driven Design tactical patterns in
+a FastAPI application using Clean Architecture principles. The codebase is
+organized into **bounded contexts** — `account/` (Account aggregate for
+identity, auth, roles) and `core/` (Profile aggregate for user profiles) — with
+a `shared/` kernel for cross-cutting concerns. Each bounded context contains its
+own domain, application, and infrastructure layers with clear boundaries and
+dependency rules.
 
 **What This Template Provides:**
+
 - Bounded-context-first DDD architecture with explicit aggregate boundaries
-- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username, display data)
-- Cross-context integration via domain events (`AccountCreated` → auto-creates Profile)
+- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username,
+  display data)
+- Cross-context integration via domain events (`AccountCreated` → auto-creates
+  Profile)
 - Domain events for recording state changes and enabling eventual consistency
 - Rich value objects with embedded validation logic
 - Application layer use cases following the Command/Handler pattern
-- Repository pattern with domain-defined interfaces and infrastructure implementations
+- Repository pattern with domain-defined interfaces and infrastructure
+  implementations
 - CQRS separation for optimized read and write operations
 - Comprehensive dependency injection using Dishka (framework-agnostic)
 - Enhanced developer tooling (comprehensive Makefile, code quality automation)
 
-**Foundation:** This template builds upon the excellent architectural foundation from [fastapi-clean-example](https://github.com/ivan-borovets/fastapi-clean-example) by **Ivan Borovets**, evolving it to emphasize DDD tactical patterns and aggregate-driven design. Credit to Ivan for the foundational work that made this possible.
+**Foundation:** This template builds upon the excellent architectural foundation
+from
+[fastapi-clean-example](https://github.com/ivan-borovets/fastapi-clean-example)
+by **Ivan Borovets**, evolving it to emphasize DDD tactical patterns and
+aggregate-driven design. Credit to Ivan for the foundational work that made this
+possible.
 
 # Table of contents
 
@@ -90,11 +117,16 @@ will focus on the purpose of the layers.
 
 ## Bounded-Context DDD Architecture
 
-This project implements **Domain-Driven Design** tactical patterns using **Clean Architecture's** layered approach. Code is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers. Business logic is concentrated in domain **aggregates** within their respective bounded contexts.
+This project implements **Domain-Driven Design** tactical patterns using **Clean
+Architecture's** layered approach. Code is organized into **bounded contexts**
+(`account/`, `core/`, `shared/`), each containing its own domain, application,
+and infrastructure layers. Business logic is concentrated in domain
+**aggregates** within their respective bounded contexts.
 
 ### The Three Layers (Within Each Bounded Context)
 
-The architecture follows a strict layering principle where dependencies flow inward:
+The architecture follows a strict layering principle where dependencies flow
+inward:
 
 ```
 Infrastructure → Application → Domain
@@ -103,57 +135,76 @@ Infrastructure → Application → Domain
 
 Each layer has specific responsibilities and constraints:
 
-![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer** (`{context}/domain/`)
+![#gold](https://placehold.co/15x15/gold/gold.svg) **Domain Layer**
+(`{context}/domain/`)
 
-The **domain layer** contains pure business logic with **zero external dependencies**. It is organized into **aggregates**, each within its own bounded context.
+The **domain layer** contains pure business logic with **zero external
+dependencies**. It is organized into **aggregates**, each within its own bounded
+context.
 
 **Aggregates in this project:**
-- `account/domain/account/` — Account identity, roles, and lifecycle management (Account BC)
-- `core/domain/profile/` — User profile and username management (Core BC)
-- `shared/domain/` — Common domain building blocks (base classes, shared value objects, authorization framework)
 
-> **Note:** Authentication (JWT access tokens and refresh tokens) is handled entirely in the infrastructure layer — it is not a domain concern. Bounded contexts communicate via domain events, not direct imports.
+- `account/domain/account/` — Account identity, roles, and lifecycle management
+  (Account BC)
+- `core/domain/profile/` — User profile and username management (Core BC)
+- `shared/domain/` — Common domain building blocks (base classes, shared value
+  objects, authorization framework)
+
+> **Note:** Authentication is fully delegated to **Supabase Auth (GoTrue)**.
+> The backend only verifies Supabase-issued JWTs — it never creates or manages
+> credentials. Bounded contexts communicate via domain events, not direct
+> imports.
 
 **What belongs in the domain layer:**
 
-✓ **Aggregate Roots** — Entities that serve as entry points to aggregates. They enforce invariants and emit domain events.
-  - Example: `Account` entity in `account/domain/account/entity.py`
-  - Example: `Profile` entity in `core/domain/profile/entity.py`
-  - Extends `AggregateRoot` base class
-  - Manages its own lifecycle and state changes
+✓ **Aggregate Roots** — Entities that serve as entry points to aggregates. They
+enforce invariants and emit domain events.
 
-✓ **Value Objects** — Immutable types defined by their attributes, not identity. They contain validation logic.
-  - Examples: `AccountId` (shared), `Email`, `AccountPasswordHash`, `RawPassword` (Account BC)
-  - Examples: `ProfileId`, `Username` (Core BC)
-  - Equality by value, not reference
+- Example: `Account` entity in `account/domain/account/entity.py`
+- Example: `Profile` entity in `core/domain/profile/entity.py`
+- Extends `AggregateRoot` base class
+- Manages its own lifecycle and state changes
+
+✓ **Value Objects** — Immutable types defined by their attributes, not identity.
+They contain validation logic.
+
+- Examples: `AccountId` (shared), `Email`, `RawPassword` (Account BC)
+- Examples: `ProfileId`, `Username` (Core BC)
+- Equality by value, not reference
 
 ✓ **Domain Events** — Immutable records of state changes that have occurred.
-  - Examples: `AccountCreated`, `AccountActivated`, `AccountRoleChanged` (Account BC)
-  - Examples: `ProfileCreated`, `UsernameChanged` (Core BC)
-  - Past-tense naming, frozen dataclasses
+
+- Examples: `AccountCreated`, `AccountActivated`, `AccountRoleChanged` (Account
+  BC)
+- Examples: `ProfileCreated`, `UsernameChanged` (Core BC)
+- Past-tense naming, frozen dataclasses
 
 ✓ **Repository Interfaces** — Abstractions for aggregate persistence (ports).
-  - Example: `AccountRepository` protocol in `account/domain/account/repository.py`
-  - Example: `ProfileRepository` protocol in `core/domain/profile/repository.py`
-  - Defines methods like `get_by_id()`, `save()`, `get_by_email()`
-  - Implementation lives in infrastructure layer
 
-✓ **Domain Services** — Stateless operations that don't naturally fit in entities.
-  - Example: `AccountService` in `account/domain/account/services.py`
-  - Coordinates operations across value objects and entities
-  - May verify business rules or prepare data
+- Example: `AccountRepository` protocol in
+  `account/domain/account/repository.py`
+- Example: `ProfileRepository` protocol in `core/domain/profile/repository.py`
+- Defines methods like `get_by_id()`, `save()`, `get_by_email()`
+- Implementation lives in infrastructure layer
+
+✓ **Domain Services** — Stateless operations that don't naturally fit in
+entities.
+
+- Example: Permission framework in `account/domain/account/services.py`
+- Defines authorization rules (`CanManageSelf`, `CanManageSubordinate`,
+  `CanManageRole`)
+- Enforces role-based access control via `authorize()` function
 
 ✓ **Domain Exceptions** — Business rule violations.
-  - Example: `EmailAlreadyExistsError`, `RoleAssignmentNotPermittedError`
-  - Found in `account/domain/account/errors.py`
+
+- Example: `EmailAlreadyExistsError`, `RoleAssignmentNotPermittedError`
+- Found in `account/domain/account/errors.py`
 
 **What does NOT belong in the domain layer:**
 
-✗ Database code (SQLAlchemy models, queries)
-✗ HTTP/REST code (FastAPI routes, request models)
-✗ Framework dependencies (except language extensions)
-✗ External API calls
-✗ File I/O operations
+✗ Database code (SQLAlchemy models, queries) ✗ HTTP/REST code (FastAPI routes,
+request models) ✗ Framework dependencies (except language extensions) ✗ External
+API calls ✗ File I/O operations
 
 **Example - Account Aggregate:**
 
@@ -188,7 +239,9 @@ class Account(AggregateRoot[AccountId]):
 
 **Aggregate Boundaries:**
 
-Aggregates define transactional consistency boundaries. Changes within an aggregate are atomic, while changes across aggregates are eventually consistent through domain events.
+Aggregates define transactional consistency boundaries. Changes within an
+aggregate are atomic, while changes across aggregates are eventually consistent
+through domain events.
 
 ```
 ┌─────────────────────────────────────────┐     ┌─────────────────────────────────────────┐
@@ -199,9 +252,9 @@ Aggregates define transactional consistency boundaries. Changes within an aggreg
 │  │  Account (Root)                  │  │     │  │  Profile (Root)                  │  │
 │  │  • id: AccountId                 │  │     │  │  • id: ProfileId                 │  │
 │  │  • email: Email                  │  │     │  │  • account_id: AccountId         │  │
-│  │  • password_hash: PasswordHash   │  │     │  │  • username: Username | None     │  │
-│  │  • role: AccountRole             │  │     │  └──────────────────────────────────┘  │
-│  │  • is_active: bool               │  │     │                                         │
+│  │  • role: AccountRole             │  │     │  │  • username: Username | None     │  │
+│  │  • is_active: bool               │  │     │  └──────────────────────────────────┘  │
+│  └──────────────────────────────────┘  │     │                                         │
 │  └──────────────────────────────────┘  │     │  Invariants:                            │
 │                                         │     │  • Username uniqueness                  │
 │  Invariants:                            │     │  • One profile per account              │
@@ -213,11 +266,16 @@ Aggregates define transactional consistency boundaries. Changes within an aggreg
                                                        └─▶ CreateProfile use case
 ```
 
-Aggregates reference each other **by ID only** (`AccountId` is shared), never by embedding. This maintains clear boundaries and supports eventual consistency.
+Aggregates reference each other **by ID only** (`AccountId` is shared), never by
+embedding. This maintains clear boundaries and supports eventual consistency.
 
 ### Cross-Context Integration via Domain Events
 
-Bounded contexts communicate through **domain events** rather than direct imports. When an Account is created, the Account BC emits an `AccountCreated` event. The Core BC's infrastructure layer subscribes to it via `CreateProfileOnAccountCreated` (a thin adapter) which delegates to the `CreateProfile` application use case:
+Bounded contexts communicate through **domain events** rather than direct
+imports. When an Account is created, the Account BC emits an `AccountCreated`
+event. The Core BC's infrastructure layer subscribes to it via
+`CreateProfileOnAccountCreated` (a thin adapter) which delegates to the
+`CreateProfile` application use case:
 
 ```
 Account BC                                     Core BC
@@ -235,38 +293,51 @@ Account BC                                     Core BC
 ```
 
 This ensures:
-- **No direct cross-context domain imports** — bounded contexts are independently deployable
-- **Eventual consistency** — the Profile is created asynchronously after the Account is persisted
+
+- **No direct cross-context domain imports** — bounded contexts are
+  independently deployable
+- **Eventual consistency** — the Profile is created asynchronously after the
+  Account is persisted
 - **Loose coupling** — the Account BC doesn't know about the Profile BC
 
-![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer** (`{context}/application/`)
+![#purple](https://placehold.co/15x15/purple/purple.svg) **Application Layer**
+(`{context}/application/`)
 
-The **application layer** orchestrates use cases by coordinating domain objects and infrastructure. It depends on the domain layer but has no knowledge of specific infrastructure implementations.
+The **application layer** orchestrates use cases by coordinating domain objects
+and infrastructure. It depends on the domain layer but has no knowledge of
+specific infrastructure implementations.
 
 **What belongs in the application layer:**
 
-✓ **Use Case Handlers** — Implement business workflows by orchestrating domain logic.
-  - Example: `LogInHandler` in `account/application/log_in/handler.py`
-  - Loads aggregates from repositories
-  - Invokes domain services
-  - Persists changes
-  - Dispatches domain events
+✓ **Use Case Handlers** — Implement business workflows by orchestrating domain
+logic.
+
+- Example: `LogInHandler` in `account/application/log_in/handler.py`
+- Loads aggregates from repositories
+- Invokes domain services
+- Persists changes
+- Dispatches domain events
 
 ✓ **Command DTOs** — Plain data structures carrying request data.
-  - Example: `LogInCommand` in `account/application/log_in/command.py`
-  - Immutable, frozen dataclasses
-  - No business logic, just data transfer
+
+- Example: `LogInCommand` in `account/application/log_in/command.py`
+- Immutable, frozen dataclasses
+- No business logic, just data transfer
 
 ✓ **Use Case Ports** — Interfaces that handlers implement.
-  - Example: `LogInUseCase` protocol in `account/application/log_in/port.py`
-  - Controllers depend on these abstractions
-  - Enables testing with different implementations
+
+- Example: `LogInUseCase` protocol in `account/application/log_in/port.py`
+- Controllers depend on these abstractions
+- Enables testing with different implementations
 
 ✓ **Transaction Boundaries** — Unit of Work pattern for atomic operations.
-  - Example: `AccountUnitOfWork` in `account/application/shared/account_unit_of_work.py`
-  - Ensures all-or-nothing persistence
+
+- Example: `AccountUnitOfWork` in
+  `account/application/shared/account_unit_of_work.py`
+- Ensures all-or-nothing persistence
 
 **Application layer responsibilities:**
+
 1. Validate commands (structure, not business rules)
 2. Load aggregates from repositories
 3. Invoke domain logic (entities, services)
@@ -282,37 +353,28 @@ class LogInHandler(LogInUseCase):
     def __init__(
         self,
         account_repository: AccountRepository,   # Domain port
-        account_service: AccountService,          # Domain service
         token_pair_issuer: TokenPairIssuer,       # Application port
-        auth_unit_of_work: AuthUnitOfWork,        # Application port
     ) -> None:
         self._account_repository = account_repository
-        self._account_service = account_service
         self._token_pair_issuer = token_pair_issuer
-        self._auth_unit_of_work = auth_unit_of_work
 
     async def execute(self, command: LogInCommand) -> LogInResult:
         # Load aggregate by email (domain)
         email = Email(command.email)
+        password = RawPassword(command.password)
+
         account = await self._account_repository.get_by_email(email)
         if account is None:
             raise AccountNotFoundByEmailError(email)
-
-        # Verify password (domain service)
-        if not await self._account_service.is_password_valid(
-            account, RawPassword(command.password)
-        ):
-            raise AuthenticationError("Invalid password.")
 
         # Check business rule (domain)
         if not account.is_active:
             raise AuthenticationError("Account inactive.")
 
-        # Issue JWT access token + refresh token (infrastructure)
+        # Authenticate via Supabase and issue token pair (infrastructure)
         access_token, refresh_token = (
-            self._token_pair_issuer.issue_token_pair(account.id_)
+            await self._token_pair_issuer.issue_token_pair(email, password)
         )
-        await self._auth_unit_of_work.commit()
 
         return LogInResult(
             access_token=access_token,
@@ -321,43 +383,58 @@ class LogInHandler(LogInUseCase):
         )
 ```
 
-**Key principle:** Application handlers orchestrate but never contain business logic. All business rules live in the domain layer.
+**Key principle:** Application handlers orchestrate but never contain business
+logic. All business rules live in the domain layer.
 
-![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer** (`{context}/infrastructure/`)
+![#green](https://placehold.co/15x15/green/green.svg) **Infrastructure Layer**
+(`{context}/infrastructure/`)
 
-The **infrastructure layer** provides concrete implementations of domain and application ports. It contains all framework-specific code and external system integrations.
+The **infrastructure layer** provides concrete implementations of domain and
+application ports. It contains all framework-specific code and external system
+integrations.
 
 **What belongs in the infrastructure layer:**
 
 ✓ **Repository Implementations** — Concrete persistence adapters.
-  - Example: `SqlaAccountRepository` in `account/infrastructure/persistence/`
-  - Implements `AccountRepository` domain port
-  - Uses SQLAlchemy imperative mapping for database access
-  - Domain entities are mapped directly (no separate ORM models)
+
+- Example: `SqlaAccountRepository` in `account/infrastructure/persistence/`
+- Implements `AccountRepository` domain port
+- Uses SQLAlchemy imperative mapping for database access
+- Domain entities are mapped directly (no separate ORM models)
 
 ✓ **HTTP Controllers** — REST API endpoints.
-  - Example: Controllers in `account/infrastructure/http/controllers/`
-  - Validate HTTP request structure
-  - Invoke application use cases
-  - Format HTTP responses
-  - Translate domain errors to HTTP status codes
+
+- Example: Controllers in `account/infrastructure/http/controllers/`
+- Validate HTTP request structure
+- Invoke application use cases
+- Format HTTP responses
+- Translate domain errors to HTTP status codes
 
 ✓ **Security Implementations** — Concrete security adapters.
-  - Example: `PasswordHasherBcrypt` in `account/infrastructure/security/`
-  - Implements password hashing domain port (bcrypt + HMAC pepper)
-  - `JwtAccessTokenProcessor` — JWT encoding/decoding
-  - `RefreshTokenService` — Implements `TokenPairIssuer` and `TokenPairRefresher` ports
-  - `JwtIdentityProvider` — Extracts user identity from Bearer tokens
 
-✓ **Event Handlers** — Thin adapters that subscribe to domain events and delegate to application use cases.
-  - Example: `CreateProfileOnAccountCreated` in `core/infrastructure/events/handlers/`
-  - Subscribes to `AccountCreated` and delegates to the `CreateProfile` use case
-  - Event handlers should NOT contain orchestration logic — they translate events into commands and call use cases
+- Example: `SupabaseAuthAdapter` in `account/infrastructure/security/`
+- `SupabaseAccountProvisioner` — Creates users in Supabase via admin API
+- `SupabaseTokenPairIssuer` — Authenticates via Supabase `sign_in_with_password`
+- `SupabaseTokenPairRefresher` — Refreshes sessions via Supabase
+- `SupabaseAccessRevoker` — Revokes sessions via Supabase admin API
+- `SupabasePasswordResetter` — Resets passwords via Supabase admin API
+- `AccessTokenDecoder` — Verifies Supabase-issued JWTs (verify-only, no encoding)
+- `JwtIdentityProvider` — Extracts user identity from Bearer tokens
+
+✓ **Event Handlers** — Thin adapters that subscribe to domain events and
+delegate to application use cases.
+
+- Example: `CreateProfileOnAccountCreated` in
+  `core/infrastructure/events/handlers/`
+- Subscribes to `AccountCreated` and delegates to the `CreateProfile` use case
+- Event handlers should NOT contain orchestration logic — they translate events
+  into commands and call use cases
 
 ✓ **Configuration** — Settings and dependency injection.
-  - Found in `shared/infrastructure/config/`
-  - Dishka DI container setup
-  - Environment-based configuration
+
+- Found in `shared/infrastructure/config/`
+- Dishka DI container setup
+- Environment-based configuration
 
 **Example - Repository Implementation:**
 
@@ -408,30 +485,38 @@ async def log_in(
 > [!IMPORTANT]
 >
 > - The domain layer has **zero dependencies** on application or infrastructure
-> - The application layer depends on domain ports (abstractions), never on infrastructure
+> - The application layer depends on domain ports (abstractions), never on
+>   infrastructure
 > - The infrastructure layer implements both domain and application ports
-> - This creates testable boundaries: domain can be tested in isolation, application can be tested with in-memory implementations
+> - This creates testable boundaries: domain can be tested in isolation,
+>   application can be tested with in-memory implementations
 
 ## DDD Tactical Patterns Deep Dive
 
-This section provides a consolidated reference for all Domain-Driven Design tactical patterns used in this project. Each pattern is explained with real code examples from the codebase.
+This section provides a consolidated reference for all Domain-Driven Design
+tactical patterns used in this project. Each pattern is explained with real code
+examples from the codebase.
 
 ### Aggregates
 
-An **aggregate** is a cluster of domain objects (entities and value objects) treated as a single unit for data changes. Each aggregate has an **aggregate root** — the only entity externally accessible.
+An **aggregate** is a cluster of domain objects (entities and value objects)
+treated as a single unit for data changes. Each aggregate has an **aggregate
+root** — the only entity externally accessible.
 
 **Key principles:**
+
 - Only the aggregate root can be obtained directly from a repository
 - External objects can only reference the aggregate root by identity (ID)
 - Aggregates define transactional consistency boundaries
-- Changes within an aggregate are atomic; changes across aggregates are eventually consistent
+- Changes within an aggregate are atomic; changes across aggregates are
+  eventually consistent
 
 **Aggregates in this project:**
 
 ```
 Account Aggregate (account/domain/account/)
 ├── Root: Account entity
-├── Value Objects: AccountId (shared), Email, AccountPasswordHash
+├── Value Objects: AccountId (shared), Email, RawPassword
 ├── Domain Events: AccountCreated, AccountActivated, AccountRoleChanged
 └── Consistency Rules:
     • Email uniqueness
@@ -462,13 +547,11 @@ class Account(AggregateRoot[AccountId]):
         *,
         id_: AccountId,
         email: Email,
-        password_hash: AccountPasswordHash,
         role: AccountRole,
         is_active: bool,
     ) -> None:
         super().__init__(id_=id_)
         self.email = email
-        self.password_hash = password_hash
         self.role = role
         self.is_active = is_active
 
@@ -494,6 +577,7 @@ class Account(AggregateRoot[AccountId]):
 ```
 
 **Why aggregates matter:**
+
 - Prevent invariant violations (e.g., super admin deactivation)
 - Define clear transaction boundaries
 - Enable domain events for eventual consistency
@@ -501,9 +585,12 @@ class Account(AggregateRoot[AccountId]):
 
 ### Domain Events
 
-**Domain events** are immutable records of something that happened in the domain. They enable loose coupling between aggregates and support eventual consistency.
+**Domain events** are immutable records of something that happened in the
+domain. They enable loose coupling between aggregates and support eventual
+consistency.
 
 **Characteristics:**
+
 - Past-tense naming (AccountCreated, not CreateAccount)
 - Immutable (frozen dataclass)
 - Contain only necessary data (no objects, just primitives/enums)
@@ -556,7 +643,7 @@ class UsernameChanged(DomainEvent):
 
 ```
 1. Aggregate root performs action
-   └─> Account.create(email=..., password_hash=..., role=...)
+   └─> Account.create(id_=..., email=..., role=...)
 
 2. Aggregate records event internally
    └─> self._register_event(AccountCreated(...))
@@ -575,6 +662,7 @@ class UsernameChanged(DomainEvent):
 ```
 
 **Use cases for domain events:**
+
 - Cross-context integration (Account → Profile creation)
 - Audit logging (record all state changes)
 - Cache invalidation (when account changes, invalidate cache)
@@ -583,9 +671,11 @@ class UsernameChanged(DomainEvent):
 
 ### Value Objects
 
-**Value objects** are immutable types defined by their attributes, not identity. They encapsulate validation logic and domain concepts.
+**Value objects** are immutable types defined by their attributes, not identity.
+They encapsulate validation logic and domain concepts.
 
 **Characteristics:**
+
 - Immutable (frozen dataclass)
 - Equality by value, not reference
 - Self-validating (validation in `__post_init__`)
@@ -621,11 +711,28 @@ class Email(ValueObject):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
-class AccountPasswordHash(ValueObject):
-    value: bytes
+class RawPassword(ValueObject):
+    """raises DomainTypeError"""
+
+    MIN_LEN: ClassVar[Final[int]] = 6
+
+    value: bytes = field(init=False, repr=False)
+
+    def __init__(self, value: str) -> None:
+        """:raises DomainTypeError:"""
+        self._validate_password_length(value)
+        object.__setattr__(self, "value", value.encode())
+
+    def _validate_password_length(self, password_value: str) -> None:
+        """:raises DomainTypeError:"""
+        if len(password_value) < self.MIN_LEN:
+            raise DomainTypeError(
+                f"Password must be at least {self.MIN_LEN} characters long.",
+            )
 ```
 
 **Benefits:**
+
 - Type safety (can't pass string where Email expected)
 - Encapsulated validation (can't create invalid email)
 - Self-documenting (method signature shows intent)
@@ -633,9 +740,11 @@ class AccountPasswordHash(ValueObject):
 
 ### Repository Pattern
 
-**Repositories** provide collection-like access to aggregates, abstracting persistence details.
+**Repositories** provide collection-like access to aggregates, abstracting
+persistence details.
 
 **Key principles:**
+
 - One repository per aggregate (not per table!)
 - Interface defined in domain, implementation in infrastructure
 - Returns domain entities, not ORM models
@@ -688,6 +797,7 @@ class SqlaAccountRepository(AccountRepository):
 ```
 
 **Why repositories matter:**
+
 - Domain doesn't know about databases, ORMs, SQL
 - Easy to test (swap with in-memory implementation)
 - Easy to replace (swap PostgreSQL for MongoDB)
@@ -695,77 +805,74 @@ class SqlaAccountRepository(AccountRepository):
 
 ### Domain Services
 
-**Domain services** contain stateless business logic that doesn't naturally fit in an entity or value object.
+**Domain services** contain stateless business logic that doesn't naturally fit
+in an entity or value object.
 
 **When to use domain services:**
+
 - Logic involves multiple entities or aggregates
 - Operation is stateless and doesn't belong to one entity
-- Computation depends on external domain concepts
+- Authorization rules that span role hierarchies
 
 **Domain services in this project:**
 
+After migrating authentication to Supabase, the domain service layer focuses on
+the **permission framework** — role-based authorization rules that enforce who
+can manage whom.
+
 ```python
 # account/domain/account/services.py
-class AccountService:
-    """
-    Domain service for account operations.
+@dataclass(frozen=True, kw_only=True)
+class AccountManagementContext(PermissionContext):
+    subject: Account
+    target: Account
 
-    Contains business logic that doesn't naturally
-    belong to the Account entity or value objects.
-    """
 
+class CanManageSelf(Permission[AccountManagementContext]):
+    def is_satisfied_by(self, context: AccountManagementContext) -> bool:
+        return context.subject == context.target
+
+
+class CanManageSubordinate(Permission[AccountManagementContext]):
     def __init__(
         self,
-        account_id_generator: AccountIdGenerator,
-        password_hasher: PasswordHasher,
+        role_hierarchy: Mapping[AccountRole, set[AccountRole]] = SUBORDINATE_ROLES,
     ) -> None:
-        self._account_id_generator = account_id_generator
-        self._password_hasher = password_hasher
+        self._role_hierarchy = role_hierarchy
 
-    async def create(
-        self,
-        email: Email,
-        raw_password: RawPassword,
-        role: AccountRole = AccountRole.USER,
-        is_active: bool = True,
-    ) -> Account:
-        """Create a new Account aggregate with hashed password."""
-        account_id = self._account_id_generator.generate()
-        password_hash = await self._password_hasher.hash(raw_password)
-        return Account.create(
-            id_=account_id,
-            email=email,
-            password_hash=password_hash,
-            role=role,
-            is_active=is_active,
-        )
+    def is_satisfied_by(self, context: AccountManagementContext) -> bool:
+        allowed_roles = self._role_hierarchy.get(context.subject.role, set())
+        return context.target.role in allowed_roles
 
-    async def is_password_valid(
-        self,
-        account: Account,
-        raw_password: RawPassword,
-    ) -> bool:
-        """Verify password against stored hash."""
-        return await self._password_hasher.verify(
-            raw_password=raw_password,
-            hashed_password=account.password_hash,
-        )
+
+@dataclass(frozen=True, kw_only=True)
+class RoleManagementContext(PermissionContext):
+    subject: Account
+    target_role: AccountRole
+
+
+class CanManageRole(Permission[RoleManagementContext]):
+    def is_satisfied_by(self, context: RoleManagementContext) -> bool:
+        allowed_roles = self._role_hierarchy.get(context.subject.role, set())
+        return context.target_role in allowed_roles
 ```
 
 **Domain service vs Entity method:**
 
-| Put in Entity | Put in Domain Service |
-|---------------|----------------------|
-| Single entity operation | Multi-entity coordination |
-| Internal state change | External dependencies |
-| Entity lifecycle (create, activate) | Stateless computation |
-| Enforcing invariants | Cross-aggregate logic |
+| Put in Entity                       | Put in Domain Service       |
+| ----------------------------------- | --------------------------- |
+| Single entity operation             | Multi-entity coordination   |
+| Internal state change               | Authorization/permission    |
+| Entity lifecycle (create, activate) | Role hierarchy evaluation   |
+| Enforcing invariants                | Cross-aggregate logic       |
 
 ### Application Services (Use Case Handlers)
 
-**Application services** (handlers) orchestrate use cases by coordinating domain objects and infrastructure.
+**Application services** (handlers) orchestrate use cases by coordinating domain
+objects and infrastructure.
 
 **Responsibilities:**
+
 - Load aggregates from repositories
 - Invoke domain services
 - Coordinate multiple aggregates
@@ -786,14 +893,14 @@ class CreateAccountHandler(CreateAccountUseCase):
 
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
-        account_service: AccountService,           # Domain service
+        current_account_handler: CurrentAccountUseCase,
+        account_provisioner: AccountProvisioner,   # Application port (Supabase)
         account_repository: AccountRepository,     # Domain port
         account_unit_of_work: AccountUnitOfWork,   # Application port
         event_dispatcher: EventDispatcher,         # Application port
     ) -> None:
         self._current_account_handler = current_account_handler
-        self._account_service = account_service
+        self._account_provisioner = account_provisioner
         self._account_repository = account_repository
         self._account_unit_of_work = account_unit_of_work
         self._event_dispatcher = event_dispatcher
@@ -811,31 +918,31 @@ class CreateAccountHandler(CreateAccountUseCase):
             ),
         )
 
-        # 3. Create aggregate via domain service (hashes password)
-        account = await self._account_service.create(
-            Email(command.email),
-            RawPassword(command.password),
-            command.role,
+        # 3. Provision user in Supabase (creates auth.users record)
+        email = Email(command.email)
+        account_id = await self._account_provisioner.register(
+            email, RawPassword(command.password)
         )
 
-        # 4. Persist (infrastructure)
-        self._account_repository.save(account)
-        await self._account_unit_of_work.commit()
+        # 4. Create domain aggregate (no password — managed by Supabase)
+        account = Account.create(id_=account_id, email=email, role=command.role)
 
-        # 5. Dispatch domain events
+        # 5. Persist account metadata (infrastructure)
+        await self._account_repository.save(account)
         await self._event_dispatcher.dispatch(account.collect_events())
+        await self._account_unit_of_work.commit()
 
         return CreateAccountResponse(id=account.id_.value)
 ```
 
 **Application service vs Domain service:**
 
-| Application Service | Domain Service |
-|---------------------|----------------|
-| Orchestrates workflow | Pure business logic |
-| Coordinates multiple services | Stateless computation |
-| Manages transactions | No transaction concerns |
-| Can be async (I/O) | Typically sync |
+| Application Service               | Domain Service               |
+| --------------------------------- | ---------------------------- |
+| Orchestrates workflow             | Pure business logic          |
+| Coordinates multiple services     | Stateless computation        |
+| Manages transactions              | No transaction concerns      |
+| Can be async (I/O)                | Typically sync               |
 | Lives in `{context}/application/` | Lives in `{context}/domain/` |
 
 ### Command/Handler Pattern
@@ -871,6 +978,7 @@ class LogInHandler(LogInUseCase):
 ```
 
 **Benefits:**
+
 - Clear separation of input (command) and logic (handler)
 - Easy to test (commands are just data)
 - Can add middleware (validation, logging, metrics)
@@ -897,7 +1005,7 @@ Is it pure business logic with no I/O?
 │  │  └─ Yes → REPOSITORY INTERFACE (AccountRepository)
 │  │
 │  └─ Is it stateless logic involving multiple entities?
-│     └─ Yes → DOMAIN SERVICE (AccountService)
+│     └─ Yes → DOMAIN SERVICE (Permission framework)
 │
 └─ No → Does it orchestrate domain + infrastructure?
    ├─ Yes → APPLICATION LAYER
@@ -908,7 +1016,7 @@ Is it pure business logic with no I/O?
          ├─ Database → REPOSITORY IMPLEMENTATION
          ├─ HTTP → CONTROLLER
          ├─ Events → EVENT DISPATCHER / HANDLER
-         └─ Security → PASSWORD HASHER
+         └─ Security → AUTH ADAPTER (Supabase)
 ```
 
 ## Dependency Rule
@@ -928,68 +1036,81 @@ ones.** In other words, dependencies must never point outwards.
 
 > [!IMPORTANT]
 >
-> - The **domain core** (inside the hexagon) may import external tools and libraries to the
->   extent necessary for describing business logic - those that extend the
->   programming language's capabilities (math/numeric utilities, time zone
->   conversion, object modeling, etc.). This trades some core stability for
+> - The **domain core** (inside the hexagon) may import external tools and
+>   libraries to the extent necessary for describing business logic - those that
+>   extend the programming language's capabilities (math/numeric utilities, time
+>   zone conversion, object modeling, etc.). This trades some core stability for
 >   clarity and expressiveness. What is not acceptable are dependencies that
 >   bind business logic to implementation details (including frameworks) or to
 >   out-of-process systems (databases, brokers, file systems, cloud SDKs, etc.).
 > - Components within the same zone **can depend on each other.** For example,
->   adapters in a bounded context can interact with one another, and domain services
->   within a bounded context can call each other.
-> - **Entrypoints** (driving adapters) can depend on domain core through **inbound ports**.
->   **Infrastructure adapters** (driven adapters) implement **outbound ports** defined by
->   the domain. Both types of adapters can access domain entities and value objects as needed.
-> - Avoid letting business logic leak into adapters. Adapters should focus purely on
->   technical concerns (database queries, API calls, serialization) without containing
->   business rules. However, in specific cases where database constraints enforce business
->   rules, adapters may raise domain-specific exceptions, such as
->   `EmailAlreadyExistsError` for a `UNIQUE CONSTRAINT` violation. Handling
->   these exceptions in domain services ensures that any business logic
->   expressed in adapters remains under domain control.
+>   adapters in a bounded context can interact with one another, and domain
+>   services within a bounded context can call each other.
+> - **Entrypoints** (driving adapters) can depend on domain core through
+>   **inbound ports**. **Infrastructure adapters** (driven adapters) implement
+>   **outbound ports** defined by the domain. Both types of adapters can access
+>   domain entities and value objects as needed.
+> - Avoid letting business logic leak into adapters. Adapters should focus
+>   purely on technical concerns (database queries, API calls, serialization)
+>   without containing business rules. However, in specific cases where database
+>   constraints enforce business rules, adapters may raise domain-specific
+>   exceptions, such as `EmailAlreadyExistsError` for a `UNIQUE CONSTRAINT`
+>   violation. Handling these exceptions in domain services ensures that any
+>   business logic expressed in adapters remains under domain control.
 > - Avoid introducing elements in the domain core that specifically exist to
->   support adapters. For example, don't add ports or domain logic solely
->   to accommodate a specific infrastructure technology. At first glance, based on
+>   support adapters. For example, don't add ports or domain logic solely to
+>   accommodate a specific infrastructure technology. At first glance, based on
 >   imports, it might seem that the Dependency Rule isn't violated. However,
 >   you've broken the core idea of the rule by embedding infrastructure concerns
 >   (more concrete) into the business logic (more abstract).
-> - Each bounded context's hexagon should be **self-contained**. Cross-context dependencies
->   should be minimized and go through well-defined integration points (domain events).
->   Shared concerns live in `shared/`.
+> - Each bounded context's hexagon should be **self-contained**. Cross-context
+>   dependencies should be minimized and go through well-defined integration
+>   points (domain events). Shared concerns live in `shared/`.
 
 ### Note on Adapters in Hexagonal Architecture
 
 Hexagonal Architecture distinguishes between two types of adapters:
 
 **Driving Adapters (Primary)** — Initiate interactions with the domain:
+
 - **Entrypoints** such as REST controllers, CLI handlers, message consumers
 - These adapters **drive** the application by invoking inbound ports (use cases)
 - They translate external requests into domain operations
 - Example: `account/infrastructure/http/controllers/log_in.py`
 
 **Driven Adapters (Secondary)** — Provide infrastructure services to the domain:
-- **Infrastructure adapters** such as database repositories, external API clients
+
+- **Infrastructure adapters** such as database repositories, external API
+  clients
 - These adapters are **driven by** the domain through outbound ports
 - They translate domain abstractions into concrete infrastructure operations
 - Example: `account/infrastructure/persistence/sqla_account_repository.py`
 
-Both adapter types depend on the domain through **ports** (abstractions). This creates a dependency structure where:
+Both adapter types depend on the domain through **ports** (abstractions). This
+creates a dependency structure where:
+
 - Entrypoints depend on **inbound ports** (use case interfaces)
 - Infrastructure adapters implement **outbound ports** (gateway interfaces)
 - Domain core depends on nothing but port abstractions
 
 This approach is a **pragmatic adaptation** that:
-- Avoids excessive abstractions with implementations outside the application's boundaries
-- Retains all key advantages of Clean Architecture (testability, replaceability, independence)
-- Allows adapters to be removed/replaced along with external systems they connect to
-- Simplifies real-world development without compromising architectural principles
+
+- Avoids excessive abstractions with implementations outside the application's
+  boundaries
+- Retains all key advantages of Clean Architecture (testability, replaceability,
+  independence)
+- Allows adapters to be removed/replaced along with external systems they
+  connect to
+- Simplifies real-world development without compromising architectural
+  principles
 
 The key principle for this project:
 
 > "Dependencies must never point outwards **within the domain core**."
 
-The domain core (entities, value objects, domain services, ports) has zero dependencies on adapters or external systems. Adapters depend on ports, not the other way around.
+The domain core (entities, value objects, domain services, ports) has zero
+dependencies on adapters or external systems. Adapters depend on ports, not the
+other way around.
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; justify-items: center;">
   <img src="docs/onion_1.svg" alt="Revised Interpretation of CA-D" style="width: 400px; height: auto;" />
@@ -1003,26 +1124,33 @@ The domain core (entities, value objects, domain services, ports) has zero depen
 
 ## Hexagonal Architecture Continued
 
-![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints** (`{context}/infrastructure/http/controllers/`)
+![#blue](https://placehold.co/15x15/blue/blue.svg) **Entrypoints**
+(`{context}/infrastructure/http/controllers/`)
 
-Entrypoints are **driving adapters** that receive external requests and invoke the domain through inbound ports:
+Entrypoints are **driving adapters** that receive external requests and invoke
+the domain through inbound ports:
 
-- This includes **controllers** (REST, GraphQL, CLI, message consumers, scheduled jobs)
-  that translate external requests into domain use case invocations
+- This includes **controllers** (REST, GraphQL, CLI, message consumers,
+  scheduled jobs) that translate external requests into domain use case
+  invocations
 - Controllers validate inputs and invoke **inbound ports** (use case interfaces)
 - The domain core assumes that request data is already validated by controllers,
   allowing it to focus solely on business logic
 - Controllers must be as thin as possible, containing no logic beyond basic
-  input validation and routing. They act as an intermediary between
-  external actors and the domain's inbound ports
+  input validation and routing. They act as an intermediary between external
+  actors and the domain's inbound ports
 
 **Example Flow:**
+
 1. HTTP request arrives at `POST /api/v1/accounts/login`
-2. Controller (`account/infrastructure/http/controllers/log_in.py`) validates request structure
+2. Controller (`account/infrastructure/http/controllers/log_in.py`) validates
+   request structure
 3. Controller invokes `LogInUseCase` (inbound port) with validated data
 4. Handler (`account/application/log_in/handler.py`) orchestrates the use case
-5. Handler calls domain services and outbound ports (`AccountRepository`, `TokenPairIssuer`) as needed
-6. Infrastructure implements outbound ports, executing database queries and JWT encoding
+5. Handler calls outbound ports (`AccountRepository`, `TokenPairIssuer`) as
+   needed
+6. Infrastructure implements outbound ports, executing database queries and
+   Supabase authentication
 7. Controller receives result and formats HTTP response
 
 > [!IMPORTANT]
@@ -1030,9 +1158,9 @@ Entrypoints are **driving adapters** that receive external requests and invoke t
 > - **_Basic_** validation, like checking whether the structure of the incoming
 >   request matches the structure of the defined request model (e.g., type
 >   safety and required fields) should be performed by controllers at the
->   entrypoint, while **_business rule_** validation (e.g., ensuring the email domain
->   is allowed, verifying the uniqueness of email, or checking if an account
->   meets the required role) belongs to the Domain core.
+>   entrypoint, while **_business rule_** validation (e.g., ensuring the email
+>   domain is allowed, verifying the uniqueness of email, or checking if an
+>   account meets the required role) belongs to the Domain core.
 > - Business rule validation often involves relationships between fields, such
 >   as ensuring that a discount applies only within a specific date range or a
 >   promotion code is valid for orders above a certain total.
@@ -1040,39 +1168,43 @@ Entrypoints are **driving adapters** that receive external requests and invoke t
 >   convenient, Pydantic models are slower than regular dataclasses and reduce
 >   domain core stability by coupling business logic to an external library.
 > - If you choose Pydantic (or a similar tool bundled with web framework) for
->   domain model definitions, ensure that a Pydantic model in the domain core
->   is a separate model from the one in the entrypoint, even if their
->   structure appears identical. Mixing data presentation logic with business
->   logic is a common mistake made early in development to save effort on
->   creating separate models and field mapping, often due to not understanding
->   that structural similarities are temporary.
-> - In hexagonal architecture, controllers depend on **inbound port abstractions**,
->   not directly on domain services. This decoupling allows the same domain logic
->   to be accessed through different entrypoints (REST, GraphQL, CLI) without
->   changing the domain.
+>   domain model definitions, ensure that a Pydantic model in the domain core is
+>   a separate model from the one in the entrypoint, even if their structure
+>   appears identical. Mixing data presentation logic with business logic is a
+>   common mistake made early in development to save effort on creating separate
+>   models and field mapping, often due to not understanding that structural
+>   similarities are temporary.
+> - In hexagonal architecture, controllers depend on **inbound port
+>   abstractions**, not directly on domain services. This decoupling allows the
+>   same domain logic to be accessed through different entrypoints (REST,
+>   GraphQL, CLI) without changing the domain.
 
 ![#gray](https://placehold.co/15x15/gray/gray.svg) **External Systems**
 
 External systems operate completely outside the hexagon's boundaries:
 
-- These include web frameworks (FastAPI), databases (PostgreSQL), message brokers,
-  third-party APIs, file systems, and other infrastructure components
+- These include web frameworks (FastAPI), databases (PostgreSQL), message
+  brokers, third-party APIs, file systems, and other infrastructure components
 - External systems have no direct access to the domain core
 - They interact with the application only through adapters:
   - **Driving side**: Web frameworks invoke controllers (entrypoints)
-  - **Driven side**: Adapters use infrastructure libraries to implement outbound ports
-- Because the domain depends only on port abstractions (not concrete implementations),
-  external systems can be replaced without affecting business logic
+  - **Driven side**: Adapters use infrastructure libraries to implement outbound
+    ports
+- Because the domain depends only on port abstractions (not concrete
+  implementations), external systems can be replaced without affecting business
+  logic
 - Examples of replaceability:
   - Switch from PostgreSQL to MongoDB by implementing new adapter
   - Add GraphQL alongside REST by creating new entrypoints
-  - Replace bcrypt with Argon2 by swapping `PasswordHasher` implementation
+  - Replace Supabase Auth with a custom auth provider by swapping adapter
+    implementations
 
 > [!NOTE]
-> The hexagon (domain core + ports) is the **stable center** of each bounded context.
-> Everything outside — entrypoints, adapters, and external systems — is **replaceable**
-> and depends on the hexagon through abstractions. This is the core value of
-> Hexagonal Architecture: protecting business logic from infrastructure volatility.
+> The hexagon (domain core + ports) is the **stable center** of each bounded
+> context. Everything outside — entrypoints, adapters, and external systems — is
+> **replaceable** and depends on the hexagon through abstractions. This is the
+> core value of Hexagonal Architecture: protecting business logic from
+> infrastructure volatility.
 
 <p align="center">
   <img src="docs/dep_graph_basic.svg" alt="Basic Dependency Graph" />
@@ -1081,7 +1213,8 @@ External systems operate completely outside the hexagon's boundaries:
 
 ## Request Flow Example
 
-Let's trace a complete request through all three layers to see how they interact. We'll follow an account login request from HTTP to database and back.
+Let's trace a complete request through all three layers to see how they
+interact. We'll follow an account login request from HTTP to database and back.
 
 ### HTTP POST /api/v1/accounts/login
 
@@ -1102,27 +1235,17 @@ Let's trace a complete request through all three layers to see how they interact
 └─────────────────────────────────────────────────────────────┘
          │
          │  Loads Account aggregate from repository
-         │  Invokes domain service (password verification)
-         │  Checks account activation status
+         │  Checks account activation status (domain rule)
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  3. DOMAIN LAYER - Domain Services & Entities               │
-│     account/domain/account/services.py                      │
+│  3. INFRASTRUCTURE LAYER - Supabase Authentication          │
+│     account/infrastructure/security/supabase_auth_adapter.py│
 └─────────────────────────────────────────────────────────────┘
          │
-         │  Verifies password via PasswordHasher port
-         │  Returns validation result
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4. INFRASTRUCTURE LAYER - Token Issuance                   │
-│     account/infrastructure/security/refresh_token_service.py│
-└─────────────────────────────────────────────────────────────┘
-         │
-         │  Creates JWT access token (short-lived, stateless)
-         │  Creates refresh token (long-lived, stored in DB)
-         │  Returns token pair to handler
+         │  Authenticates via Supabase sign_in_with_password
+         │  Supabase verifies credentials and issues tokens
+         │  Returns token pair (access + refresh) to handler
          │
          ▼
      TokenResponse (access_token + refresh_token + expires_in)
@@ -1162,38 +1285,28 @@ class LogInHandler(LogInUseCase):
     def __init__(
         self,
         account_repository: AccountRepository,   # Domain port
-        account_service: AccountService,          # Domain service
         token_pair_issuer: TokenPairIssuer,       # Application port
-        auth_unit_of_work: AuthUnitOfWork,        # Application port
     ) -> None:
         self._account_repository = account_repository
-        self._account_service = account_service
         self._token_pair_issuer = token_pair_issuer
-        self._auth_unit_of_work = auth_unit_of_work
 
     async def execute(self, command: LogInCommand) -> LogInResult:
         # 1. Load aggregate by email (from repository)
-        account = await self._account_repository.get_by_email(
-            Email(command.email)
-        )
+        email = Email(command.email)
+        password = RawPassword(command.password)
+
+        account = await self._account_repository.get_by_email(email)
         if account is None:
-            raise AccountNotFoundByEmailError(Email(command.email))
+            raise AccountNotFoundByEmailError(email)
 
-        # 2. Verify password (domain service)
-        if not await self._account_service.is_password_valid(
-            account, RawPassword(command.password)
-        ):
-            raise AuthenticationError("Invalid password.")
-
-        # 3. Check business rules (domain)
+        # 2. Check business rules (domain)
         if not account.is_active:
             raise AuthenticationError("Account inactive.")
 
-        # 4. Issue token pair (infrastructure, via application port)
+        # 3. Authenticate and issue token pair (via Supabase)
         access_token, refresh_token = (
-            self._token_pair_issuer.issue_token_pair(account.id_)
+            await self._token_pair_issuer.issue_token_pair(email, password)
         )
-        await self._auth_unit_of_work.commit()
 
         return LogInResult(
             access_token=access_token,
@@ -1202,53 +1315,27 @@ class LogInHandler(LogInUseCase):
         )
 ```
 
-**Step 3: Domain Service (Domain)**
+**Step 3: Token Issuance via Supabase (Infrastructure)**
 
 ```python
-# account/domain/account/services.py
-class AccountService:
-    def __init__(
-        self,
-        account_id_generator: AccountIdGenerator,
-        password_hasher: PasswordHasher,
-    ) -> None:
-        self._account_id_generator = account_id_generator
-        self._password_hasher = password_hasher
-
-    async def is_password_valid(
-        self,
-        account: Account,
-        raw_password: RawPassword,
-    ) -> bool:
-        """Verify password against stored hash."""
-        return await self._password_hasher.verify(
-            raw_password=raw_password,
-            hashed_password=account.password_hash,
-        )
-```
-
-**Step 4: Token Issuance (Infrastructure)**
-
-```python
-# account/infrastructure/security/refresh_token_service.py
-class RefreshTokenService(TokenPairIssuer, TokenPairRefresher):
+# account/infrastructure/security/supabase_auth_adapter.py
+class SupabaseTokenPairIssuer(TokenPairIssuer):
     """
-    Infrastructure service responsibilities:
-    - Encode JWT access tokens (short-lived, stateless)
-    - Generate and persist refresh tokens (long-lived, server-side)
-    - Rotate refresh tokens on use
-    - Revoke all tokens for an account (on deactivation/deletion)
+    Infrastructure adapter responsibilities:
+    - Authenticate via Supabase sign_in_with_password
+    - Supabase manages JWT access tokens and refresh tokens
+    - Returns the token pair issued by Supabase GoTrue
     """
 
-    def issue_token_pair(self, account_id: AccountId) -> tuple[str, str]:
-        # 1. Create refresh token and persist to database
-        refresh_token = self._create_refresh_token(account_id)
-        self._repository.add(refresh_token)
-
-        # 2. Create JWT access token
-        access_token = self._create_access_token(account_id)
-
-        return access_token, refresh_token.id_
+    async def issue_token_pair(
+        self, email: Email, password: RawPassword
+    ) -> tuple[str, str]:
+        response = self._client.auth.sign_in_with_password({
+            "email": email.value,
+            "password": password.value.decode(),
+        })
+        session = response.session
+        return session.access_token, session.refresh_token
 ```
 
 ### Data Flow
@@ -1262,13 +1349,10 @@ HTTP Request                  Domain / Application             Infrastructure
     │                             │  Account                     │
     │                             │  (aggregate root)            │
     │                             ├──────── load ───────────────▶│ DB SELECT
-    │                             │                               │
-    │                             │  PasswordHasher.verify()     │
-    │                             ├──────── verify ─────────────▶│ bcrypt
-    │                             │                               │
+    │                             │                               │  (cross-schema join)
     │                             │  TokenPairIssuer             │
     │                             │  .issue_token_pair()         │
-    │                             ├──────── issue ──────────────▶│ JWT + DB INSERT
+    │                             ├──────── authenticate ───────▶│ Supabase GoTrue
     │                             │                               │
     │  TokenResponse              │                               │
     │  (access_token,            │                               │
@@ -1280,23 +1364,32 @@ HTTP Request                  Domain / Application             Infrastructure
 ### Key Observations
 
 **Separation of Concerns:**
+
 - HTTP layer only knows about HTTP (request/response models, status codes)
-- Application layer only orchestrates (no HTTP, no SQL, no JWT)
-- Domain layer only knows business logic (password verification, account status)
-- Infrastructure layer handles technical details (JWT encoding, token storage, database)
+- Application layer only orchestrates (no HTTP, no SQL, no Supabase SDK)
+- Domain layer only knows business logic (account status, role rules)
+- Infrastructure layer handles technical details (Supabase auth, database,
+  JWT verification)
 
 **Authentication as Infrastructure:**
-- Token management (JWT + refresh tokens) lives entirely in infrastructure
-- The application layer uses the `TokenPairIssuer` port — it doesn't know about JWTs
-- Refresh tokens are stored server-side for revocability; access tokens are stateless
+
+- Authentication is fully delegated to **Supabase Auth (GoTrue)**
+- The application layer uses the `TokenPairIssuer` port — it doesn't know about
+  Supabase or JWTs
+- Supabase manages credentials, sessions, and token lifecycle
+- The backend only verifies Supabase-issued JWTs (no encoding)
 
 **Dependency Direction:**
+
 - HTTP Controller depends on `LogInUseCase` port (abstraction)
-- Application Handler depends on `AccountRepository`, `TokenPairIssuer` ports (abstractions)
-- Infrastructure implements those ports (`SqlaAccountRepository`, `RefreshTokenService`)
+- Application Handler depends on `AccountRepository`, `TokenPairIssuer` ports
+  (abstractions)
+- Infrastructure implements those ports (`SqlaAccountRepository`,
+  `SupabaseTokenPairIssuer`)
 - Domain has zero dependencies on outer layers
 
 **Testing Strategy:**
+
 - Test domain in isolation with no infrastructure
 - Test application with in-memory repositories and mock token issuers
 - Test HTTP with mocked use cases
@@ -1387,7 +1480,10 @@ This separation enables:
 ## Dependency Graphs
 
 > [!NOTE]
-> The following diagrams illustrate general dependency patterns and architectural principles. While the specific terminology and structure have evolved, the core dependency principles (dependency inversion, ports and adapters, layered architecture) remain fundamental to this implementation.
+> The following diagrams illustrate general dependency patterns and
+> architectural principles. While the specific terminology and structure have
+> evolved, the core dependency principles (dependency inversion, ports and
+> adapters, layered architecture) remain fundamental to this implementation.
 
 <details>
   <summary>HTTP Controller - Use Case Handler</summary>
@@ -1397,17 +1493,17 @@ This separation enables:
   <br><em>Figure 7: HTTP Controller invoking Use Case Handler</em>
   </p>
 
-In the infrastructure layer (HTTP controllers), Pydantic models are used when working with FastAPI
-to display detailed information in OpenAPI documentation. You
-might also find it convenient to validate certain fields using Pydantic;
-however, be cautious to avoid leaking business rules into the controller
-layer.
+In the infrastructure layer (HTTP controllers), Pydantic models are used when
+working with FastAPI to display detailed information in OpenAPI documentation.
+You might also find it convenient to validate certain fields using Pydantic;
+however, be cautious to avoid leaking business rules into the controller layer.
 
-For command data in the application layer, a plain `dataclass` is often sufficient. Unlike lighter
-alternatives, it provides attribute access, which is more convenient for working
-in the application layer. However, such access is unnecessary for data returned
-to the client, where a `TypedDict` is sufficient (it's approximately twice as
-fast to create as a dataclass with slots, with comparable access times).
+For command data in the application layer, a plain `dataclass` is often
+sufficient. Unlike lighter alternatives, it provides attribute access, which is
+more convenient for working in the application layer. However, such access is
+unnecessary for data returned to the client, where a `TypedDict` is sufficient
+(it's approximately twice as fast to create as a dataclass with slots, with
+comparable access times).
 
 </details>
 
@@ -1448,13 +1544,16 @@ fast to create as a dataclass with slots, with comparable access times).
   <br><em>Figure 11: HTTP Controller invoking Application Handler through port abstraction</em>
   </p>
 
-This diagram shows how HTTP controllers (infrastructure layer) depend on application use case ports (abstractions)
-rather than concrete implementations. The controller invokes the use case through an interface,
-allowing the application layer to remain independent of HTTP concerns.
+This diagram shows how HTTP controllers (infrastructure layer) depend on
+application use case ports (abstractions) rather than concrete implementations.
+The controller invokes the use case through an interface, allowing the
+application layer to remain independent of HTTP concerns.
 
 In this architecture:
+
 - HTTP controllers live in `{context}/infrastructure/http/controllers/`
-- They depend on use case ports (interfaces) like `LogInUseCase`, `CreateAccountUseCase`
+- They depend on use case ports (interfaces) like `LogInUseCase`,
+  `CreateAccountUseCase`
 - Concrete handlers live in `{context}/application/` and implement these ports
 - Dependency injection wires up the concrete implementations
 
@@ -1467,14 +1566,17 @@ In this architecture:
   <br><em>Figure 12: Repository implementing domain port</em>
   </p>
 
-This diagram illustrates how infrastructure repositories implement domain-defined ports (interfaces).
-The repository depends on both the domain port it implements and the infrastructure
-technologies (SQLAlchemy, ORM models) it uses.
+This diagram illustrates how infrastructure repositories implement
+domain-defined ports (interfaces). The repository depends on both the domain
+port it implements and the infrastructure technologies (SQLAlchemy, ORM models)
+it uses.
 
 In this architecture:
+
 - Domain defines repository interfaces (ports) like `AccountRepository`
 - Infrastructure implements these ports: `SqlaAccountRepository`
-- The repository uses SQLAlchemy imperative mapping (domain entities mapped directly)
+- The repository uses SQLAlchemy imperative mapping (domain entities mapped
+  directly)
 - Application layer depends on the port, not the concrete implementation
 
 </details>
@@ -1486,22 +1588,28 @@ In this architecture:
   <br><em>Figure 13: Identity Provider abstracting authentication details</em>
   </p>
 
-**Identity Provider (IdP)** abstracts authentication details, serving as a bridge between
-the HTTP layer and the application layer. In this architecture:
+**Identity Provider (IdP)** abstracts authentication details, serving as a
+bridge between the HTTP layer and the application layer. In this architecture:
 
-- The IdP extracts user identity from JWT Bearer tokens in the `Authorization` header
-- It provides the current account's ID without exposing authentication mechanisms
+- The IdP extracts user identity from JWT Bearer tokens in the `Authorization`
+  header
+- It provides the current account's ID without exposing authentication
+  mechanisms
 - Domain remains unaware of how authentication works (tokens, etc.)
 - Application layer uses IdP to get current account context
 
-The `JwtIdentityProvider` (infrastructure) decodes the JWT access token and
-extracts the account ID, abstracting all token details from the application layer.
+The `JwtIdentityProvider` (infrastructure) verifies the Supabase-issued JWT
+access token and extracts the account ID from the `sub` claim, abstracting all
+token details from the application layer.
 
 </details>
 
 ## Structure
 
-This project implements **Domain-Driven Design** with **Clean Architecture** using a bounded-context-first organization. Code is organized into **bounded contexts** (`account/`, `core/`, `shared/`), each containing its own domain, application, and infrastructure layers.
+This project implements **Domain-Driven Design** with **Clean Architecture**
+using a bounded-context-first organization. Code is organized into **bounded
+contexts** (`account/`, `core/`, `shared/`), each containing its own domain,
+application, and infrastructure layers.
 
 ```
 .
@@ -1515,12 +1623,12 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     ├── account/                                      # ACCOUNT BOUNDED CONTEXT
     │   ├── domain/account/                           # Domain layer (NO external dependencies)
     │   │   ├── entity.py                             # Account aggregate root
-    │   │   ├── value_objects.py                      # Email, AccountPasswordHash, RawPassword
+    │   │   ├── value_objects.py                      # Email, RawPassword
     │   │   ├── events.py                             # AccountCreated, AccountActivated, etc.
     │   │   ├── enums.py                              # AccountRole enum (USER, ADMIN, SUPER_ADMIN)
-    │   │   ├── services.py                           # AccountService + permission framework
+    │   │   ├── services.py                           # Permission framework (CanManageSelf, etc.)
     │   │   ├── repository.py                         # AccountRepository interface (DRIVEN PORT)
-    │   │   ├── ports.py                              # PasswordHasher, AccessRevoker, AccountIdGenerator
+    │   │   ├── ports.py                              # AccessRevoker
     │   │   └── errors.py                             # Domain exceptions
     │   │
     │   ├── application/                              # Application layer (use cases)
@@ -1536,7 +1644,7 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     │   │   ├── revoke_admin/                         # Super admin revokes admin role
     │   │   ├── activate_account/                     # Admin activates account
     │   │   ├── deactivate_account/                   # Admin deactivates account
-    │   │   └── shared/                               # AccountUnitOfWork, AuthUnitOfWork, TokenPairIssuer
+    │   │   └── shared/                               # AccountUnitOfWork, TokenPairIssuer, AccountProvisioner
     │   │
     │   └── infrastructure/                           # Infrastructure layer (adapters)
     │       ├── http/
@@ -1544,11 +1652,10 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
     │       │   ├── routers/account_router.py         # /accounts prefix, combines sub-routers
     │       │   └── schemas/                          # TokenResponse, RefreshRequest
     │       ├── persistence/
-    │       │   ├── sqla_account_repository.py        # SqlaAccountRepository
+    │       │   ├── sqla_account_repository.py        # SqlaAccountRepository (cross-schema join)
     │       │   ├── sqla_account_unit_of_work.py      # SqlaAccountUnitOfWork
-    │       │   ├── sqla_auth_unit_of_work.py         # SqlaAuthUnitOfWork
-    │       │   └── mappers/account.py                # accounts_table + imperative mapping
-    │       ├── security/                             # Bcrypt hasher, JWT, token service, ID generators
+    │       │   └── mappers/account.py                # account_metadata_table + imperative mapping
+    │       ├── security/                             # Supabase auth adapters, JWT verification
     │       └── events/handlers/                      # Account event handlers
     │
     ├── core/                                         # CORE BOUNDED CONTEXT
@@ -1615,20 +1722,26 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
 ### Key Architecture Patterns
 
 **Bounded-Context DDD:**
+
 - Codebase organized into **bounded contexts** (`account/`, `core/`, `shared/`)
 - Each context contains its own domain, application, and infrastructure layers
-- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username, display data)
+- Two aggregates: **Account** (identity, auth, roles) and **Profile** (username,
+  display data)
 - Cross-context communication via **domain events** (no direct domain imports)
-- Authentication (JWT + refresh tokens) is an infrastructure concern, not a domain aggregate
+- Authentication is delegated to **Supabase Auth** — an infrastructure concern,
+  not a domain aggregate
 
 **Aggregate Structure:**
-- **Aggregate Root**: Entry point for all operations (Account entity, Profile entity)
+
+- **Aggregate Root**: Entry point for all operations (Account entity, Profile
+  entity)
 - **Domain Events**: Record state changes (AccountCreated, ProfileCreated)
 - **Value Objects**: Immutable business types (AccountId, Email, Username)
 - **Repository Interfaces**: Persistence abstractions defined in domain
-- **Domain Services**: Stateless business logic (AccountService)
+- **Domain Services**: Stateless business logic (Permission framework)
 
 **Application Layer (Use Cases):**
+
 - **Command**: Input DTO for use case (LogInCommand)
 - **Handler**: Orchestrates domain logic + infrastructure (LogInHandler)
 - **Port**: Interface defining use case contract (LogInUseCase)
@@ -1636,23 +1749,28 @@ This project implements **Domain-Driven Design** with **Clean Architecture** usi
 - All business logic delegated to domain layer
 
 **Dependency Rule:**
+
 - Dependencies point inward: Infrastructure → Application → Domain
 - Domain has **zero dependencies** on frameworks or infrastructure
 - Application depends on domain abstractions (ports)
 - Infrastructure implements domain ports (adapters)
 
 **CQRS Pattern:**
-- Write operations: Commands flow through handlers → domain services → repository
+
+- Write operations: Commands flow through handlers → domain services →
+  repository
 - Read operations: Queries can bypass domain for optimized reads
 - Separate models for commands and queries where beneficial
 
 ## Makefile Commands Reference
 
-The project includes a comprehensive Makefile for automating common development tasks. Run `make help` to see all available commands.
+The project includes a comprehensive Makefile for automating common development
+tasks. Run `make help` to see all available commands.
 
 ### Environment Management
 
-- `make env.local` - Print command to set APP_ENV=local (run in shell: `eval $(make env.local)`)
+- `make env.local` - Print command to set APP_ENV=local (run in shell:
+  `eval $(make env.local)`)
 - `make env` - Display current APP_ENV value
 - `make dotenv` - Generate .env files from config templates
 - `make venv` - Create or update virtual environment using uv
@@ -1673,7 +1791,8 @@ The project includes a comprehensive Makefile for automating common development 
 - `make up.echo` - Start application containers in foreground (with logs)
 - `make down` - Stop application containers
 - `make down.total` - Stop application containers and remove volumes
-- `make prune` - Clean up docker compose artifacts (stopped containers, networks, etc.)
+- `make prune` - Clean up docker compose artifacts (stopped containers,
+  networks, etc.)
 
 ### Code Quality
 
@@ -1686,7 +1805,7 @@ The project includes a comprehensive Makefile for automating common development 
 
 ### Project Utilities
 
-- `make pycache-del` - Remove all __pycache__ directories
+- `make pycache-del` - Remove all **pycache** directories
 - `make tree` - Display project tree structure (after cleaning)
 - `make plot-data` - Plot Dishka dependency injection graph
 - `make help` - Display this help information
@@ -1694,7 +1813,7 @@ The project includes a comprehensive Makefile for automating common development 
 ## Technology Stack
 
 - **Python**: `3.13`
-- **Core**: `bcrypt`, `dishka`, `fastapi-error-map`, `fastapi`, `orjson`,
+- **Core**: `supabase`, `dishka`, `fastapi-error-map`, `fastapi`, `orjson`,
   `psycopg[binary]`, `pyjwt[crypto]`, `sqlalchemy[mypy]`, `uuid-utils`,
   `uvicorn`, `uvloop`
 - **Development**: `mypy`, `pre-commit`, `ruff`, `slotscheck`
@@ -1713,14 +1832,13 @@ The project includes a comprehensive Makefile for automating common development 
 
 - `/signup` (POST): Open to **everyone**.
   - Registers a new account with email validation and uniqueness checks.
-  - Passwords are peppered (HMAC-SHA384), salted, and stored as bcrypt hashes.
-  - Returns a JWT access token and refresh token upon successful registration.
+  - Credentials are managed by Supabase Auth (GoTrue).
   - Automatically creates a Profile in the Core BC via `AccountCreated` event.
 - `/login` (POST): Open to **everyone**.
-  - Authenticates a registered account by verifying email and password.
-  - Returns a JWT access token (short-lived) and a refresh token (long-lived,
-    stored server-side).
-  - Access tokens are stateless and verified cryptographically.
+  - Authenticates via Supabase `sign_in_with_password`.
+  - Returns a JWT access token (short-lived) and a refresh token (long-lived),
+    both issued by Supabase.
+  - Access tokens are verified cryptographically by the backend.
   - Protected endpoints require `Authorization: Bearer <access_token>` header.
 - `/refresh` (POST): Open to **everyone** (with valid refresh token).
   - Accepts a refresh token and rotates it: the old token is deleted and a new
@@ -1750,7 +1868,7 @@ The project includes a comprehensive Makefile for automating common development 
   - Only super admins can activate other admins.
 - `/{account_id}/activation` (DELETE): Open to **admins**.
   - Soft-deletes an existing account, making it inactive.
-  - Also revokes all of the account's refresh tokens.
+  - Also revokes all of the account's Supabase sessions.
   - Only super admins can deactivate other admins.
   - Super admins cannot be soft-deleted.
 
@@ -1792,23 +1910,21 @@ The project includes a comprehensive Makefile for automating common development 
 >   information. See this project's `.gitignore` for an example of how to
 >   properly exclude these sensitive files from Git.
 
-**Security settings** (`config.toml` → `[security.auth]` and `[security.password]`):
+**Security settings** (`config.toml` → `[security.auth]` and
+`[security.supabase]`):
 
-| Setting | Section | Description |
-|---------|---------|-------------|
-| `JWT_ALGORITHM` | `security.auth` | JWT signing algorithm (`HS256`, `HS384`, `HS512`, `RS256`, `RS384`, `RS512`) |
-| `ACCESS_TOKEN_EXPIRY_MIN` | `security.auth` | Access token lifetime in minutes (default: 15) |
-| `REFRESH_TOKEN_EXPIRY_DAYS` | `security.auth` | Refresh token lifetime in days (default: 7) |
-| `HASHER_WORK_FACTOR` | `security.password` | Bcrypt work factor (minimum: 10) |
-| `HASHER_MAX_THREADS` | `security.password` | Max threads for password hashing |
-| `HASHER_SEMAPHORE_WAIT_TIMEOUT_S` | `security.password` | Fail-fast timeout for password hashing |
+| Setting                   | Section              | Description                                                                  |
+| ------------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `JWT_ALGORITHM`           | `security.auth`      | JWT verification algorithm (`HS256`, `RS256`, etc.)                          |
+| `ACCESS_TOKEN_EXPIRY_MIN` | `security.auth`      | Access token lifetime in minutes (default: 15)                               |
+| `SUPABASE_URL`            | `security.supabase`  | Supabase project URL                                                         |
 
 **Secrets** (`.secrets.toml`):
 
-| Secret | Section | Description |
-|--------|---------|-------------|
-| `JWT_SECRET` | `security.auth` | JWT signing key (min 32 characters) |
-| `PEPPER` | `security.password` | HMAC pepper for password hashing (min 32 characters) |
+| Secret                       | Section              | Description                                              |
+| ---------------------------- | -------------------- | -------------------------------------------------------- |
+| `JWT_SECRET`                 | `security.auth`      | Supabase JWT secret for token verification               |
+| `SUPABASE_SERVICE_ROLE_KEY`  | `security.supabase`  | Supabase service role key for admin API operations        |
 
 ### Flow
 
@@ -1994,32 +2110,10 @@ schema generation.
 
 # Acknowledgements
 
-I would like to express my sincere gratitude to the following individuals for
-their valuable ideas and support in satisfying my curiosity throughout the
-development of this project: [igoryuha](https://github.com/igoryuha),
-[tishka17](https://github.com/tishka17),
-[chessenjoyer17](https://github.com/chessenjoyer17),
-[PlzTrustMe](https://github.com/PlzTrustMe),
-[Krak3nDev](https://github.com/Krak3nDev),
-[Ivankirpichnikov](https://github.com/Ivankirpichnikov),
-[SamWarden](https://github.com/SamWarden),
-[nkhitrov](https://github.com/nkhitrov),
-[ApostolFet](https://github.com/ApostolFet), Lancetnik, Sehat1137, Maclovi.
+I would like to express my sincere gratitude to
+[ivan-borovets](https://github.com/ivan-borovets) for their valuable ideas in
+the development of this project.
 
-I also greatly appreciate the valuable insights shared by participants of the
-ASGI Community Telegram chat, despite frequent and lively communication
-challenges, as well as the ⚗️ Reagento (adaptix/dishka)
-[Telegram chat](https://t.me/reagento_ru) for their thoughtful discussions and
-generous knowledge exchange.
-
-# Todo
-
-- [x] set up CI
-- [x] simplify settings
-- [x] simplify annotations
-- [ ] add integration tests
-- [ ] explain design choices
-
-[^1]: This JWT authentication scheme is **not** related to OAuth 2.0. Access
-    tokens are short-lived and stateless (no database lookup on each request).
-    Refresh tokens are stored server-side to enable revocation.
+[^1]: Authentication is delegated to Supabase Auth (GoTrue). Access tokens are
+    short-lived JWTs issued by Supabase and verified by the backend. Refresh
+    tokens and sessions are managed entirely by Supabase.

@@ -4,6 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
+from gotrue.errors import AuthApiError
 from pydantic import BaseModel, ConfigDict, Field
 
 from account.application.create_account.command import (
@@ -16,7 +17,6 @@ from account.domain.account.errors import (
     EmailAlreadyExistsError,
     RoleAssignmentNotPermittedError,
 )
-from account.infrastructure.security.errors import PasswordHasherBusyError
 from shared.domain.errors import (
     AuthenticationError,
     AuthorizationError,
@@ -48,13 +48,13 @@ def create_create_account_router() -> APIRouter:
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
             ),
-            AuthorizationError: status.HTTP_403_FORBIDDEN,
-            DomainTypeError: status.HTTP_400_BAD_REQUEST,
-            PasswordHasherBusyError: rule(
+            AuthApiError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
             ),
+            AuthorizationError: status.HTTP_403_FORBIDDEN,
+            DomainTypeError: status.HTTP_400_BAD_REQUEST,
             RoleAssignmentNotPermittedError: status.HTTP_422_UNPROCESSABLE_ENTITY,
             EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
         },

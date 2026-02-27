@@ -10,7 +10,6 @@ from account.application.log_in.handler import AuthenticationError
 from account.application.log_in.port import LogInUseCase
 from account.domain.account.errors import AccountNotFoundByEmailError
 from account.infrastructure.http.schemas.token_response import TokenResponse
-from account.infrastructure.security.errors import PasswordHasherBusyError
 from shared.domain.errors import DomainTypeError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
@@ -31,11 +30,6 @@ def create_log_in_router() -> APIRouter:
             ),
             DomainTypeError: status.HTTP_400_BAD_REQUEST,
             AccountNotFoundByEmailError: status.HTTP_404_NOT_FOUND,
-            PasswordHasherBusyError: rule(
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                translator=ServiceUnavailableTranslator(),
-                on_error=log_error,
-            ),
             AuthenticationError: status.HTTP_401_UNAUTHORIZED,
         },
         default_on_error=log_info,

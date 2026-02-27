@@ -28,11 +28,6 @@ class Email(ValueObject):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
-class AccountPasswordHash(ValueObject):
-    value: bytes
-
-
-@dataclass(frozen=True, slots=True, repr=False)
 class RawPassword(ValueObject):
     """raises DomainTypeError"""
 

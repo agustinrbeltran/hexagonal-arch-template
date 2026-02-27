@@ -10,9 +10,9 @@ class AuthSettingsData(TypedDict):
         "RS256",
         "RS384",
         "RS512",
+        "ES256",
     ]
     ACCESS_TOKEN_EXPIRY_MIN: int
-    REFRESH_TOKEN_EXPIRY_DAYS: int
 
 
 class PostgresSettingsData(TypedDict):
@@ -33,15 +33,14 @@ def create_auth_settings_data(
         "RS256",
         "RS384",
         "RS512",
+        "ES256",
     ] = "RS256",
     access_token_expiry_min: int = 15,
-    refresh_token_expiry_days: int = 7,
 ) -> AuthSettingsData:
     return AuthSettingsData(
         JWT_SECRET=jwt_secret,
         JWT_ALGORITHM=jwt_algorithm,
         ACCESS_TOKEN_EXPIRY_MIN=access_token_expiry_min,
-        REFRESH_TOKEN_EXPIRY_DAYS=refresh_token_expiry_days,
     )
 
 

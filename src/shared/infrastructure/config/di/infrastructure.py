@@ -1,8 +1,6 @@
-import asyncio
 import logging
-from collections.abc import AsyncIterator, Iterator
-from concurrent.futures import ThreadPoolExecutor
-from typing import cast
+from collections.abc import AsyncIterator
+from typing import NewType, cast
 
 from dishka import Provider, Scope, from_context, provide
 from sqlalchemy.ext.asyncio import (
@@ -13,64 +11,36 @@ from sqlalchemy.ext.asyncio import (
 )
 from starlette.requests import Request
 
-from account.application.shared.auth_unit_of_work import AuthUnitOfWork
+from account.application.shared.account_provisioner import AccountProvisioner
+from account.application.shared.password_resetter import PasswordResetter
 from account.application.shared.token_pair_issuer import TokenPairIssuer
 from account.application.shared.token_pair_refresher import TokenPairRefresher
-from account.infrastructure.persistence.sqla_auth_unit_of_work import SqlaAuthUnitOfWork
-from account.infrastructure.persistence.sqla_refresh_token_repository import (
-    SqlaRefreshTokenRepository,
-)
+from account.domain.account.ports import AccessRevoker
 from account.infrastructure.security.access_token_processor_jwt import (
-    JwtAccessTokenProcessor,
+    AccessTokenDecoder,
 )
-from account.infrastructure.security.refresh_token_id_generator import (
-    StrRefreshTokenIdGenerator,
-)
-from account.infrastructure.security.refresh_token_repository import (
-    RefreshTokenRepository,
-)
-from account.infrastructure.security.refresh_token_service import (
-    AccessTokenEncoder,
-    RefreshTokenIdGenerator,
-    RefreshTokenService,
+from account.infrastructure.security.supabase_auth_adapter import (
+    SupabaseAccessRevoker,
+    SupabaseAccountProvisioner,
+    SupabasePasswordResetter,
+    SupabaseTokenPairIssuer,
+    SupabaseTokenPairRefresher,
 )
 from shared.infrastructure.config.settings.database import (
     PostgresSettings,
     SqlaEngineSettings,
 )
 from shared.infrastructure.config.settings.security import SecuritySettings
-from shared.infrastructure.persistence.types_ import (
-    AuthAsyncSession,
-    HasherSemaphore,
-    HasherThreadPoolExecutor,
-    MainAsyncSession,
+from shared.infrastructure.persistence.types_ import MainAsyncSession
+from supabase import (
+    Client as SupabaseClient,
+    create_client,
 )
 
+AdminSupabaseClient = NewType("AdminSupabaseClient", SupabaseClient)
+AuthSupabaseClient = NewType("AuthSupabaseClient", SupabaseClient)
+
 log = logging.getLogger(__name__)
-
-
-class MainAdaptersProvider(Provider):
-    scope = Scope.APP
-
-    @provide
-    def provide_hasher_threadpool_executor(
-        self,
-        security: SecuritySettings,
-    ) -> Iterator[HasherThreadPoolExecutor]:
-        executor = HasherThreadPoolExecutor(
-            ThreadPoolExecutor(
-                max_workers=security.password.hasher_max_threads,
-                thread_name_prefix="bcrypt",
-            )
-        )
-        yield executor
-        log.debug("Disposing hasher threadpool executor...")
-        executor.shutdown(wait=True, cancel_futures=True)
-        log.debug("Hasher threadpool executor is disposed.")
-
-    @provide
-    def provide_hasher_semaphore(self, security: SecuritySettings) -> HasherSemaphore:
-        return HasherSemaphore(asyncio.Semaphore(security.password.hasher_max_threads))
 
 
 class PersistenceSqlaProvider(Provider):
@@ -122,19 +92,6 @@ class PersistenceSqlaProvider(Provider):
             log.debug("Closing Main async session.")
         log.debug("Main async session closed.")
 
-    @provide(scope=Scope.REQUEST)
-    async def provide_auth_async_session(
-        self,
-        async_session_factory: async_sessionmaker[AsyncSession],
-    ) -> AsyncIterator[AuthAsyncSession]:
-        """Provides UoW (AsyncSession) for the auth context."""
-        log.debug("Starting Auth async session...")
-        async with async_session_factory() as session:
-            log.debug("Auth async session started.")
-            yield cast(AuthAsyncSession, session)
-            log.debug("Closing Auth async session.")
-        log.debug("Auth async session closed.")
-
 
 class EntrypointProvider(Provider):
     scope = Scope.REQUEST
@@ -142,68 +99,98 @@ class EntrypointProvider(Provider):
     request = from_context(provides=Request)
 
     @provide
-    def provide_access_token_processor(
+    def provide_access_token_decoder(
         self,
         security: SecuritySettings,
-    ) -> JwtAccessTokenProcessor:
-        return JwtAccessTokenProcessor(
+    ) -> AccessTokenDecoder:
+        jwks_url: str | None = None
+        if security.auth.jwt_algorithm.startswith("ES"):
+            jwks_url = f"{security.supabase.url}/auth/v1/.well-known/jwks.json"
+        return AccessTokenDecoder(
             secret=security.auth.jwt_secret,
             algorithm=security.auth.jwt_algorithm,
+            jwks_url=jwks_url,
         )
 
 
-class RefreshTokenProvider(Provider):
-    scope = Scope.REQUEST
-
-    # Ports
-    auth_unit_of_work = provide(SqlaAuthUnitOfWork, provides=AuthUnitOfWork)
-    id_generator = provide(
-        StrRefreshTokenIdGenerator, provides=RefreshTokenIdGenerator, scope=Scope.APP
-    )
-    repository = provide(SqlaRefreshTokenRepository, provides=RefreshTokenRepository)
-
-    @provide
-    def provide_access_token_encoder(
+class SupabaseProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_admin_supabase_client(
         self,
-        processor: JwtAccessTokenProcessor,
-    ) -> AccessTokenEncoder:
-        return processor
-
-    @provide
-    def provide_refresh_token_service(
-        self,
-        repository: RefreshTokenRepository,
-        id_generator: RefreshTokenIdGenerator,
-        access_token_encoder: AccessTokenEncoder,
         security: SecuritySettings,
-    ) -> RefreshTokenService:
-        return RefreshTokenService(
-            refresh_token_repository=repository,
-            refresh_token_id_generator=id_generator,
-            access_token_encoder=access_token_encoder,
-            access_token_expiry_min=security.auth.access_token_expiry_min,
-            refresh_token_expiry_days=security.auth.refresh_token_expiry_days,
+    ) -> AdminSupabaseClient:
+        """Dedicated client for admin operations (create_user, etc.).
+
+        Isolated from user auth state changes that would overwrite the
+        service-role Authorization header.
+        """
+        return AdminSupabaseClient(
+            create_client(
+                security.supabase.url,
+                security.supabase.service_role_key,
+            )
         )
 
-    @provide
+    @provide(scope=Scope.APP)
+    def provide_auth_supabase_client(
+        self,
+        security: SecuritySettings,
+    ) -> AuthSupabaseClient:
+        """Dedicated client for user-facing auth (sign_in, refresh)."""
+        return AuthSupabaseClient(
+            create_client(
+                security.supabase.url,
+                security.supabase.service_role_key,
+            )
+        )
+
+    @provide(scope=Scope.APP)
+    def provide_account_provisioner(
+        self,
+        client: AdminSupabaseClient,
+    ) -> AccountProvisioner:
+        return SupabaseAccountProvisioner(client)
+
+    @provide(scope=Scope.APP)
+    def provide_password_resetter(
+        self,
+        client: AdminSupabaseClient,
+    ) -> PasswordResetter:
+        return SupabasePasswordResetter(client)
+
+    @provide(scope=Scope.APP)
     def provide_token_pair_issuer(
         self,
-        service: RefreshTokenService,
+        client: AuthSupabaseClient,
+        security: SecuritySettings,
     ) -> TokenPairIssuer:
-        return service
+        return SupabaseTokenPairIssuer(
+            client=client,
+            access_token_expiry_s=security.auth.access_token_expiry_min * 60,
+        )
 
-    @provide
+    @provide(scope=Scope.APP)
     def provide_token_pair_refresher(
         self,
-        service: RefreshTokenService,
+        client: AuthSupabaseClient,
+        security: SecuritySettings,
     ) -> TokenPairRefresher:
-        return service
+        return SupabaseTokenPairRefresher(
+            client=client,
+            access_token_expiry_s=security.auth.access_token_expiry_min * 60,
+        )
+
+    @provide(scope=Scope.APP)
+    def provide_access_revoker(
+        self,
+        client: AdminSupabaseClient,
+    ) -> AccessRevoker:
+        return SupabaseAccessRevoker(client)
 
 
 def infrastructure_providers() -> tuple[Provider, ...]:
     return (
-        MainAdaptersProvider(),
         PersistenceSqlaProvider(),
-        RefreshTokenProvider(),
         EntrypointProvider(),
+        SupabaseProvider(),
     )

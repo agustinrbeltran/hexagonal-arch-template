@@ -4,6 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, status
 from fastapi_error_map import ErrorAwareRouter, rule
+from gotrue.errors import AuthApiError
 
 from account.application.sign_up.command import SignUpCommand, SignUpResponse
 from account.application.sign_up.handler import AlreadyAuthenticatedError
@@ -12,7 +13,6 @@ from account.domain.account.errors import (
     EmailAlreadyExistsError,
     RoleAssignmentNotPermittedError,
 )
-from account.infrastructure.security.errors import PasswordHasherBusyError
 from shared.domain.errors import AuthorizationError, DomainTypeError
 from shared.infrastructure.http.errors.callbacks import log_error, log_info
 from shared.infrastructure.http.errors.translators import ServiceUnavailableTranslator
@@ -33,12 +33,12 @@ def create_sign_up_router() -> APIRouter:
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
             ),
-            DomainTypeError: status.HTTP_400_BAD_REQUEST,
-            PasswordHasherBusyError: rule(
+            AuthApiError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
             ),
+            DomainTypeError: status.HTTP_400_BAD_REQUEST,
             RoleAssignmentNotPermittedError: status.HTTP_422_UNPROCESSABLE_ENTITY,
             EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
         },

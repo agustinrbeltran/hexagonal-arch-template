@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.deactivate_account.command import DeactivateAccountCommand
 from account.application.deactivate_account.handler import DeactivateAccountHandler
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
@@ -19,7 +19,7 @@ from tests.app.unit.factories.value_objects import create_account_id
 
 @pytest.mark.asyncio
 async def test_deactivates_active_account() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     access_revoker = create_autospec(AccessRevoker, instance=True)
@@ -34,7 +34,7 @@ async def test_deactivates_active_account() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target
 
     sut = DeactivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         access_revoker=cast(AccessRevoker, access_revoker),
@@ -51,7 +51,7 @@ async def test_deactivates_active_account() -> None:
 
 @pytest.mark.asyncio
 async def test_already_inactive_skips_commit_but_revokes_access() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     access_revoker = create_autospec(AccessRevoker, instance=True)
@@ -66,7 +66,7 @@ async def test_already_inactive_skips_commit_but_revokes_access() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target
 
     sut = DeactivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         access_revoker=cast(AccessRevoker, access_revoker),
@@ -81,7 +81,7 @@ async def test_already_inactive_skips_commit_but_revokes_access() -> None:
 
 @pytest.mark.asyncio
 async def test_user_caller_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     access_revoker = create_autospec(AccessRevoker, instance=True)
@@ -94,7 +94,7 @@ async def test_user_caller_raises_authorization_error() -> None:
     cast(AsyncMock, current_account_handler.get_current_account).return_value = user
 
     sut = DeactivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         access_revoker=cast(AccessRevoker, access_revoker),
@@ -107,7 +107,7 @@ async def test_user_caller_raises_authorization_error() -> None:
 
 @pytest.mark.asyncio
 async def test_target_not_found_raises_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     access_revoker = create_autospec(AccessRevoker, instance=True)
@@ -121,7 +121,7 @@ async def test_target_not_found_raises_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = None
 
     sut = DeactivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         access_revoker=cast(AccessRevoker, access_revoker),
@@ -134,7 +134,7 @@ async def test_target_not_found_raises_error() -> None:
 
 @pytest.mark.asyncio
 async def test_admin_targeting_admin_raises_authorization_error() -> None:
-    current_account_handler = create_autospec(CurrentAccountHandler, instance=True)
+    current_account_handler = create_autospec(CurrentAccountUseCase, instance=True)
     account_repository = create_autospec(AccountRepository, instance=True)
     account_unit_of_work = create_autospec(AccountUnitOfWork, instance=True)
     access_revoker = create_autospec(AccessRevoker, instance=True)
@@ -151,7 +151,7 @@ async def test_admin_targeting_admin_raises_authorization_error() -> None:
     cast(AsyncMock, account_repository.get_by_id).return_value = target_admin
 
     sut = DeactivateAccountHandler(
-        current_account_handler=cast(CurrentAccountHandler, current_account_handler),
+        current_account_handler=cast(CurrentAccountUseCase, current_account_handler),
         account_repository=cast(AccountRepository, account_repository),
         account_unit_of_work=cast(AccountUnitOfWork, account_unit_of_work),
         access_revoker=cast(AccessRevoker, access_revoker),

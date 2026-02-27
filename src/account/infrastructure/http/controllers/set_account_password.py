@@ -10,7 +10,6 @@ from fastapi_error_map import ErrorAwareRouter, rule
 from account.application.set_account_password.command import SetAccountPasswordCommand
 from account.application.set_account_password.port import SetAccountPasswordUseCase
 from account.domain.account.errors import AccountNotFoundByIdError
-from account.infrastructure.security.errors import PasswordHasherBusyError
 from shared.domain.errors import (
     AuthenticationError,
     AuthorizationError,
@@ -38,11 +37,6 @@ def create_set_account_password_router() -> APIRouter:
             AuthorizationError: status.HTTP_403_FORBIDDEN,
             DomainTypeError: status.HTTP_400_BAD_REQUEST,
             AccountNotFoundByIdError: status.HTTP_404_NOT_FOUND,
-            PasswordHasherBusyError: rule(
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                translator=ServiceUnavailableTranslator(),
-                on_error=log_error,
-            ),
         },
         default_on_error=log_info,
         status_code=status.HTTP_204_NO_CONTENT,

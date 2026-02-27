@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from uuid import UUID
 
-from account.domain.account.value_objects import AccountPasswordHash, Email, RawPassword
+from account.domain.account.value_objects import Email, RawPassword
 from core.domain.profile.value_objects import ProfileId, Username
 from shared.domain.account_id import AccountId
 from shared.domain.value_object import ValueObject
@@ -37,10 +37,6 @@ def create_email(value: str = "alice@example.com") -> Email:
 
 def create_raw_password(value: str = "Good Password") -> RawPassword:
     return RawPassword(value)
-
-
-def create_password_hash(value: bytes = b"password_hash") -> AccountPasswordHash:
-    return AccountPasswordHash(value)
 
 
 def create_profile_id(value: UUID | None = None) -> ProfileId:

@@ -1,4 +1,4 @@
-from dishka import Provider, Scope, provide, provide_all
+from dishka import Provider, Scope, provide
 
 from account.application.activate_account.handler import ActivateAccountHandler
 from account.application.activate_account.port import ActivateAccountUseCase
@@ -25,7 +25,6 @@ from account.application.set_account_password.port import SetAccountPasswordUseC
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.application.sign_up.handler import SignUpHandler
 from account.application.sign_up.port import SignUpUseCase
-from account.domain.account.ports import AccessRevoker
 from account.domain.account.repository import AccountRepository
 from account.infrastructure.persistence.sqla_account_repository import (
     SqlaAccountRepository,
@@ -33,7 +32,9 @@ from account.infrastructure.persistence.sqla_account_repository import (
 from account.infrastructure.persistence.sqla_account_unit_of_work import (
     SqlaAccountUnitOfWork,
 )
-from account.infrastructure.security.access_revoker import RefreshTokenAccessRevoker
+from account.infrastructure.security.authorization_guard import (
+    AccountAuthorizationGuard,
+)
 from core.application.create_profile.handler import CreateProfileHandler
 from core.application.create_profile.port import CreateProfileUseCase
 from core.application.get_my_profile.handler import GetMyProfileHandler
@@ -51,6 +52,7 @@ from core.infrastructure.persistence.sqla_profile_repository import (
     SqlaProfileRepository,
 )
 from shared.application.event_dispatcher import EventDispatcher
+from shared.domain.ports.authorization_guard import AuthorizationGuard
 from shared.domain.ports.identity_provider import IdentityProvider
 from shared.infrastructure.events.dispatcher import OutboxEventDispatcher
 from shared.infrastructure.persistence.types_ import MainAsyncSession
@@ -60,16 +62,15 @@ from shared.infrastructure.security.identity_provider import JwtBearerIdentityPr
 class AccountApplicationProvider(Provider):
     scope = Scope.REQUEST
 
-    # Concrete handler needed by other handlers as a direct dependency
-    current_account_handler = provide_all(CurrentAccountHandler)
-
     # Ports Persistence
     account_unit_of_work = provide(SqlaAccountUnitOfWork, provides=AccountUnitOfWork)
     account_repository = provide(SqlaAccountRepository, provides=AccountRepository)
 
     # Ports Auth
-    access_revoker = provide(RefreshTokenAccessRevoker, provides=AccessRevoker)
     identity_provider = provide(JwtBearerIdentityProvider, provides=IdentityProvider)
+    authorization_guard = provide(
+        AccountAuthorizationGuard, provides=AuthorizationGuard
+    )
 
     @provide
     def event_dispatcher(self, session: MainAsyncSession) -> EventDispatcher:

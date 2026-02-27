@@ -8,10 +8,9 @@ from account.domain.account.events import (
     AccountActivated,
     AccountCreated,
     AccountDeactivated,
-    AccountPasswordChanged,
     AccountRoleChanged,
 )
-from account.domain.account.value_objects import AccountPasswordHash, Email
+from account.domain.account.value_objects import Email
 from shared.domain.account_id import AccountId
 from shared.domain.aggregate_root import AggregateRoot
 
@@ -22,13 +21,11 @@ class Account(AggregateRoot[AccountId]):
         *,
         id_: AccountId,
         email: Email,
-        password_hash: AccountPasswordHash,
         role: AccountRole,
         is_active: bool,
     ) -> None:
         super().__init__(id_=id_)
         self.email = email
-        self.password_hash = password_hash
         self.role = role
         self.is_active = is_active
 
@@ -38,7 +35,6 @@ class Account(AggregateRoot[AccountId]):
         *,
         id_: AccountId,
         email: Email,
-        password_hash: AccountPasswordHash,
         role: AccountRole = AccountRole.USER,
         is_active: bool = True,
     ) -> "Account":
@@ -48,7 +44,6 @@ class Account(AggregateRoot[AccountId]):
         account = cls(
             id_=id_,
             email=email,
-            password_hash=password_hash,
             role=role,
             is_active=is_active,
         )
@@ -97,7 +92,3 @@ class Account(AggregateRoot[AccountId]):
             )
         )
         return True
-
-    def change_password(self, new_hash: AccountPasswordHash) -> None:
-        self.password_hash = new_hash
-        self._register_event(AccountPasswordChanged(account_id=self.id_.value))

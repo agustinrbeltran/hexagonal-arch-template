@@ -48,6 +48,13 @@
       "cwd": "${workspaceFolder}"
     },
     {
+      "name": "📦 make: migrate.db",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "make migrate.db",
+      "cwd": "${workspaceFolder}"
+    },
+    {
       "name": "✨ make: code.format",
       "type": "node-terminal",
       "request": "launch",

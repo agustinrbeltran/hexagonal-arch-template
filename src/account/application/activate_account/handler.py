@@ -2,7 +2,7 @@ import logging
 
 from account.application.activate_account.command import ActivateAccountCommand
 from account.application.activate_account.port import ActivateAccountUseCase
-from account.application.current_account.handler import CurrentAccountHandler
+from account.application.current_account.port import CurrentAccountUseCase
 from account.application.shared.account_unit_of_work import AccountUnitOfWork
 from account.domain.account.entity import Account
 from account.domain.account.enums import AccountRole
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class ActivateAccountHandler(ActivateAccountUseCase):
     def __init__(
         self,
-        current_account_handler: CurrentAccountHandler,
+        current_account_handler: CurrentAccountUseCase,
         account_repository: AccountRepository,
         account_unit_of_work: AccountUnitOfWork,
         event_dispatcher: EventDispatcher,
