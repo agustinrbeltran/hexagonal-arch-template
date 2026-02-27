@@ -1,6 +1,6 @@
 import logging
 from collections.abc import AsyncIterator
-from typing import cast
+from typing import NewType, cast
 
 from dishka import Provider, Scope, from_context, provide
 from sqlalchemy.ext.asyncio import (
@@ -36,6 +36,9 @@ from supabase import (
     Client as SupabaseClient,
     create_client,
 )
+
+AdminSupabaseClient = NewType("AdminSupabaseClient", SupabaseClient)
+AuthSupabaseClient = NewType("AuthSupabaseClient", SupabaseClient)
 
 log = logging.getLogger(__name__)
 
@@ -112,33 +115,53 @@ class EntrypointProvider(Provider):
 
 class SupabaseProvider(Provider):
     @provide(scope=Scope.APP)
-    def provide_supabase_client(
+    def provide_admin_supabase_client(
         self,
         security: SecuritySettings,
-    ) -> SupabaseClient:
-        return create_client(
-            security.supabase.url,
-            security.supabase.service_role_key,
+    ) -> AdminSupabaseClient:
+        """Dedicated client for admin operations (create_user, etc.).
+
+        Isolated from user auth state changes that would overwrite the
+        service-role Authorization header.
+        """
+        return AdminSupabaseClient(
+            create_client(
+                security.supabase.url,
+                security.supabase.service_role_key,
+            )
+        )
+
+    @provide(scope=Scope.APP)
+    def provide_auth_supabase_client(
+        self,
+        security: SecuritySettings,
+    ) -> AuthSupabaseClient:
+        """Dedicated client for user-facing auth (sign_in, refresh)."""
+        return AuthSupabaseClient(
+            create_client(
+                security.supabase.url,
+                security.supabase.service_role_key,
+            )
         )
 
     @provide(scope=Scope.APP)
     def provide_account_provisioner(
         self,
-        client: SupabaseClient,
+        client: AdminSupabaseClient,
     ) -> AccountProvisioner:
         return SupabaseAccountProvisioner(client)
 
     @provide(scope=Scope.APP)
     def provide_password_resetter(
         self,
-        client: SupabaseClient,
+        client: AdminSupabaseClient,
     ) -> PasswordResetter:
         return SupabasePasswordResetter(client)
 
     @provide(scope=Scope.APP)
     def provide_token_pair_issuer(
         self,
-        client: SupabaseClient,
+        client: AuthSupabaseClient,
         security: SecuritySettings,
     ) -> TokenPairIssuer:
         return SupabaseTokenPairIssuer(
@@ -149,7 +172,7 @@ class SupabaseProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_token_pair_refresher(
         self,
-        client: SupabaseClient,
+        client: AuthSupabaseClient,
         security: SecuritySettings,
     ) -> TokenPairRefresher:
         return SupabaseTokenPairRefresher(
@@ -160,7 +183,7 @@ class SupabaseProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_access_revoker(
         self,
-        client: SupabaseClient,
+        client: AdminSupabaseClient,
     ) -> AccessRevoker:
         return SupabaseAccessRevoker(client)
 

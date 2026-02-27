@@ -4,6 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, status
 from fastapi_error_map import ErrorAwareRouter, rule
+from gotrue.errors import AuthApiError
 
 from account.application.sign_up.command import SignUpCommand, SignUpResponse
 from account.application.sign_up.handler import AlreadyAuthenticatedError
@@ -28,6 +29,11 @@ def create_sign_up_router() -> APIRouter:
             AlreadyAuthenticatedError: status.HTTP_403_FORBIDDEN,
             AuthorizationError: status.HTTP_403_FORBIDDEN,
             DataMapperError: rule(
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                translator=ServiceUnavailableTranslator(),
+                on_error=log_error,
+            ),
+            AuthApiError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,

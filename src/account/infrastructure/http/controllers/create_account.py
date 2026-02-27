@@ -4,6 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Security, status
 from fastapi_error_map import ErrorAwareRouter, rule
+from gotrue.errors import AuthApiError
 from pydantic import BaseModel, ConfigDict, Field
 
 from account.application.create_account.command import (
@@ -43,6 +44,11 @@ def create_create_account_router() -> APIRouter:
         error_map={
             AuthenticationError: status.HTTP_401_UNAUTHORIZED,
             DataMapperError: rule(
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                translator=ServiceUnavailableTranslator(),
+                on_error=log_error,
+            ),
+            AuthApiError: rule(
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 translator=ServiceUnavailableTranslator(),
                 on_error=log_error,
