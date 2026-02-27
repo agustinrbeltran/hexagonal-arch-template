@@ -46,9 +46,10 @@ dev = [
 ]
 test = [
     "coverage==7.10.0",
+    "httpx==0.28.1",
     "line-profiler==5.0.0",
     "pytest==8.4.1",
-    "pytest-asyncio==1.1.0"
+    "pytest-asyncio==1.1.0",
 ]
 
 [tool.coverage.report]

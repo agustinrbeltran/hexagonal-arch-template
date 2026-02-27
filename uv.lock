@@ -311,6 +311,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "httpx" },
     { name = "line-profiler" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -321,6 +322,7 @@ dev = [
 ]
 test = [
     { name = "coverage" },
+    { name = "httpx" },
     { name = "line-profiler" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -345,6 +347,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = "==7.10.0" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "line-profiler", specifier = "==5.0.0" },
     { name = "mypy", specifier = "==1.17.0" },
     { name = "pre-commit", specifier = "==4.2.0" },
@@ -355,6 +358,7 @@ dev = [
 ]
 test = [
     { name = "coverage", specifier = "==7.10.0" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "line-profiler", specifier = "==5.0.0" },
     { name = "pytest", specifier = "==8.4.1" },
     { name = "pytest-asyncio", specifier = "==1.1.0" },
