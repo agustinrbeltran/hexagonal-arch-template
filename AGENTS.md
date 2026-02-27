@@ -65,7 +65,7 @@ PYTHONPATH=src uv run pytest -k "test_name" -v                     # Single test
 ## Architecture
 
 **Stack:** Python 3.13, FastAPI, Dishka DI, SQLAlchemy 2.0 (imperative mapping),
-bcrypt, PyJWT, PostgreSQL (Supabase)
+Supabase Auth (GoTrue), PyJWT (verify-only), PostgreSQL (Supabase)
 
 **PYTHONPATH is `src/`** — all imports are relative to `src/`.
 
@@ -76,7 +76,7 @@ src/
 ├── account/          # Identity, auth, roles (Account aggregate)
 │   ├── domain/       # Account entity, value objects, permissions, events
 │   ├── application/  # Use cases: sign_up, log_in, activate_account, etc.
-│   └── infrastructure/  # HTTP controllers, SQLAlchemy repos, JWT/bcrypt adapters
+│   └── infrastructure/  # HTTP controllers, SQLAlchemy repos, Supabase auth adapters
 ├── core/             # User profiles (Profile aggregate)
 │   ├── domain/       # Profile entity, Username value object, events
 │   ├── application/  # Use cases: set_username, get_my_profile, list_profiles
@@ -156,3 +156,5 @@ At the end of each implementation:
 1. If the change includes database/schema updates, verify a migration file was
    created in `supabase/migrations/`.
 2. Run `make code.check` before considering the implementation complete.
+3. If the change affects architecture, patterns, or stack, verify `README.md`
+   and `AGENTS.md` are updated to reflect the current state.
