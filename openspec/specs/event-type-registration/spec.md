@@ -1,11 +1,7 @@
-## Purpose
-
-Provides a `register_event` decorator for registering domain event types in the shared event registry without associating a handler. This enables the outbox relay to deserialize events that have no in-process subscriber.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: register_event decorator for independent event type registration
-The system SHALL provide a `register_event(*event_types: type[DomainEvent])` callable in `shared/infrastructure/events/registry.py`. When used as a class decorator on a `DomainEvent` subclass (or called with event classes directly), it SHALL insert each event type into `_event_type_registry` keyed by `event_type.__name__`, without registering any handler. This allows the outbox relay to deserialize events that have no in-process handler.
+The system SHALL provide a `register_event` decorator in `shared/domain/event_registry.py` (moved from `shared/infrastructure/events/registry.py`). When used as a class decorator on a `DomainEvent` subclass, it SHALL insert each event type into `_event_type_registry` keyed by `event_type.__name__`, without registering any handler. The infrastructure module `shared/infrastructure/events/registry.py` SHALL re-export `register_event` and `_event_type_registry` from the domain module for backward compatibility. Domain event files SHALL import `register_event` from `shared.domain.event_registry`.
 
 #### Scenario: Decorated event class is registered at import time
 - **WHEN** a `DomainEvent` subclass is decorated with `@register_event`
@@ -30,3 +26,7 @@ The system SHALL provide a `register_event(*event_types: type[DomainEvent])` cal
 - **GIVEN** an event class decorated with `@register_event` AND a handler decorated with `@handles` for the same event
 - **WHEN** `get_event_class` and `get_handlers_for` are called
 - **THEN** both return the correct values without conflict
+
+#### Scenario: Domain event files import from domain layer
+- **WHEN** inspecting `account/domain/account/events.py` or `core/domain/profile/events.py`
+- **THEN** `register_event` is imported from `shared.domain.event_registry`, NOT from `shared.infrastructure`
